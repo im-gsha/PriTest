@@ -1,0 +1,285 @@
+:root {
+  color-scheme: light dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1.5rem 3rem;
+  line-height: 1.7;
+}
+
+main {
+  padding-top: 1rem;
+}
+
+button {
+  font: inherit;
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 1.5rem;
+}
+
+.site-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.lang-switch button {
+  margin-left: 0.4rem;
+  border: 1px solid #bbb;
+  background: none;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  color: inherit;
+}
+
+.lang-switch button.active {
+  background: #2d6cdf;
+  color: #fff;
+  border-color: #2d6cdf;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  color: #2d6cdf;
+  text-decoration: none;
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.project-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.project-card:hover {
+  border-color: #2d6cdf;
+}
+
+.project-card h2 {
+  margin: 0 0 0.4rem 0;
+  font-size: 1.1rem;
+}
+
+.project-card p {
+  margin: 0;
+  color: #666;
+}
+
+.primary-btn {
+  background: #2d6cdf;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.4rem;
+  cursor: pointer;
+}
+
+.primary-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.actions button:not(.primary-btn) {
+  border: 1px solid #bbb;
+  background: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+  color: inherit;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: 6px;
+  max-width: 640px;
+}
+
+.mini-card {
+  padding: 0.5rem 0;
+  border: 1px solid #999;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.mini-card.red {
+  color: #c0392b;
+}
+
+.mini-card.selected {
+  background: #2d6cdf;
+  color: #fff;
+  border-color: #2d6cdf;
+}
+
+.mini-card.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.board-grid {
+  display: grid;
+  grid-template-columns: 64px repeat(3, 72px) 64px;
+  grid-template-rows: repeat(3, 92px);
+  gap: 8px;
+  justify-content: center;
+  margin: 1.75rem 0;
+}
+
+.pile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #888;
+  border: 1px dashed #bbb;
+  border-radius: 8px;
+  padding: 0.25rem;
+}
+
+.pile-start {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.pile-end {
+  grid-column: 5;
+  grid-row: 2;
+}
+
+.slot {
+  font-size: 1.3rem;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 2px solid #999;
+  cursor: pointer;
+  color: inherit;
+  background: none;
+}
+
+.slot.empty {
+  border-style: dashed;
+  cursor: default;
+}
+
+.slot.face-down {
+  background: #35507a;
+  color: #fff;
+  border-color: #35507a;
+}
+
+.slot.face-up {
+  background: #fff;
+  color: #111;
+}
+
+.slot.face-up.red {
+  color: #c0392b;
+}
+
+.slot-0 { grid-column: 2; grid-row: 1; }
+.slot-1 { grid-column: 3; grid-row: 1; }
+.slot-2 { grid-column: 4; grid-row: 1; }
+.slot-3 { grid-column: 2; grid-row: 2; }
+.slot-4 { grid-column: 3; grid-row: 2; }
+.slot-5 { grid-column: 4; grid-row: 2; }
+.slot-6 { grid-column: 2; grid-row: 3; }
+.slot-7 { grid-column: 3; grid-row: 3; }
+.slot-8 { grid-column: 4; grid-row: 3; }
+
+.log-panel {
+  margin-top: 1.5rem;
+  border-top: 1px solid #ddd;
+  padding-top: 1rem;
+}
+
+.log-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  font-size: 0.9rem;
+}
+
+.log-panel li {
+  padding: 0.3rem 0;
+  border-bottom: 1px dotted #ddd;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal-box {
+  background: #fff;
+  color: #111;
+  padding: 1.5rem;
+  border-radius: 10px;
+  max-width: 320px;
+  width: 100%;
+  text-align: center;
+}
+
+@media (prefers-color-scheme: dark) {
+  .project-card p {
+    color: #aaa;
+  }
+  .mini-card {
+    background: #1c1c1c;
+    border-color: #444;
+  }
+  .slot.face-up {
+    background: #1c1c1c;
+    color: #eee;
+  }
+  .modal-box {
+    background: #222;
+    color: #eee;
+  }
+}
