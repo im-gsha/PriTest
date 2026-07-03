@@ -119,11 +119,19 @@ button {
   color: inherit;
 }
 
-.card-grid {
+.suit-group {
+  margin-bottom: 1rem;
+}
+
+.suit-group h3 {
+  margin: 0 0 0.4rem 0;
+  font-size: 1.1rem;
+}
+
+.suit-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
   gap: 6px;
-  max-width: 640px;
 }
 
 .mini-card {
@@ -136,10 +144,6 @@ button {
   font-weight: 600;
 }
 
-.mini-card.red {
-  color: #c0392b;
-}
-
 .mini-card.selected {
   background: #2d6cdf;
   color: #fff;
@@ -149,6 +153,61 @@ button {
 .mini-card.disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+/* 花色ごとの色分け（黒/赤の二色だけだと紛らわしいため4色に分ける） */
+.suit-black { color: #222; }
+.suit-red { color: #c0392b; }
+.suit-orange { color: #d97706; }
+.suit-green { color: #1a7f5a; }
+
+.mini-card.selected.suit-black,
+.mini-card.selected.suit-red,
+.mini-card.selected.suit-orange,
+.mini-card.selected.suit-green {
+  color: #fff;
+}
+
+.drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(420px, 90vw);
+  overflow-y: auto;
+  background: #fff;
+  color: #111;
+  padding: 1.25rem;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.35);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+
+.drawer.open {
+  pointer-events: auto;
+}
+
+.drawer.open .drawer-backdrop {
+  opacity: 1;
+}
+
+.drawer.open .drawer-panel {
+  transform: translateX(0);
 }
 
 .board-grid {
@@ -170,6 +229,13 @@ button {
   border: 1px dashed #bbb;
   border-radius: 8px;
   padding: 0.25rem;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.pile.active {
+  border: 2px solid #2d6cdf;
+  color: #2d6cdf;
+  font-weight: 700;
 }
 
 .pile-start {
@@ -205,11 +271,11 @@ button {
 
 .slot.face-up {
   background: #fff;
-  color: #111;
 }
 
-.slot.face-up.red {
-  color: #c0392b;
+.slot.latest {
+  outline: 3px solid #f5b301;
+  outline-offset: 2px;
 }
 
 .slot-0 { grid-column: 2; grid-row: 1; }
@@ -228,13 +294,36 @@ button {
   padding-top: 1rem;
 }
 
+.log-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.log-header h2 {
+  margin: 0;
+}
+
+.icon-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.2rem;
+}
+
 .log-panel ul {
   list-style: none;
-  margin: 0;
+  margin: 0.5rem 0 0;
   padding: 0;
   max-height: 260px;
   overflow-y: auto;
   font-size: 0.9rem;
+}
+
+.log-panel ul.collapsed {
+  display: none;
 }
 
 .log-panel li {
@@ -275,6 +364,12 @@ button {
     border-color: #444;
   }
   .slot.face-up {
+    background: #1c1c1c;
+  }
+  .suit-black {
+    color: #eee;
+  }
+  .drawer-panel {
     background: #1c1c1c;
     color: #eee;
   }
