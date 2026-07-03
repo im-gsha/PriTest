@@ -1,96 +1,57 @@
-"""PriTest 用の静的ページ生成スクリプト。
+"""PriTest サイト全体のビルドスクリプト。
 
-依存ライブラリなしで index.html を dist/ ディレクトリに書き出す。
-GitHub Actions から実行され、生成結果が GitHub Pages に公開される。
+site_src/ の Python コードがホームページと各ミニプロジェクトの HTML を
+組み立て、static_src/ の CSS/JS をそのまま dist/static/ にコピーする。
+GitHub Actions から実行され、dist/ がそのまま GitHub Pages に公開される。
 """
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import json
+import shutil
 from pathlib import Path
 
-OUTPUT_DIR = Path(__file__).parent / "dist"
+from site_src.i18n_data import STRINGS
+from site_src.index_page import build_index_html
+from site_src.night_page import build_night_html
 
-FEATURES = [
-    ("Python 製", "generate.py がページの HTML を組み立てます。"),
-    ("GitHub Actions 連携", "main への push で自動ビルド・自動デプロイされます。"),
-    ("GitHub Pages 公開", "ビルド結果はそのまま GitHub Pages で公開されます。"),
-]
-
-PAGE_TEMPLATE = """<!doctype html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PriTest</title>
-<style>
-  :root {{
-    color-scheme: light dark;
-  }}
-  body {{
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif;
-    max-width: 720px;
-    margin: 4rem auto;
-    padding: 0 1.5rem;
-    line-height: 1.7;
-  }}
-  h1 {{
-    font-size: 2rem;
-    margin-bottom: 0.25rem;
-  }}
-  .subtitle {{
-    color: #666;
-    margin-top: 0;
-  }}
-  .card {{
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 1rem 1.25rem;
-    margin: 1rem 0;
-  }}
-  .card h2 {{
-    margin: 0 0 0.4rem 0;
-    font-size: 1.1rem;
-  }}
-  footer {{
-    margin-top: 3rem;
-    font-size: 0.85rem;
-    color: #888;
-  }}
-</style>
-</head>
-<body>
-  <h1>PriTest</h1>
-  <p class="subtitle">Python で生成された自動デプロイ確認用ページです。</p>
-
-  {feature_cards}
-
-  <footer>
-    Build: {build_time} (UTC)
-  </footer>
-</body>
-</html>
-"""
-
-CARD_TEMPLATE = """  <div class="card">
-    <h2>{title}</h2>
-    <p>{description}</p>
-  </div>"""
+ROOT = Path(__file__).parent
+DIST_DIR = ROOT / "dist"
+STATIC_SRC_DIR = ROOT / "static_src"
 
 
-def build_html() -> str:
-    feature_cards = "\n".join(
-        CARD_TEMPLATE.format(title=title, description=description)
-        for title, description in FEATURES
+def build_static_assets() -> None:
+    static_dist = DIST_DIR / "static"
+    static_dist.mkdir(parents=True, exist_ok=True)
+    shutil.copy(STATIC_SRC_DIR / "style.css", static_dist / "style.css")
+    shutil.copy(STATIC_SRC_DIR / "night.js", static_dist / "night.js")
+
+    template = (STATIC_SRC_DIR / "i18n.template.js").read_text(encoding="utf-8")
+    data = json.dumps(STRINGS, ensure_ascii=False, indent=2)
+    (static_dist / "i18n.js").write_text(
+        template.replace("__I18N_DATA__", data), encoding="utf-8"
     )
-    build_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    return PAGE_TEMPLATE.format(feature_cards=feature_cards, build_time=build_time)
+
+
+def build_pages() -> None:
+    (DIST_DIR / "index.html").write_text(build_index_html(), encoding="utf-8")
+
+    night_dir = DIST_DIR / "night"
+    night_dir.mkdir(parents=True, exist_ok=True)
+    (night_dir / "index.html").write_text(build_night_html(), encoding="utf-8")
 
 
 def main() -> None:
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    (OUTPUT_DIR / "index.html").write_text(build_html(), encoding="utf-8")
-    print(f"Generated {OUTPUT_DIR / 'index.html'}")
+    for name in ("index.html", "night", "static"):
+        target = DIST_DIR / name
+        if target.is_dir():
+            shutil.rmtree(target)
+        elif target.exists():
+            target.unlink()
+    DIST_DIR.mkdir(parents=True, exist_ok=True)
+    build_static_assets()
+    build_pages()
+    print(f"Generated site into {DIST_DIR}")
 
 
 if __name__ == "__main__":
