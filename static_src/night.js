@@ -6,6 +6,8 @@
   var RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
   var SLOT_COUNT = 9;
   var STORAGE_KEY = "pritest-night-state";
+  var NEW_GAME_PASSWORD = "night";
+  var LEVEL_STEPS = [null, 0, 1, 2, 3, 4, 5]; // null = "全"（未指定）
 
   function buildDeck() {
     var deck = [];
@@ -30,12 +32,16 @@
 
   var state = {
     slots: new Array(SLOT_COUNT).fill(null), // { code, revealed } | null
+    cardLevels: new Array(SLOT_COUNT).fill(null), // null("全") | 0-5
     boardStarted: false,
     log: [], // { key, params, time(ms) }
-    lastRevealedIndex: null,
+    focusedIndex: null,
     selection: new Set(),
     selectMode: "initial",
     maxSelect: SLOT_COUNT,
+    dayNumber: 1,
+    startSuit: null,
+    endSuit: null,
   };
 
   function shuffle(arr) {
@@ -57,12 +63,24 @@
     return set;
   }
 
+  function isSwappedDay() {
+    return state.dayNumber % 2 === 0;
+  }
+
+  function fieldLevelsForDay() {
+    return isSwappedDay() ? [5, 4, 3] : [0, 1, 2];
+  }
+
   function saveState() {
     var data = {
       slots: state.slots,
+      cardLevels: state.cardLevels,
       boardStarted: state.boardStarted,
       log: state.log,
-      lastRevealedIndex: state.lastRevealedIndex,
+      focusedIndex: state.focusedIndex,
+      dayNumber: state.dayNumber,
+      startSuit: state.startSuit,
+      endSuit: state.endSuit,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
@@ -75,10 +93,15 @@
       if (Array.isArray(data.slots) && data.slots.length === SLOT_COUNT) {
         state.slots = data.slots;
       }
+      if (Array.isArray(data.cardLevels) && data.cardLevels.length === SLOT_COUNT) {
+        state.cardLevels = data.cardLevels;
+      }
       state.boardStarted = !!data.boardStarted;
       state.log = Array.isArray(data.log) ? data.log : [];
-      state.lastRevealedIndex =
-        typeof data.lastRevealedIndex === "number" ? data.lastRevealedIndex : null;
+      state.focusedIndex = typeof data.focusedIndex === "number" ? data.focusedIndex : null;
+      state.dayNumber = typeof data.dayNumber === "number" ? data.dayNumber : 1;
+      state.startSuit = SUITS.indexOf(data.startSuit) !== -1 ? data.startSuit : null;
+      state.endSuit = SUITS.indexOf(data.endSuit) !== -1 ? data.endSuit : null;
     } catch (e) {
       // 壊れた状態は無視して初期状態のまま続行する
     }
@@ -86,9 +109,13 @@
 
   function resetState() {
     state.slots = new Array(SLOT_COUNT).fill(null);
+    state.cardLevels = new Array(SLOT_COUNT).fill(null);
     state.boardStarted = false;
     state.log = [];
-    state.lastRevealedIndex = null;
+    state.focusedIndex = null;
+    state.dayNumber = 1;
+    state.startSuit = null;
+    state.endSuit = null;
     localStorage.removeItem(STORAGE_KEY);
   }
 
@@ -117,12 +144,63 @@
         var card = CARD_BY_CODE[slot.code];
         el.textContent = card.label;
         el.classList.add("face-up", card.colorClass);
-        if (state.lastRevealedIndex === i) el.classList.add("latest");
       }
+      if (slot && state.focusedIndex === i) el.classList.add("latest");
+
+      var levelControl = document.getElementById("level-control-" + i);
+      levelControl.style.display = slot ? "flex" : "none";
+      renderCardLevel(i);
     }
-    document.getElementById("pile-start").classList.toggle("active", state.boardStarted);
-    document.getElementById("pile-end").classList.toggle("active", state.boardStarted);
+    renderPiles();
+    renderFieldLevels();
+    renderDayStatus();
     renderPrimaryButton();
+  }
+
+  function renderFieldLevels() {
+    var levels = fieldLevelsForDay();
+    levels.forEach(function (n, i) {
+      document.getElementById("field-level-" + i).textContent = "±" + n;
+    });
+  }
+
+  function renderDayStatus() {
+    document.getElementById("day-status").textContent = window.I18N.t("day_status", {
+      n: state.dayNumber,
+    });
+  }
+
+  function renderPiles() {
+    document.getElementById("board-grid").classList.toggle("swapped", isSwappedDay());
+    renderPileButton("pile-start", "start_point_label", state.startSuit);
+    renderPileButton("pile-end", "end_point_label", state.endSuit);
+  }
+
+  function renderPileButton(id, labelKey, suit) {
+    var el = document.getElementById(id);
+    SUIT_CLASSES.forEach(function (cls) {
+      el.classList.remove(cls);
+    });
+    var label = window.I18N.t(labelKey);
+    el.textContent = suit ? label + " " + SUIT_SYMBOL[suit] : label;
+    if (suit) el.classList.add(SUIT_CLASS[suit]);
+    el.classList.toggle("active", state.boardStarted);
+  }
+
+  function renderCardLevel(index) {
+    var el = document.getElementById("level-value-" + index);
+    var v = state.cardLevels[index];
+    el.textContent = v === null || v === undefined ? window.I18N.t("level_all") : String(v);
+  }
+
+  function stepCardLevel(index, dir) {
+    if (!state.slots[index]) return;
+    var curIdx = LEVEL_STEPS.indexOf(state.cardLevels[index]);
+    if (curIdx === -1) curIdx = 0;
+    var nextIdx = (curIdx + dir + LEVEL_STEPS.length) % LEVEL_STEPS.length;
+    state.cardLevels[index] = LEVEL_STEPS[nextIdx];
+    renderCardLevel(index);
+    saveState();
   }
 
   function renderPrimaryButton() {
@@ -137,7 +215,7 @@
         openSelectDrawer("initial", SLOT_COUNT);
       };
     } else {
-      btn.textContent = window.I18N.t("continue_button");
+      btn.textContent = window.I18N.t("next_night_button");
       btn.disabled = emptyCount === 0;
       btn.onclick = function () {
         openSelectDrawer("continue", emptyCount);
@@ -274,13 +352,60 @@
 
     targetPositions.forEach(function (pos, i) {
       state.slots[pos] = { code: codes[i], revealed: false };
+      state.cardLevels[pos] = null;
     });
 
-    var logKey = state.selectMode === "initial" ? "log_select_submit" : "log_continue_submit";
+    var wasContinue = state.selectMode === "continue";
+    var logKey = wasContinue ? "log_continue_submit" : "log_select_submit";
     state.boardStarted = true;
+    if (wasContinue) state.dayNumber += 1;
     closeSelectDrawer();
     renderBoard();
     addLog(logKey, { n: codes.length, cards: cardsLabel });
+    if (wasContinue) addLog("log_next_night", { day: state.dayNumber });
+  }
+
+  // --- suit picker ---
+  function openSuitPicker(which) {
+    if (!state.boardStarted) return;
+    var modal = document.getElementById("suit-modal");
+    document.getElementById("suit-modal-title").textContent = window.I18N.t(
+      which === "start" ? "select_suit_start_title" : "select_suit_end_title"
+    );
+    var grid = document.getElementById("suit-modal-grid");
+    grid.innerHTML = "";
+    var current = which === "start" ? state.startSuit : state.endSuit;
+    SUITS.forEach(function (suit) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "mini-card " + SUIT_CLASS[suit] + (current === suit ? " selected" : "");
+      btn.textContent = SUIT_SYMBOL[suit];
+      btn.addEventListener("click", function () {
+        if (which === "start") state.startSuit = suit;
+        else state.endSuit = suit;
+        closeSuitPicker();
+        renderPiles();
+        saveState();
+        addLog(which === "start" ? "log_set_start_suit" : "log_set_end_suit", {
+          suit: SUIT_SYMBOL[suit],
+        });
+      });
+      grid.appendChild(btn);
+    });
+    document.getElementById("suit-modal-clear").onclick = function () {
+      if (which === "start") state.startSuit = null;
+      else state.endSuit = null;
+      closeSuitPicker();
+      renderPiles();
+      saveState();
+      addLog(which === "start" ? "log_clear_start_suit" : "log_clear_end_suit");
+    };
+    document.getElementById("suit-modal-close").onclick = closeSuitPicker;
+    modal.hidden = false;
+  }
+
+  function closeSuitPicker() {
+    document.getElementById("suit-modal").hidden = true;
   }
 
   // --- modal ---
@@ -311,13 +436,16 @@
   function onSlotClick(index) {
     var slot = state.slots[index];
     if (!slot) return;
+    state.focusedIndex = index;
+    renderBoard();
+    saveState();
+
     var card = CARD_BY_CODE[slot.code];
     if (!slot.revealed) {
       openConfirm(
         "confirm_reveal_msg",
         function () {
           slot.revealed = true;
-          state.lastRevealedIndex = index;
           renderBoard();
           addLog("log_reveal", { slot: index + 1, card: card.label });
         },
@@ -330,7 +458,8 @@
         "confirm_draw_msg",
         function () {
           state.slots[index] = null;
-          if (state.lastRevealedIndex === index) state.lastRevealedIndex = null;
+          state.cardLevels[index] = null;
+          if (state.focusedIndex === index) state.focusedIndex = null;
           renderBoard();
           addLog("log_draw_out", { slot: index + 1, card: card.label });
         },
@@ -341,32 +470,66 @@
     }
   }
 
+  function checkNewGamePassword() {
+    var input = window.prompt(window.I18N.t("new_game_password_prompt"));
+    return input === NEW_GAME_PASSWORD;
+  }
+
   function handleNewGame() {
-    if (!state.boardStarted) {
-      resetState();
-      renderBoard();
-      renderLog();
-      return;
-    }
-    openConfirm("confirm_new_game_msg", function () {
-      resetState();
-      renderBoard();
-      addLog("log_new_game");
-    });
+    if (!checkNewGamePassword()) return;
+    var hadBoard = state.boardStarted;
+    resetState();
+    renderBoard();
+    renderLog();
+    if (hadBoard) addLog("log_new_game");
   }
 
   function buildBoardSlots() {
     var grid = document.getElementById("board-grid");
     for (var i = 0; i < SLOT_COUNT; i++) {
       (function (index) {
+        var wrap = document.createElement("div");
+        wrap.className = "slot-wrap slot-wrap-" + index;
+
         var btn = document.createElement("button");
         btn.type = "button";
         btn.id = "slot-" + index;
-        btn.className = "slot slot-" + index + " empty";
+        btn.className = "slot empty";
         btn.addEventListener("click", function () {
           onSlotClick(index);
         });
-        grid.appendChild(btn);
+        wrap.appendChild(btn);
+
+        var levelControl = document.createElement("div");
+        levelControl.className = "level-control";
+        levelControl.id = "level-control-" + index;
+
+        var minus = document.createElement("button");
+        minus.type = "button";
+        minus.className = "level-btn";
+        minus.textContent = "-";
+        minus.addEventListener("click", function () {
+          stepCardLevel(index, -1);
+        });
+
+        var value = document.createElement("span");
+        value.className = "level-value";
+        value.id = "level-value-" + index;
+
+        var plus = document.createElement("button");
+        plus.type = "button";
+        plus.className = "level-btn";
+        plus.textContent = "+";
+        plus.addEventListener("click", function () {
+          stepCardLevel(index, 1);
+        });
+
+        levelControl.appendChild(minus);
+        levelControl.appendChild(value);
+        levelControl.appendChild(plus);
+        wrap.appendChild(levelControl);
+
+        grid.appendChild(wrap);
       })(i);
     }
   }
@@ -385,6 +548,12 @@
     document.getElementById("btn-log-toggle").addEventListener("click", function () {
       document.getElementById("log-list").classList.toggle("collapsed");
       renderLogToggleLabel();
+    });
+    document.getElementById("pile-start").addEventListener("click", function () {
+      openSuitPicker("start");
+    });
+    document.getElementById("pile-end").addEventListener("click", function () {
+      openSuitPicker("end");
     });
 
     window.addEventListener("i18n:change", function () {

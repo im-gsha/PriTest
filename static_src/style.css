@@ -210,14 +210,31 @@ button {
   transform: translateX(0);
 }
 
+.day-status {
+  margin: -0.5rem 0 0;
+  color: #888;
+  font-size: 0.9rem;
+}
+
 .board-grid {
   display: grid;
   grid-template-columns: 64px repeat(3, 72px) 64px;
-  grid-template-rows: repeat(3, 92px);
+  grid-template-rows: 20px repeat(3, 108px);
   gap: 8px;
   justify-content: center;
   margin: 1.75rem 0;
 }
+
+.field-level {
+  grid-row: 1;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.field-level-0 { grid-column: 2; }
+.field-level-1 { grid-column: 3; }
+.field-level-2 { grid-column: 4; }
 
 .pile {
   display: flex;
@@ -229,6 +246,7 @@ button {
   border: 1px dashed #bbb;
   border-radius: 8px;
   padding: 0.25rem;
+  cursor: pointer;
   transition: border-color 0.2s ease, color 0.2s ease;
 }
 
@@ -236,19 +254,46 @@ button {
   border: 2px solid #2d6cdf;
   color: #2d6cdf;
   font-weight: 700;
+  cursor: pointer;
 }
 
 .pile-start {
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 3;
 }
 
 .pile-end {
   grid-column: 5;
-  grid-row: 2;
+  grid-row: 3;
 }
 
+.board-grid.swapped .pile-start {
+  grid-column: 5;
+}
+
+.board-grid.swapped .pile-end {
+  grid-column: 1;
+}
+
+.slot-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+}
+
+.slot-wrap-0 { grid-column: 2; grid-row: 2; }
+.slot-wrap-1 { grid-column: 3; grid-row: 2; }
+.slot-wrap-2 { grid-column: 4; grid-row: 2; }
+.slot-wrap-3 { grid-column: 2; grid-row: 3; }
+.slot-wrap-4 { grid-column: 3; grid-row: 3; }
+.slot-wrap-5 { grid-column: 4; grid-row: 3; }
+.slot-wrap-6 { grid-column: 2; grid-row: 4; }
+.slot-wrap-7 { grid-column: 3; grid-row: 4; }
+.slot-wrap-8 { grid-column: 4; grid-row: 4; }
+
 .slot {
+  flex: 1 1 auto;
   font-size: 1.3rem;
   font-weight: 700;
   border-radius: 8px;
@@ -278,15 +323,38 @@ button {
   outline-offset: 2px;
 }
 
-.slot-0 { grid-column: 2; grid-row: 1; }
-.slot-1 { grid-column: 3; grid-row: 1; }
-.slot-2 { grid-column: 4; grid-row: 1; }
-.slot-3 { grid-column: 2; grid-row: 2; }
-.slot-4 { grid-column: 3; grid-row: 2; }
-.slot-5 { grid-column: 4; grid-row: 2; }
-.slot-6 { grid-column: 2; grid-row: 3; }
-.slot-7 { grid-column: 3; grid-row: 3; }
-.slot-8 { grid-column: 4; grid-row: 3; }
+.level-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 0.75rem;
+}
+
+.level-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  line-height: 1;
+  border: 1px solid #999;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.level-value {
+  min-width: 1.6em;
+  text-align: center;
+  font-weight: 600;
+}
+
+.suit-modal-grid {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 1rem 0;
+}
 
 .log-panel {
   margin-top: 1.5rem;
