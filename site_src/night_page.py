@@ -15,9 +15,14 @@ from __future__ import annotations
 
 from site_src.layout import page_shell
 
-BODY = """    <a class="back-link" href="../index.html" data-i18n="back_home"></a>
+BODY = """    <a id="link-characters" class="back-link" href="../index.html" data-i18n="back_characters"></a>
     <h1 data-i18n="project_night_name"></h1>
     <p id="day-status" class="day-status"></p>
+
+    <div id="screen-missing-game" hidden>
+      <p data-i18n="game_not_found"></p>
+      <a class="back-link" href="../admin/index.html" data-i18n="back_admin"></a>
+    </div>
 
     <section id="screen-board" class="screen">
       <div class="board-grid" id="board-grid">
@@ -82,5 +87,5 @@ def build_night_html() -> str:
         body=BODY,
         static_prefix="../static/",
         home_href="../index.html",
-        extra_scripts=("night.js",),
+        extra_scripts=("games.js", "night.js"),
     )

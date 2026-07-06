@@ -11,6 +11,8 @@ import json
 import shutil
 from pathlib import Path
 
+from site_src.admin_page import build_admin_html
+from site_src.characters_page import build_characters_html
 from site_src.i18n_data import STRINGS
 from site_src.index_page import build_index_html
 from site_src.night_page import build_night_html
@@ -24,7 +26,8 @@ def build_static_assets() -> None:
     static_dist = DIST_DIR / "static"
     static_dist.mkdir(parents=True, exist_ok=True)
     shutil.copy(STATIC_SRC_DIR / "style.css", static_dist / "style.css")
-    shutil.copy(STATIC_SRC_DIR / "night.js", static_dist / "night.js")
+    for name in ("games.js", "night.js", "admin.js", "characters.js"):
+        shutil.copy(STATIC_SRC_DIR / name, static_dist / name)
 
     template = (STATIC_SRC_DIR / "i18n.template.js").read_text(encoding="utf-8")
     data = json.dumps(STRINGS, ensure_ascii=False, indent=2)
@@ -40,9 +43,17 @@ def build_pages() -> None:
     night_dir.mkdir(parents=True, exist_ok=True)
     (night_dir / "index.html").write_text(build_night_html(), encoding="utf-8")
 
+    admin_dir = DIST_DIR / "admin"
+    admin_dir.mkdir(parents=True, exist_ok=True)
+    (admin_dir / "index.html").write_text(build_admin_html(), encoding="utf-8")
+
+    characters_dir = DIST_DIR / "characters"
+    characters_dir.mkdir(parents=True, exist_ok=True)
+    (characters_dir / "index.html").write_text(build_characters_html(), encoding="utf-8")
+
 
 def main() -> None:
-    for name in ("index.html", "night", "static"):
+    for name in ("index.html", "night", "admin", "characters", "static"):
         target = DIST_DIR / name
         if target.is_dir():
             shutil.rmtree(target)

@@ -5,9 +5,13 @@
   var SUIT_CLASSES = ["suit-black", "suit-red", "suit-orange", "suit-green"];
   var RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
   var SLOT_COUNT = 9;
-  var STORAGE_KEY = "pritest-night-state";
   var NEW_GAME_PASSWORD = "night";
   var LEVEL_STEPS = [null, 0, 1, 2, 3, 4, 5]; // null = "全"（未指定）
+
+  var Games = window.PriTestGames;
+  var gameId = Games.getGameIdFromQuery();
+  var game = gameId ? Games.get(gameId) : null;
+  var STORAGE_KEY = "pritest-night-state-" + gameId;
 
   function buildDeck() {
     var deck = [];
@@ -165,9 +169,8 @@
   }
 
   function renderDayStatus() {
-    document.getElementById("day-status").textContent = window.I18N.t("day_status", {
-      n: state.dayNumber,
-    });
+    var dayText = window.I18N.t("day_status", { n: state.dayNumber });
+    document.getElementById("day-status").textContent = game.name + " " + dayText;
   }
 
   function renderPiles() {
@@ -535,6 +538,17 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    if (!game) {
+      document.getElementById("screen-missing-game").hidden = false;
+      document.getElementById("screen-board").hidden = true;
+      document.getElementById("day-status").hidden = true;
+      document.getElementById("link-characters").hidden = true;
+      return;
+    }
+
+    document.getElementById("link-characters").href =
+      "../characters/index.html?game=" + encodeURIComponent(gameId);
+
     buildBoardSlots();
     loadState();
     renderBoard();
