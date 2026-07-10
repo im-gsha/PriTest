@@ -22,6 +22,22 @@ BODY = """    <a class="back-link" href="../index.html" data-i18n="back_home"></
     </div>
 
     <ul id="game-list" class="game-list"></ul>
+
+    <div id="share-modal" class="modal" hidden>
+      <div class="modal-box share-modal-box">
+        <h2 data-i18n="share_title"></h2>
+        <p id="share-oversize-note" class="threat-ref-body" hidden data-i18n="share_qr_too_large"></p>
+        <canvas id="share-qr-canvas"></canvas>
+        <div class="field-row-block">
+          <label data-i18n="share_link_label"></label>
+          <input type="text" id="share-url-input" readonly>
+        </div>
+        <div class="actions">
+          <button id="btn-share-copy" type="button" class="primary-btn" data-i18n="share_copy_button"></button>
+          <button id="btn-share-close" type="button" data-i18n="close_button"></button>
+        </div>
+      </div>
+    </div>
 """
 
 
@@ -31,5 +47,5 @@ def build_admin_html() -> str:
         body=BODY,
         static_prefix="../static/",
         home_href="../index.html",
-        extra_scripts=("games.js", "scenarios.js", "admin.js"),
+        extra_scripts=("games.js", "scenarios.js", "qrcode.js", "admin.js"),
     )
