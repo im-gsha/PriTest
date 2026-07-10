@@ -17,7 +17,9 @@
       },
       abilities: [
         {
+          id: "sixth_sense",
           level: 1,
+          uses: 1,
           kind: "Defense",
           name: { zh: "第六感", ja: "第六感" },
           body: {
@@ -28,7 +30,9 @@
       ],
       skills: [
         {
+          id: "claw_shot",
           level: 2,
+          uses: 2,
           kind: "Action",
           name: { zh: "爪擊", ja: "クローショット" },
           body: {
@@ -39,7 +43,9 @@
       ],
       arts: [
         {
+          id: "assault_wedge",
           level: 3,
+          uses: 1,
           kind: "Action",
           name: { zh: "襲擊之楔", ja: "襲撃の楔" },
           body: {

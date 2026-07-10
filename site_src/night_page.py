@@ -65,7 +65,19 @@ BODY = """    <div class="night-header-row">
       </div>
       <div class="character-roster" id="character-roster">
         <h3 data-i18n="character_roster_title"></h3>
-        <div id="character-roster-list" class="character-roster-list"></div>
+        <table class="character-roster-table" id="character-roster-table">
+          <thead>
+            <tr>
+              <th data-i18n="character_roster_col_name"></th>
+              <th data-i18n="character_type_label"></th>
+              <th data-i18n="record_level_label"></th>
+              <th data-i18n="character_hp_label"></th>
+              <th data-i18n="character_fp_label"></th>
+            </tr>
+          </thead>
+          <tbody id="character-roster-tbody"></tbody>
+        </table>
+        <div id="character-roster-skills"></div>
       </div>
       <div class="log-panel">
         <div class="log-header">
@@ -146,7 +158,7 @@ BODY = """    <div class="night-header-row">
 
         <div class="threat-ref-block">
           <h3 data-i18n="roll_table_title"></h3>
-          <p id="roll-table-body" class="threat-ref-body"></p>
+          <div id="roll-effects-list" class="tl-list"></div>
         </div>
 
         <div class="threat-ref-block">
@@ -182,60 +194,166 @@ BODY = """    <div class="night-header-row">
       </div>
     </div>
 
-    <div id="character-view-drawer" class="drawer">
-      <div class="drawer-backdrop" id="character-view-backdrop"></div>
+    <div id="character-drawer" class="drawer">
+      <div class="drawer-backdrop" id="character-drawer-backdrop"></div>
       <div class="drawer-panel">
-        <h2 id="cv-name"></h2>
-        <p id="cv-type-badge" class="character-type-badge"></p>
-        <p id="cv-summary" class="threat-ref-body"></p>
+        <h2 id="character-drawer-name"></h2>
+        <p id="character-type-badge" class="character-type-badge"></p>
 
-        <div class="threat-ref-block">
-          <h3 data-i18n="cv_ultimate_label"></h3>
-          <p id="cv-ultimate" class="threat-ref-body"></p>
+        <label class="field-row">
+          <input type="checkbox" id="char-entered">
+          <span data-i18n="character_entered_label"></span>
+        </label>
+
+        <div class="field-grid">
+          <label class="field-row">
+            <span data-i18n="character_hp_label"></span>
+            <input type="number" id="char-hp-current" class="stat-input">
+            <span>/</span>
+            <input type="number" id="char-hp-max" class="stat-input">
+          </label>
+          <label class="field-row">
+            <span data-i18n="character_fp_label"></span>
+            <input type="number" id="char-fp-current" class="stat-input">
+            <span>/</span>
+            <input type="number" id="char-fp-max" class="stat-input">
+          </label>
         </div>
 
+        <label class="field-row-block">
+          <span data-i18n="character_blessing_label"></span>
+          <input type="text" id="char-blessing">
+        </label>
+
+        <label class="field-row-block">
+          <span data-i18n="character_attribute_label"></span>
+          <input type="text" id="char-attribute">
+        </label>
+
+        <label class="field-row-block">
+          <span data-i18n="character_ultimate_label"></span>
+          <input type="text" id="char-ultimate">
+        </label>
+
+        <div class="tag-field" data-field="status">
+          <h3 data-i18n="character_status_label"></h3>
+          <div class="tag-list" id="tag-list-status"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-status">
+            <button type="button" class="tag-add-btn" data-field="status" data-i18n="tag_add_button"></button>
+          </div>
+        </div>
+
+        <div class="tag-field" data-field="equipment">
+          <h3 data-i18n="character_equipment_label"></h3>
+          <div class="tag-list" id="tag-list-equipment"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-equipment">
+            <button type="button" class="tag-add-btn" data-field="equipment" data-i18n="tag_add_button"></button>
+          </div>
+        </div>
+
+        <div class="tag-field" data-field="weapons">
+          <h3 data-i18n="character_weapons_label"></h3>
+          <div class="tag-list" id="tag-list-weapons"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-weapons">
+            <button type="button" class="tag-add-btn" data-field="weapons" data-i18n="tag_add_button"></button>
+          </div>
+        </div>
+
+        <div class="tag-field" data-field="skills">
+          <h3 data-i18n="character_skills_label"></h3>
+          <div class="tag-list" id="tag-list-skills"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-skills">
+            <button type="button" class="tag-add-btn" data-field="skills" data-i18n="tag_add_button"></button>
+          </div>
+        </div>
+
+        <div class="tag-field" data-field="items">
+          <h3 data-i18n="character_items_label"></h3>
+          <div class="tag-list" id="tag-list-items"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-items">
+            <button type="button" class="tag-add-btn" data-field="items" data-i18n="tag_add_button"></button>
+          </div>
+        </div>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="record_sheet_title"></h3>
+          <div class="field-grid">
+            <label class="field-row">
+              <span data-i18n="record_level_label"></span>
+              <input type="number" id="char-level" class="stat-input">
+            </label>
+            <label class="field-row">
+              <span data-i18n="record_runes_label"></span>
+              <input type="number" id="char-runes" class="stat-input">
+            </label>
+          </div>
+          <div class="field-grid">
+            <label class="field-row">
+              <span data-i18n="character_blessing_slots_label"></span>
+              <input type="number" id="char-blessing-current" class="stat-input">
+              <span>/</span>
+              <input type="number" id="char-blessing-max" class="stat-input">
+            </label>
+          </div>
+          <div class="field-grid">
+            <label class="field-row">
+              <span data-i18n="record_flask_base_label"></span>
+              <input type="number" id="char-flask-base-used" class="stat-input">
+              <span>/</span>
+              <input type="number" id="char-flask-base-max" class="stat-input">
+            </label>
+            <label class="field-row">
+              <span data-i18n="record_flask_extra_label"></span>
+              <input type="number" id="char-flask-extra-used" class="stat-input">
+              <span>/</span>
+              <input type="number" id="char-flask-extra-max" class="stat-input">
+            </label>
+          </div>
+          <label class="field-row">
+            <span data-i18n="record_revival_label"></span>
+            <input type="number" id="char-revival-count" class="stat-input" min="0">
+          </label>
+        </div>
+
+        <div class="tag-field" data-field="talismans">
+          <h3 data-i18n="record_talismans_label"></h3>
+          <div class="tag-list" id="tag-list-talismans"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-talismans">
+            <button type="button" class="tag-add-btn" data-field="talismans" data-i18n="tag_add_button"></button>
+          </div>
+        </div>
+
+        <div class="tag-field" data-field="buildup">
+          <h3 data-i18n="record_buildup_label"></h3>
+          <div class="tag-list" id="tag-list-buildup"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-buildup">
+            <button type="button" class="tag-add-btn" data-field="buildup" data-i18n="tag_add_button"></button>
+          </div>
+        </div>
+
+        <div class="threat-ref-block" id="type-reference-block" hidden>
+          <h3 id="type-reference-title"></h3>
+          <p id="type-reference-stats" class="threat-ref-body"></p>
+        </div>
         <div class="threat-ref-block">
           <h3 data-i18n="cv_active_skills_title"></h3>
-          <div id="cv-active-skills"></div>
+          <div id="type-active-skills"></div>
         </div>
-
         <div class="threat-ref-block">
           <h3 data-i18n="cv_passives_title"></h3>
-          <div id="cv-passives"></div>
-        </div>
-
-        <div class="threat-ref-block">
-          <h3 data-i18n="character_status_label"></h3>
-          <div id="cv-status" class="tag-list"></div>
-        </div>
-        <div class="threat-ref-block">
-          <h3 data-i18n="character_equipment_label"></h3>
-          <div id="cv-equipment" class="tag-list"></div>
-        </div>
-        <div class="threat-ref-block">
-          <h3 data-i18n="character_weapons_label"></h3>
-          <div id="cv-weapons" class="tag-list"></div>
-        </div>
-        <div class="threat-ref-block">
-          <h3 data-i18n="character_skills_label"></h3>
-          <div id="cv-skills" class="tag-list"></div>
-        </div>
-        <div class="threat-ref-block">
-          <h3 data-i18n="character_items_label"></h3>
-          <div id="cv-items" class="tag-list"></div>
-        </div>
-        <div class="threat-ref-block">
-          <h3 data-i18n="record_talismans_label"></h3>
-          <div id="cv-talismans" class="tag-list"></div>
-        </div>
-        <div class="threat-ref-block">
-          <h3 data-i18n="record_buildup_label"></h3>
-          <div id="cv-buildup" class="tag-list"></div>
+          <div id="type-passives"></div>
         </div>
 
         <div class="actions">
-          <a id="cv-edit-link" class="primary-btn" href="#" data-i18n="cv_edit_link"></a>
-          <button id="btn-character-view-close" type="button" data-i18n="close_button"></button>
+          <button id="btn-delete-character" type="button" class="danger-btn" data-i18n="delete_character_button"></button>
+          <button id="btn-character-close" type="button" class="primary-btn" data-i18n="close_button"></button>
         </div>
       </div>
     </div>
@@ -248,5 +366,11 @@ def build_night_html() -> str:
         body=BODY,
         static_prefix="../static/",
         home_href="../index.html",
-        extra_scripts=("games.js", "scenarios.js", "character_types.js", "night.js"),
+        extra_scripts=(
+            "games.js",
+            "scenarios.js",
+            "character_types.js",
+            "character_drawer.js",
+            "night.js",
+        ),
     )

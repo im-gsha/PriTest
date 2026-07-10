@@ -11,122 +11,98 @@
   var Games = window.PriTestGames;
   var Scenarios = window.PriTestScenarios;
   var CharacterTypes = window.PriTestCharacterTypes;
+  var CharacterDrawer = window.PriTestCharacterDrawer;
   var gameId = Games.getGameIdFromQuery();
   var game = gameId ? Games.get(gameId) : null;
   var scenario = game && game.scenarioId ? Scenarios.get(game.scenarioId) : null;
   var STORAGE_KEY = "pritest-night-state-" + gameId;
   var CHARACTERS_KEY = "pritest-characters-" + gameId;
+  var rosterCharacters = [];
 
   function loadRosterCharacters() {
     var raw = localStorage.getItem(CHARACTERS_KEY);
     if (!raw) return [];
     try {
       var data = JSON.parse(raw);
-      return Array.isArray(data) ? data : [];
+      var list = Array.isArray(data) ? data : [];
+      return list.map(CharacterDrawer.ensureDefaults);
     } catch (e) {
       return [];
     }
   }
 
+  function saveRosterCharacters() {
+    localStorage.setItem(CHARACTERS_KEY, JSON.stringify(rosterCharacters));
+  }
+
   function renderCharacterRoster() {
-    var list = document.getElementById("character-roster-list");
-    var characters = loadRosterCharacters();
-    list.innerHTML = "";
-    if (characters.length === 0) {
-      var empty = document.createElement("p");
-      empty.className = "character-roster-empty";
-      empty.textContent = window.I18N.t("character_roster_empty");
-      list.appendChild(empty);
+    var tbody = document.getElementById("character-roster-tbody");
+    var skillsWrap = document.getElementById("character-roster-skills");
+    tbody.innerHTML = "";
+    skillsWrap.innerHTML = "";
+
+    var entered = rosterCharacters.filter(function (c) {
+      return c.entered;
+    });
+
+    if (entered.length === 0) {
+      var emptyRow = document.createElement("tr");
+      var td = document.createElement("td");
+      td.colSpan = 5;
+      td.className = "character-roster-empty";
+      td.textContent = window.I18N.t("character_roster_empty");
+      emptyRow.appendChild(td);
+      tbody.appendChild(emptyRow);
       return;
     }
-    characters.forEach(function (c) {
-      var btn = document.createElement("button");
-      btn.type = "button";
+
+    entered.forEach(function (c) {
       var type = c.typeId && CharacterTypes ? CharacterTypes.get(c.typeId) : null;
-      btn.textContent = type ? c.name + "（" + CharacterTypes.localizedName(type.name) + "）" : c.name;
-      btn.addEventListener("click", function () {
-        openCharacterView(c.id);
+
+      var tr = document.createElement("tr");
+      var nameTd = document.createElement("td");
+      var nameBtn = document.createElement("button");
+      nameBtn.type = "button";
+      nameBtn.className = "character-name-btn";
+      nameBtn.textContent = c.name;
+      nameBtn.addEventListener("click", function () {
+        CharacterDrawer.open(c.id);
       });
-      list.appendChild(btn);
-    });
-  }
+      nameTd.appendChild(nameBtn);
+      tr.appendChild(nameTd);
 
-  var CV_TAG_FIELDS = ["status", "equipment", "weapons", "skills", "items", "talismans", "buildup"];
-
-  function renderReadonlyTagList(containerId, values) {
-    var container = document.getElementById(containerId);
-    container.innerHTML = "";
-    (values || []).forEach(function (v) {
-      var chip = document.createElement("span");
-      chip.className = "tag-chip";
-      chip.textContent = v;
-      container.appendChild(chip);
-    });
-  }
-
-  function renderAbilityEntryReadonly(container, entry) {
-    var box = document.createElement("div");
-    box.className = "ability-entry";
-    var h = document.createElement("h4");
-    h.textContent =
-      CharacterTypes.localizedText(entry.name) +
-      "［" + entry.kind + "］" +
-      (entry.level ? "　" + window.I18N.t("ability_level_label", { level: entry.level }) : "");
-    var body = document.createElement("p");
-    body.className = "threat-ref-body";
-    body.textContent = CharacterTypes.localizedText(entry.body);
-    box.appendChild(h);
-    box.appendChild(body);
-    container.appendChild(box);
-  }
-
-  function openCharacterView(id) {
-    var characters = loadRosterCharacters();
-    var c = characters.filter(function (x) {
-      return x.id === id;
-    })[0];
-    if (!c) return;
-    var type = c.typeId && CharacterTypes ? CharacterTypes.get(c.typeId) : null;
-
-    document.getElementById("cv-name").textContent = c.name;
-    document.getElementById("cv-type-badge").textContent = type
-      ? window.I18N.t("character_type_label") + window.I18N.t("colon_separator") + CharacterTypes.localizedName(type.name)
-      : "";
-    document.getElementById("cv-summary").textContent = [
-      window.I18N.t("character_hp_label") + window.I18N.t("colon_separator") + c.hp.current + "/" + c.hp.max,
-      window.I18N.t("character_fp_label") + window.I18N.t("colon_separator") + c.fp.current + "/" + c.fp.max,
-      window.I18N.t("character_blessing_slots_label") + window.I18N.t("colon_separator") + c.blessingSlots.current + "/" + c.blessingSlots.max,
-      window.I18N.t("record_level_label") + window.I18N.t("colon_separator") + c.level,
-      window.I18N.t("record_runes_label") + window.I18N.t("colon_separator") + c.runes,
-    ].join("　");
-    document.getElementById("cv-ultimate").textContent = c.ultimate || "";
-
-    var activeContainer = document.getElementById("cv-active-skills");
-    var passiveContainer = document.getElementById("cv-passives");
-    activeContainer.innerHTML = "";
-    passiveContainer.innerHTML = "";
-    if (type) {
-      var allEntries = [].concat(type.abilities || []).concat(type.skills || []).concat(type.arts || []);
-      type.relicEffectGroups.forEach(function (g) {
-        allEntries = allEntries.concat(g.effects);
+      [
+        type ? CharacterTypes.localizedName(type.name) : "-",
+        c.level,
+        c.hp.current + "/" + c.hp.max,
+        c.fp.current + "/" + c.fp.max,
+      ].forEach(function (val) {
+        var cell = document.createElement("td");
+        cell.textContent = val;
+        tr.appendChild(cell);
       });
-      allEntries.forEach(function (entry) {
-        renderAbilityEntryReadonly(entry.kind === "Passive" ? passiveContainer : activeContainer, entry);
-      });
-    }
+      tbody.appendChild(tr);
 
-    CV_TAG_FIELDS.forEach(function (field) {
-      renderReadonlyTagList("cv-" + field, c[field]);
+      var block = document.createElement("div");
+      block.className = "roster-character-block";
+      var h4 = document.createElement("h4");
+      h4.textContent = c.name;
+      block.appendChild(h4);
+
+      var activeTitle = document.createElement("h5");
+      activeTitle.textContent = window.I18N.t("cv_active_skills_title");
+      var activeWrap = document.createElement("div");
+      var passiveTitle = document.createElement("h5");
+      passiveTitle.textContent = window.I18N.t("cv_passives_title");
+      var passiveWrap = document.createElement("div");
+      if (type) CharacterDrawer.renderAbilitySections(c, type, activeWrap, passiveWrap);
+
+      block.appendChild(activeTitle);
+      block.appendChild(activeWrap);
+      block.appendChild(passiveTitle);
+      block.appendChild(passiveWrap);
+      skillsWrap.appendChild(block);
     });
-
-    document.getElementById("cv-edit-link").href =
-      "../characters/index.html?game=" + encodeURIComponent(gameId) + "&open=" + encodeURIComponent(id);
-
-    document.getElementById("character-view-drawer").classList.add("open");
-  }
-
-  function closeCharacterView() {
-    document.getElementById("character-view-drawer").classList.remove("open");
   }
 
   function buildDeck() {
@@ -179,6 +155,22 @@
     return { base: [false, false, false], extra: [false, false, false] };
   }
 
+  var ROLL_EFFECTS = [
+    { id: "enemy_damage", tiers: 4 },
+    { id: "enemy_hp", tiers: 2 },
+    { id: "max_blessing", tiers: 2 },
+    { id: "attribute_buildup", tiers: 2 },
+    { id: "flask_uses", tiers: 2 },
+  ];
+
+  function defaultRollEffects() {
+    var obj = {};
+    ROLL_EFFECTS.forEach(function (e) {
+      obj[e.id] = 0;
+    });
+    return obj;
+  }
+
   var state = {
     slots: new Array(SLOT_COUNT).fill(null), // { code, revealed } | null
     cardLevels: new Array(SLOT_COUNT).fill(null), // null("全") | 0-5
@@ -197,6 +189,7 @@
     startDefeatedDay: null,
     timeLoss: defaultTimeLoss(),
     wanderingBlessing: defaultWanderingBlessing(),
+    rollEffects: defaultRollEffects(),
     smithingStone: "",
     stoneswordKey: "",
     grace: "",
@@ -245,6 +238,7 @@
       startDefeatedDay: state.startDefeatedDay,
       timeLoss: state.timeLoss,
       wanderingBlessing: state.wanderingBlessing,
+      rollEffects: state.rollEffects,
       smithingStone: state.smithingStone,
       stoneswordKey: state.stoneswordKey,
       grace: state.grace,
@@ -271,6 +265,17 @@
       base: Array.isArray(raw.base) ? [!!raw.base[0], !!raw.base[1], !!raw.base[2]] : fallback.base,
       extra: Array.isArray(raw.extra) ? [!!raw.extra[0], !!raw.extra[1], !!raw.extra[2]] : fallback.extra,
     };
+  }
+
+  function loadRollEffects(raw) {
+    var fallback = defaultRollEffects();
+    if (!raw || typeof raw !== "object") return fallback;
+    var out = {};
+    ROLL_EFFECTS.forEach(function (e) {
+      var v = raw[e.id];
+      out[e.id] = typeof v === "number" ? Math.max(0, Math.min(e.tiers, v)) : 0;
+    });
+    return out;
   }
 
   function loadChecks(raw) {
@@ -304,6 +309,7 @@
         day2: loadTimeLossDay(data.timeLoss && data.timeLoss.day2),
       };
       state.wanderingBlessing = loadWanderingBlessing(data.wanderingBlessing);
+      state.rollEffects = loadRollEffects(data.rollEffects);
       state.smithingStone = typeof data.smithingStone === "string" ? data.smithingStone : "";
       state.stoneswordKey = typeof data.stoneswordKey === "string" ? data.stoneswordKey : "";
       state.grace = typeof data.grace === "string" ? data.grace : "";
@@ -327,6 +333,7 @@
     state.startDefeatedDay = null;
     state.timeLoss = defaultTimeLoss();
     state.wanderingBlessing = defaultWanderingBlessing();
+    state.rollEffects = defaultRollEffects();
     state.smithingStone = "";
     state.stoneswordKey = "";
     state.grace = "";
@@ -450,6 +457,12 @@
     TIME_LOSS_ROW_DEFS.forEach(function (def, i) {
       if (rows[i].every(Boolean)) triggered.push(timeLossRowLabelDetail(dayKey, def));
     });
+    ROLL_EFFECTS.forEach(function (effect) {
+      var count = state.rollEffects[effect.id] || 0;
+      if (count > 0) {
+        triggered.push([window.I18N.t("roll_effect_" + effect.id + "_label"), window.I18N.t("roll_effect_" + effect.id + "_tier" + count)]);
+      }
+    });
     var summaryEl = document.getElementById("time-loss-summary");
     if (triggered.length === 0) {
       summaryEl.textContent = window.I18N.t("time_loss_none");
@@ -497,7 +510,59 @@
   function renderThreatRefTexts() {
     document.getElementById("time-loss-accum-timing-body").textContent = window.I18N.t("time_loss_accum_timing_body");
     document.getElementById("night-rain-timing-body").textContent = window.I18N.t("night_rain_timing_body");
-    document.getElementById("roll-table-body").textContent = window.I18N.t("roll_table_body");
+  }
+
+  function renderRollEffects() {
+    var container = document.getElementById("roll-effects-list");
+    container.innerHTML = "";
+    ROLL_EFFECTS.forEach(function (effect) {
+      var count = state.rollEffects[effect.id] || 0;
+
+      var row = document.createElement("div");
+      row.className = "tl-row";
+
+      var text = document.createElement("div");
+      text.className = "tl-row-text";
+      var strong = document.createElement("strong");
+      strong.textContent = window.I18N.t("roll_effect_" + effect.id + "_label");
+      var span = document.createElement("span");
+      span.textContent = count === 0 ? window.I18N.t("time_loss_none") : window.I18N.t("roll_effect_" + effect.id + "_tier" + count);
+      text.appendChild(strong);
+      text.appendChild(span);
+      row.appendChild(text);
+
+      var stepper = document.createElement("div");
+      stepper.className = "level-control";
+      var minus = document.createElement("button");
+      minus.type = "button";
+      minus.className = "level-btn";
+      minus.textContent = "-";
+      var value = document.createElement("span");
+      value.className = "level-value";
+      value.textContent = count + "/" + effect.tiers;
+      var plus = document.createElement("button");
+      plus.type = "button";
+      plus.className = "level-btn";
+      plus.textContent = "+";
+      minus.addEventListener("click", function () {
+        state.rollEffects[effect.id] = Math.max(0, count - 1);
+        saveState();
+        renderRollEffects();
+        renderTimeLossSummary();
+      });
+      plus.addEventListener("click", function () {
+        state.rollEffects[effect.id] = Math.min(effect.tiers, count + 1);
+        saveState();
+        renderRollEffects();
+        renderTimeLossSummary();
+      });
+      stepper.appendChild(minus);
+      stepper.appendChild(value);
+      stepper.appendChild(plus);
+      row.appendChild(stepper);
+
+      container.appendChild(row);
+    });
   }
 
   function renderThreatSheet() {
@@ -510,6 +575,7 @@
     renderWanderingBlessing();
     renderThreatTextFields();
     renderThreatRefTexts();
+    renderRollEffects();
   }
 
   function openThreatDrawer() {
@@ -1128,6 +1194,12 @@
     buildTimeLossRows("day1");
     buildTimeLossRows("day2");
     buildWanderingBlessingChecks();
+    rosterCharacters = loadRosterCharacters();
+    CharacterDrawer.init({
+      characters: rosterCharacters,
+      save: saveRosterCharacters,
+      onChange: renderCharacterRoster,
+    });
     loadState();
     renderBoard();
     renderLog();
@@ -1158,8 +1230,6 @@
     document.getElementById("btn-time-loss-info").addEventListener("click", openThreatDrawer);
     document.getElementById("btn-threat-drawer-close").addEventListener("click", closeThreatDrawer);
     document.getElementById("threat-drawer-backdrop").addEventListener("click", closeThreatDrawer);
-    document.getElementById("btn-character-view-close").addEventListener("click", closeCharacterView);
-    document.getElementById("character-view-backdrop").addEventListener("click", closeCharacterView);
     document.getElementById("input-smithing-stone").addEventListener("input", function (e) {
       state.smithingStone = e.target.value;
       saveState();

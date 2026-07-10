@@ -181,8 +181,14 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
         <div class="threat-ref-block" id="type-reference-block" hidden>
           <h3 id="type-reference-title"></h3>
           <p id="type-reference-stats" class="threat-ref-body"></p>
-          <button type="button" id="btn-toggle-type-detail"></button>
-          <div id="type-reference-detail" hidden></div>
+        </div>
+        <div class="threat-ref-block">
+          <h3 data-i18n="cv_active_skills_title"></h3>
+          <div id="type-active-skills"></div>
+        </div>
+        <div class="threat-ref-block">
+          <h3 data-i18n="cv_passives_title"></h3>
+          <div id="type-passives"></div>
         </div>
 
         <div class="actions">
@@ -200,5 +206,5 @@ def build_characters_html() -> str:
         body=BODY,
         static_prefix="../static/",
         home_href="../index.html",
-        extra_scripts=("games.js", "character_types.js", "characters.js"),
+        extra_scripts=("games.js", "character_types.js", "character_drawer.js", "characters.js"),
     )
