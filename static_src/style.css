@@ -210,10 +210,84 @@ button {
   transform: translateX(0);
 }
 
-.day-status {
+.day-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
   margin: -0.5rem 0 0;
+}
+
+.day-status {
+  margin: 0;
   color: #888;
   font-size: 0.9rem;
+}
+
+.info-btn {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid #999;
+  border-radius: 50%;
+  background: none;
+  color: #888;
+  font-size: 0.7rem;
+  font-style: italic;
+  line-height: 1;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.info-bubble {
+  position: absolute;
+  top: 26px;
+  left: 0;
+  z-index: 20;
+  width: min(320px, 88vw);
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 0.75rem 1.5rem 0.75rem 1rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: #333;
+}
+
+.info-bubble::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 4px;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  border-left: 1px solid #ccc;
+  border-top: 1px solid #ccc;
+  transform: rotate(45deg);
+}
+
+.info-bubble h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+}
+
+.info-bubble p {
+  margin: 0.35rem 0;
+  white-space: pre-wrap;
+}
+
+.info-bubble-close {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #888;
+  line-height: 1;
 }
 
 .board-grid {
@@ -396,6 +470,75 @@ button {
   min-width: 1.6em;
   text-align: center;
   font-weight: 600;
+}
+
+.time-loss-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+#time-loss-summary {
+  font-weight: 600;
+  color: inherit;
+}
+
+.tl-list {
+  margin: 0.5rem 0 1rem;
+}
+
+.tl-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.85rem;
+}
+
+.tl-boxes {
+  display: flex;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+
+.tl-row-text strong {
+  margin-right: 0.4rem;
+}
+
+.threat-ref-block {
+  margin: 1.25rem 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid #ddd;
+}
+
+.threat-ref-block h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+}
+
+.threat-ref-body {
+  white-space: pre-line;
+  font-size: 0.82rem;
+  color: #666;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.wb-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.4rem 0;
+  font-size: 0.85rem;
+}
+
+.wb-checks {
+  display: inline-flex;
+  gap: 3px;
 }
 
 .suit-modal-grid {
@@ -684,5 +827,22 @@ button {
   .modal-box {
     background: #222;
     color: #eee;
+  }
+  .info-bubble {
+    background: #1c1c1c;
+    border-color: #444;
+    color: #eee;
+  }
+  .info-bubble-close {
+    color: #aaa;
+  }
+  .threat-ref-block {
+    border-color: #333;
+  }
+  .threat-ref-body {
+    color: #aaa;
+  }
+  .tl-row {
+    border-color: #333;
   }
 }

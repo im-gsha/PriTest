@@ -38,6 +38,30 @@
     return { one: false, all: false };
   }
 
+  var TIME_LOSS_ROW_DEFS = [
+    { kind: "threat", boxes: 2 },
+    { kind: "rain", tier: 1, boxes: 2 },
+    { kind: "threat", boxes: 2 },
+    { kind: "rain", tier: 2, boxes: 2 },
+    { kind: "threat", boxes: 2 },
+    { kind: "rain", tier: 3, boxes: 2 },
+    { kind: "visit", boxes: 1 },
+  ];
+
+  function defaultTimeLossDay() {
+    return TIME_LOSS_ROW_DEFS.map(function (def) {
+      return new Array(def.boxes).fill(false);
+    });
+  }
+
+  function defaultTimeLoss() {
+    return { day1: defaultTimeLossDay(), day2: defaultTimeLossDay() };
+  }
+
+  function defaultWanderingBlessing() {
+    return { base: [false, false, false], extra: [false, false, false] };
+  }
+
   var state = {
     slots: new Array(SLOT_COUNT).fill(null), // { code, revealed } | null
     cardLevels: new Array(SLOT_COUNT).fill(null), // null("全") | 0-5
@@ -54,6 +78,11 @@
     endChecks: defaultChecks(),
     startDefeated: false, // 前日の終點が「撃破済み」として起點側に引き継がれた状態か
     startDefeatedDay: null,
+    timeLoss: defaultTimeLoss(),
+    wanderingBlessing: defaultWanderingBlessing(),
+    smithingStone: "",
+    stoneswordKey: "",
+    grace: "",
   };
 
   function shuffle(arr) {
@@ -97,8 +126,34 @@
       endChecks: state.endChecks,
       startDefeated: state.startDefeated,
       startDefeatedDay: state.startDefeatedDay,
+      timeLoss: state.timeLoss,
+      wanderingBlessing: state.wanderingBlessing,
+      smithingStone: state.smithingStone,
+      stoneswordKey: state.stoneswordKey,
+      grace: state.grace,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function loadTimeLossDay(raw) {
+    var fallback = defaultTimeLossDay();
+    if (!Array.isArray(raw)) return fallback;
+    return TIME_LOSS_ROW_DEFS.map(function (def, i) {
+      var row = raw[i];
+      if (!Array.isArray(row)) return fallback[i];
+      var out = [];
+      for (var b = 0; b < def.boxes; b++) out.push(!!row[b]);
+      return out;
+    });
+  }
+
+  function loadWanderingBlessing(raw) {
+    var fallback = defaultWanderingBlessing();
+    if (!raw || typeof raw !== "object") return fallback;
+    return {
+      base: Array.isArray(raw.base) ? [!!raw.base[0], !!raw.base[1], !!raw.base[2]] : fallback.base,
+      extra: Array.isArray(raw.extra) ? [!!raw.extra[0], !!raw.extra[1], !!raw.extra[2]] : fallback.extra,
+    };
   }
 
   function loadChecks(raw) {
@@ -127,6 +182,14 @@
       state.endChecks = loadChecks(data.endChecks);
       state.startDefeated = !!data.startDefeated;
       state.startDefeatedDay = typeof data.startDefeatedDay === "number" ? data.startDefeatedDay : null;
+      state.timeLoss = {
+        day1: loadTimeLossDay(data.timeLoss && data.timeLoss.day1),
+        day2: loadTimeLossDay(data.timeLoss && data.timeLoss.day2),
+      };
+      state.wanderingBlessing = loadWanderingBlessing(data.wanderingBlessing);
+      state.smithingStone = typeof data.smithingStone === "string" ? data.smithingStone : "";
+      state.stoneswordKey = typeof data.stoneswordKey === "string" ? data.stoneswordKey : "";
+      state.grace = typeof data.grace === "string" ? data.grace : "";
     } catch (e) {
       // 壊れた状態は無視して初期状態のまま続行する
     }
@@ -145,6 +208,11 @@
     state.endChecks = defaultChecks();
     state.startDefeated = false;
     state.startDefeatedDay = null;
+    state.timeLoss = defaultTimeLoss();
+    state.wanderingBlessing = defaultWanderingBlessing();
+    state.smithingStone = "";
+    state.stoneswordKey = "";
+    state.grace = "";
     localStorage.removeItem(STORAGE_KEY);
   }
 
@@ -184,6 +252,150 @@
     renderFieldLevels();
     renderDayStatus();
     renderPrimaryButton();
+    renderThreatSheet();
+  }
+
+  // --- 夜の脅威シート（タイムロス／さまよう祝福／参考情報） ---
+  function buildTimeLossRows(dayKey) {
+    var container = document.getElementById("tl-" + dayKey + "-list");
+    TIME_LOSS_ROW_DEFS.forEach(function (def, rowIndex) {
+      var row = document.createElement("div");
+      row.className = "tl-row";
+
+      var boxesWrap = document.createElement("div");
+      boxesWrap.className = "tl-boxes";
+      for (var b = 0; b < def.boxes; b++) {
+        (function (boxIndex) {
+          var cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.id = "tl-" + dayKey + "-" + rowIndex + "-" + boxIndex;
+          cb.addEventListener("change", function () {
+            state.timeLoss[dayKey][rowIndex][boxIndex] = cb.checked;
+            renderTimeLossSummary();
+            saveState();
+          });
+          boxesWrap.appendChild(cb);
+        })(b);
+      }
+      row.appendChild(boxesWrap);
+
+      var text = document.createElement("div");
+      text.className = "tl-row-text";
+      var strong = document.createElement("strong");
+      strong.id = "tl-" + dayKey + "-" + rowIndex + "-label";
+      var span = document.createElement("span");
+      span.id = "tl-" + dayKey + "-" + rowIndex + "-detail";
+      text.appendChild(strong);
+      text.appendChild(span);
+      row.appendChild(text);
+
+      container.appendChild(row);
+    });
+  }
+
+  function timeLossRowLabelDetail(dayKey, def) {
+    if (def.kind === "threat") {
+      return [window.I18N.t("threat_effect_add_label"), window.I18N.t("threat_effect_add_detail")];
+    }
+    if (def.kind === "rain") {
+      return [window.I18N.t("night_rain_label"), window.I18N.t("night_rain_detail_" + dayKey + "_" + def.tier)];
+    }
+    return [window.I18N.t("night_visit_label"), window.I18N.t("night_visit_detail")];
+  }
+
+  function renderTimeLossText(dayKey) {
+    document.getElementById("tl-" + dayKey + "-title").textContent = window.I18N.t("time_loss_day_title", {
+      day: dayKey === "day1" ? 1 : 2,
+    });
+    TIME_LOSS_ROW_DEFS.forEach(function (def, rowIndex) {
+      var parts = timeLossRowLabelDetail(dayKey, def);
+      document.getElementById("tl-" + dayKey + "-" + rowIndex + "-label").textContent = parts[0];
+      document.getElementById("tl-" + dayKey + "-" + rowIndex + "-detail").textContent = parts[1];
+    });
+  }
+
+  function renderTimeLossChecks(dayKey) {
+    TIME_LOSS_ROW_DEFS.forEach(function (def, rowIndex) {
+      for (var b = 0; b < def.boxes; b++) {
+        document.getElementById("tl-" + dayKey + "-" + rowIndex + "-" + b).checked = !!(
+          state.timeLoss[dayKey][rowIndex] && state.timeLoss[dayKey][rowIndex][b]
+        );
+      }
+    });
+  }
+
+  function renderTimeLossSummary() {
+    var dayKey = isSwappedDay() ? "day2" : "day1";
+    var rows = state.timeLoss[dayKey];
+    var activeRowIndex = -1;
+    for (var i = 0; i < TIME_LOSS_ROW_DEFS.length; i++) {
+      if (rows[i].some(Boolean)) activeRowIndex = i;
+    }
+    var summaryEl = document.getElementById("time-loss-summary");
+    if (activeRowIndex === -1) {
+      summaryEl.textContent = window.I18N.t("time_loss_none");
+      return;
+    }
+    var parts = timeLossRowLabelDetail(dayKey, TIME_LOSS_ROW_DEFS[activeRowIndex]);
+    summaryEl.textContent = parts[0] + window.I18N.t("colon_separator") + parts[1];
+  }
+
+  function buildWanderingBlessingChecks() {
+    ["base", "extra"].forEach(function (which) {
+      var container = document.getElementById("wb-" + which);
+      for (var i = 0; i < 3; i++) {
+        (function (idx) {
+          var cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.id = "wb-" + which + "-" + idx;
+          cb.addEventListener("change", function () {
+            state.wanderingBlessing[which][idx] = cb.checked;
+            saveState();
+          });
+          container.appendChild(cb);
+        })(i);
+      }
+    });
+  }
+
+  function renderWanderingBlessing() {
+    ["base", "extra"].forEach(function (which) {
+      for (var i = 0; i < 3; i++) {
+        document.getElementById("wb-" + which + "-" + i).checked = !!state.wanderingBlessing[which][i];
+      }
+    });
+  }
+
+  function renderThreatTextFields() {
+    document.getElementById("input-smithing-stone").value = state.smithingStone || "";
+    document.getElementById("input-stonesword-key").value = state.stoneswordKey || "";
+    document.getElementById("input-grace").value = state.grace || "";
+  }
+
+  function renderThreatRefTexts() {
+    document.getElementById("time-loss-accum-timing-body").textContent = window.I18N.t("time_loss_accum_timing_body");
+    document.getElementById("night-rain-timing-body").textContent = window.I18N.t("night_rain_timing_body");
+    document.getElementById("roll-table-body").textContent = window.I18N.t("roll_table_body");
+  }
+
+  function renderThreatSheet() {
+    document.getElementById("btn-time-loss-info").title = window.I18N.t("time_loss_info_button");
+    renderTimeLossText("day1");
+    renderTimeLossText("day2");
+    renderTimeLossChecks("day1");
+    renderTimeLossChecks("day2");
+    renderTimeLossSummary();
+    renderWanderingBlessing();
+    renderThreatTextFields();
+    renderThreatRefTexts();
+  }
+
+  function openThreatDrawer() {
+    document.getElementById("threat-drawer").classList.add("open");
+  }
+
+  function closeThreatDrawer() {
+    document.getElementById("threat-drawer").classList.remove("open");
   }
 
   function renderFieldLevels() {
@@ -206,6 +418,30 @@
   function renderDayStatus() {
     var dayText = window.I18N.t("day_status", { n: state.dayNumber });
     document.getElementById("day-status").textContent = game.name + " " + dayText;
+    renderSetupInfo();
+  }
+
+  function renderSetupInfo() {
+    var dayKey = isSwappedDay() ? "day2" : "day1";
+    document.getElementById("btn-setup-info").title = window.I18N.t("setup_info_button");
+    document.getElementById("setup-info-title").textContent = window.I18N.t("setup_info_title_" + dayKey);
+    var body = document.getElementById("setup-info-body");
+    body.innerHTML = "";
+    window.I18N.t("setup_info_body_" + dayKey)
+      .split("\n")
+      .forEach(function (line) {
+        var p = document.createElement("p");
+        p.textContent = line;
+        body.appendChild(p);
+      });
+  }
+
+  function toggleSetupInfo() {
+    document.getElementById("setup-info-bubble").hidden = !document.getElementById("setup-info-bubble").hidden;
+  }
+
+  function closeSetupInfo() {
+    document.getElementById("setup-info-bubble").hidden = true;
   }
 
   function renderPiles() {
@@ -626,6 +862,9 @@
       "../characters/index.html?game=" + encodeURIComponent(gameId);
 
     buildBoardSlots();
+    buildTimeLossRows("day1");
+    buildTimeLossRows("day2");
+    buildWanderingBlessingChecks();
     loadState();
     renderBoard();
     renderLog();
@@ -638,6 +877,32 @@
     document.getElementById("btn-log-toggle").addEventListener("click", function () {
       document.getElementById("log-list").classList.toggle("collapsed");
       renderLogToggleLabel();
+    });
+    document.getElementById("btn-setup-info").addEventListener("click", function (e) {
+      e.stopPropagation();
+      toggleSetupInfo();
+    });
+    document.getElementById("setup-info-close").addEventListener("click", closeSetupInfo);
+    document.addEventListener("click", function (e) {
+      var bubble = document.getElementById("setup-info-bubble");
+      if (bubble.hidden) return;
+      if (bubble.contains(e.target) || e.target.id === "btn-setup-info") return;
+      closeSetupInfo();
+    });
+    document.getElementById("btn-time-loss-info").addEventListener("click", openThreatDrawer);
+    document.getElementById("btn-threat-drawer-close").addEventListener("click", closeThreatDrawer);
+    document.getElementById("threat-drawer-backdrop").addEventListener("click", closeThreatDrawer);
+    document.getElementById("input-smithing-stone").addEventListener("input", function (e) {
+      state.smithingStone = e.target.value;
+      saveState();
+    });
+    document.getElementById("input-stonesword-key").addEventListener("input", function (e) {
+      state.stoneswordKey = e.target.value;
+      saveState();
+    });
+    document.getElementById("input-grace").addEventListener("input", function (e) {
+      state.grace = e.target.value;
+      saveState();
     });
     document.getElementById("pile-start").addEventListener("click", function () {
       openSuitPicker("start");

@@ -17,7 +17,15 @@ from site_src.layout import page_shell
 
 BODY = """    <a id="link-characters" class="back-link" href="../index.html" data-i18n="back_characters"></a>
     <h1 data-i18n="project_night_name"></h1>
-    <p id="day-status" class="day-status"></p>
+    <div class="day-status-row" id="day-status-row">
+      <p id="day-status" class="day-status"></p>
+      <button type="button" class="info-btn" id="btn-setup-info">i</button>
+      <div id="setup-info-bubble" class="info-bubble" hidden>
+        <button type="button" class="info-bubble-close" id="setup-info-close">&times;</button>
+        <h3 id="setup-info-title"></h3>
+        <div id="setup-info-body"></div>
+      </div>
+    </div>
 
     <div id="screen-missing-game" hidden>
       <p data-i18n="game_not_found"></p>
@@ -43,6 +51,11 @@ BODY = """    <a id="link-characters" class="back-link" href="../index.html" dat
             <label class="pile-check"><input type="checkbox" id="pile-check-end-all"><span data-i18n="check_all_label"></span></label>
           </div>
         </div>
+      </div>
+      <div class="time-loss-bar" id="time-loss-bar">
+        <span data-i18n="time_loss_summary_label"></span>
+        <span id="time-loss-summary"></span>
+        <button type="button" class="info-btn" id="btn-time-loss-info">i</button>
       </div>
       <div class="actions">
         <button id="btn-primary-action" type="button" class="primary-btn"></button>
@@ -87,6 +100,65 @@ BODY = """    <a id="link-characters" class="back-link" href="../index.html" dat
         <div class="actions">
           <button id="suit-modal-clear" type="button" data-i18n="clear_suit_button"></button>
           <button id="suit-modal-close" type="button" data-i18n="cancel_button"></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="threat-drawer" class="drawer">
+      <div class="drawer-backdrop" id="threat-drawer-backdrop"></div>
+      <div class="drawer-panel">
+        <h2 data-i18n="threat_sheet_title"></h2>
+
+        <h3 id="tl-day1-title"></h3>
+        <div id="tl-day1-list" class="tl-list"></div>
+
+        <h3 id="tl-day2-title"></h3>
+        <div id="tl-day2-list" class="tl-list"></div>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="time_loss_accum_timing_title"></h3>
+          <p id="time-loss-accum-timing-body" class="threat-ref-body"></p>
+        </div>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="night_rain_timing_title"></h3>
+          <p id="night-rain-timing-body" class="threat-ref-body"></p>
+        </div>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="roll_table_title"></h3>
+          <p id="roll-table-body" class="threat-ref-body"></p>
+        </div>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="wandering_blessing_title"></h3>
+          <div class="wb-row">
+            <span data-i18n="wandering_blessing_base_label"></span>
+            <span id="wb-base" class="wb-checks"></span>
+          </div>
+          <div class="wb-row">
+            <span data-i18n="wandering_blessing_extra_label"></span>
+            <span id="wb-extra" class="wb-checks"></span>
+          </div>
+        </div>
+
+        <div class="threat-ref-block">
+          <div class="field-row-block">
+            <label data-i18n="smithing_stone_label"></label>
+            <input type="text" id="input-smithing-stone">
+          </div>
+          <div class="field-row-block">
+            <label data-i18n="stonesword_key_label"></label>
+            <input type="text" id="input-stonesword-key">
+          </div>
+          <div class="field-row-block">
+            <label data-i18n="grace_label"></label>
+            <input type="text" id="input-grace">
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="btn-threat-drawer-close" type="button" class="primary-btn" data-i18n="close_button"></button>
         </div>
       </div>
     </div>
