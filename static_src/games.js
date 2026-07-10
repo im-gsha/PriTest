@@ -26,10 +26,15 @@
     })[0] || null;
   }
 
-  function createGame(name) {
+  function createGame(name, scenarioId) {
     var games = listGames();
     if (games.length >= MAX_GAMES) return null;
-    var game = { id: "g" + Date.now() + Math.floor(Math.random() * 1000), name: name, createdAt: Date.now() };
+    var game = {
+      id: "g" + Date.now() + Math.floor(Math.random() * 1000),
+      name: name,
+      createdAt: Date.now(),
+      scenarioId: scenarioId || null,
+    };
     games.push(game);
     saveGames(games);
     return game;

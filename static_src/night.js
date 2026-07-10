@@ -9,9 +9,44 @@
   var LEVEL_STEPS = [null, 0, 1, 2, 3, 4, 5]; // null = "全"（未指定）
 
   var Games = window.PriTestGames;
+  var Scenarios = window.PriTestScenarios;
+  var CharacterTypes = window.PriTestCharacterTypes;
   var gameId = Games.getGameIdFromQuery();
   var game = gameId ? Games.get(gameId) : null;
+  var scenario = game && game.scenarioId ? Scenarios.get(game.scenarioId) : null;
   var STORAGE_KEY = "pritest-night-state-" + gameId;
+  var CHARACTERS_KEY = "pritest-characters-" + gameId;
+
+  function loadRosterCharacters() {
+    var raw = localStorage.getItem(CHARACTERS_KEY);
+    if (!raw) return [];
+    try {
+      var data = JSON.parse(raw);
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function renderCharacterRoster() {
+    var list = document.getElementById("character-roster-list");
+    var characters = loadRosterCharacters();
+    list.innerHTML = "";
+    if (characters.length === 0) {
+      var empty = document.createElement("p");
+      empty.className = "character-roster-empty";
+      empty.textContent = window.I18N.t("character_roster_empty");
+      list.appendChild(empty);
+      return;
+    }
+    characters.forEach(function (c) {
+      var link = document.createElement("a");
+      link.href = "../characters/index.html?game=" + encodeURIComponent(gameId) + "&open=" + encodeURIComponent(c.id);
+      var type = c.typeId && CharacterTypes ? CharacterTypes.get(c.typeId) : null;
+      link.textContent = type ? c.name + "（" + CharacterTypes.localizedName(type.name) + "）" : c.name;
+      list.appendChild(link);
+    });
+  }
 
   function buildDeck() {
     var deck = [];
@@ -20,6 +55,7 @@
         deck.push({
           code: suit + "-" + rank,
           suit: suit,
+          rank: rank,
           label: SUIT_SYMBOL[suit] + rank,
           colorClass: SUIT_CLASS[suit],
         });
@@ -247,12 +283,14 @@
       var levelControl = document.getElementById("level-control-" + i);
       levelControl.style.display = slot ? "flex" : "none";
       renderCardLevel(i);
+      renderSlotEffect(i);
     }
     renderPiles();
     renderFieldLevels();
     renderDayStatus();
     renderPrimaryButton();
     renderThreatSheet();
+    renderCharacterRoster();
   }
 
   // --- 夜の脅威シート（タイムロス／さまよう祝福／参考情報） ---
@@ -417,7 +455,11 @@
 
   function renderDayStatus() {
     var dayText = window.I18N.t("day_status", { n: state.dayNumber });
-    document.getElementById("day-status").textContent = game.name + " " + dayText;
+    var text = game.name + " " + dayText;
+    if (scenario) {
+      text += " ・ " + Scenarios.localizedName(scenario.name);
+    }
+    document.getElementById("day-status").textContent = text;
     renderSetupInfo();
   }
 
@@ -499,6 +541,20 @@
     el.textContent = v === null || v === undefined ? window.I18N.t("level_all") : String(v);
   }
 
+  function renderSlotEffect(index) {
+    var el = document.getElementById("slot-effect-" + index);
+    var slot = state.slots[index];
+    if (!el) return;
+    if (!scenario || !slot || !slot.revealed) {
+      el.textContent = "";
+      return;
+    }
+    var card = CARD_BY_CODE[slot.code];
+    var dayKey = isSwappedDay() ? "day2" : "day1";
+    var effect = Scenarios.findCardEffect(game.scenarioId, dayKey, card.suit, card.rank);
+    el.textContent = effect ? Scenarios.localizedName(effect.name) : "";
+  }
+
   function stepCardLevel(index, dir) {
     if (!state.slots[index]) return;
     var curIdx = LEVEL_STEPS.indexOf(state.cardLevels[index]);
@@ -517,15 +573,22 @@
     if (!state.boardStarted) {
       btn.textContent = window.I18N.t("start_button");
       btn.disabled = false;
-      btn.onclick = function () {
-        openSelectDrawer("initial", SLOT_COUNT);
-      };
+      btn.onclick = scenario
+        ? dealScenarioInitial
+        : function () {
+            openSelectDrawer("initial", SLOT_COUNT);
+          };
     } else {
       btn.textContent = window.I18N.t("next_night_button");
-      btn.disabled = emptyCount === 0;
-      btn.onclick = function () {
-        openSelectDrawer("continue", emptyCount);
-      };
+      if (scenario) {
+        btn.disabled = false;
+        btn.onclick = openKeepCardsDrawer;
+      } else {
+        btn.disabled = emptyCount === 0;
+        btn.onclick = function () {
+          openSelectDrawer("continue", emptyCount);
+        };
+      }
     }
   }
 
@@ -664,19 +727,126 @@
     var wasContinue = state.selectMode === "continue";
     var logKey = wasContinue ? "log_continue_submit" : "log_select_submit";
     state.boardStarted = true;
-    if (wasContinue) {
-      state.startDefeatedDay = state.dayNumber;
-      state.startSuit = state.endSuit;
-      state.startChecks = { one: true, all: true };
-      state.startDefeated = true;
-      state.endSuit = null;
-      state.endChecks = defaultChecks();
-      state.dayNumber += 1;
-    }
+    if (wasContinue) advanceToNextNight();
     closeSelectDrawer();
     renderBoard();
     addLog(logKey, { n: codes.length, cards: cardsLabel });
     if (wasContinue) addLog("log_next_night", { day: state.dayNumber });
+  }
+
+  function advanceToNextNight() {
+    state.startDefeatedDay = state.dayNumber;
+    state.startSuit = state.endSuit;
+    state.startChecks = { one: true, all: true };
+    state.startDefeated = true;
+    state.endSuit = null;
+    state.endChecks = defaultChecks();
+    state.dayNumber += 1;
+  }
+
+  // --- シナリオ（副本）モード：固定カード配置 ---
+  function dealScenarioInitial() {
+    state.startSuit = scenario.start.suit;
+    state.endSuit = scenario.end.suit;
+    scenario.day1.forEach(function (row) {
+      var idx = row.pos - 1;
+      state.slots[idx] = { code: row.suit + "-" + row.rank, revealed: false };
+      state.cardLevels[idx] = null;
+    });
+    state.boardStarted = true;
+    renderBoard();
+    addLog("log_select_submit", {
+      n: scenario.day1.length,
+      cards: scenario.day1
+        .map(function (row) {
+          return CARD_BY_CODE[row.suit + "-" + row.rank].label;
+        })
+        .join(", "),
+    });
+  }
+
+  var keepSelection = new Set(); // 保留する場地（スロット番号）
+
+  function openKeepCardsDrawer() {
+    keepSelection.clear();
+    renderKeepGrid();
+    document.getElementById("keep-drawer").classList.add("open");
+  }
+
+  function closeKeepCardsDrawer() {
+    document.getElementById("keep-drawer").classList.remove("open");
+  }
+
+  function renderKeepGrid() {
+    var grid = document.getElementById("keep-grid");
+    grid.innerHTML = "";
+    for (var i = 0; i < SLOT_COUNT; i++) {
+      (function (index) {
+        var slot = state.slots[index];
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "mini-card";
+        if (slot) {
+          var card = CARD_BY_CODE[slot.code];
+          btn.textContent = index + 1 + ". " + card.label;
+          btn.classList.add(card.colorClass);
+        } else {
+          btn.textContent = index + 1 + ". -";
+          btn.classList.add("disabled");
+          btn.disabled = true;
+        }
+        if (keepSelection.has(index)) btn.classList.add("selected");
+        btn.addEventListener("click", function () {
+          if (!slot) return;
+          if (keepSelection.has(index)) {
+            keepSelection.delete(index);
+          } else {
+            if (keepSelection.size >= 3) return;
+            keepSelection.add(index);
+          }
+          renderKeepGrid();
+        });
+        grid.appendChild(btn);
+      })(i);
+    }
+    document.getElementById("keep-count").textContent = window.I18N.t("keep_cards_count", { n: keepSelection.size });
+    document.getElementById("btn-keep-submit").disabled = keepSelection.size !== 3;
+  }
+
+  function submitKeepCards() {
+    if (keepSelection.size !== 3) return;
+    for (var i = 0; i < SLOT_COUNT; i++) {
+      if (!keepSelection.has(i)) {
+        state.slots[i] = null;
+        state.cardLevels[i] = null;
+      }
+    }
+    var emptyPositions = [];
+    state.slots.forEach(function (s, i) {
+      if (s === null) emptyPositions.push(i);
+    });
+    var day2Rows = scenario.day2.slice().sort(function (a, b) {
+      return a.pos - b.pos;
+    });
+    day2Rows.forEach(function (row, i) {
+      var pos = emptyPositions[i];
+      if (pos === undefined) return;
+      state.slots[pos] = { code: row.suit + "-" + row.rank, revealed: false };
+      state.cardLevels[pos] = null;
+    });
+
+    advanceToNextNight();
+    closeKeepCardsDrawer();
+    renderBoard();
+    addLog("log_continue_submit", {
+      n: day2Rows.length,
+      cards: day2Rows
+        .map(function (row) {
+          return CARD_BY_CODE[row.suit + "-" + row.rank].label;
+        })
+        .join(", "),
+    });
+    addLog("log_next_night", { day: state.dayNumber });
   }
 
   // --- suit picker ---
@@ -815,6 +985,11 @@
         });
         wrap.appendChild(btn);
 
+        var effectCaption = document.createElement("div");
+        effectCaption.className = "slot-effect";
+        effectCaption.id = "slot-effect-" + index;
+        wrap.appendChild(effectCaption);
+
         var levelControl = document.createElement("div");
         levelControl.className = "level-control";
         levelControl.id = "level-control-" + index;
@@ -877,6 +1052,9 @@
     document.getElementById("btn-select-submit").addEventListener("click", submitSelection);
     document.getElementById("btn-select-cancel").addEventListener("click", closeSelectDrawer);
     document.getElementById("drawer-backdrop").addEventListener("click", closeSelectDrawer);
+    document.getElementById("btn-keep-submit").addEventListener("click", submitKeepCards);
+    document.getElementById("btn-keep-cancel").addEventListener("click", closeKeepCardsDrawer);
+    document.getElementById("keep-drawer-backdrop").addEventListener("click", closeKeepCardsDrawer);
     document.getElementById("btn-new-game").addEventListener("click", handleNewGame);
     document.getElementById("btn-log-toggle").addEventListener("click", function () {
       document.getElementById("log-list").classList.toggle("collapsed");
