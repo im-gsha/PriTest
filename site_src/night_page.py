@@ -61,6 +61,10 @@ BODY = """    <a id="link-characters" class="back-link" href="../index.html" dat
         <button id="btn-primary-action" type="button" class="primary-btn"></button>
         <button id="btn-new-game" type="button" data-i18n="new_game_button"></button>
       </div>
+      <div class="character-roster" id="character-roster">
+        <h3 data-i18n="character_roster_title"></h3>
+        <div id="character-roster-list" class="character-roster-list"></div>
+      </div>
       <div class="log-panel">
         <div class="log-header">
           <h2 data-i18n="log_title"></h2>
@@ -79,6 +83,19 @@ BODY = """    <a id="link-characters" class="back-link" href="../index.html" dat
         <div class="actions">
           <button id="btn-select-cancel" type="button" data-i18n="cancel_button"></button>
           <button id="btn-select-submit" type="button" class="primary-btn" data-i18n="submit_button"></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="keep-drawer" class="drawer">
+      <div class="drawer-backdrop" id="keep-drawer-backdrop"></div>
+      <div class="drawer-panel">
+        <h2 data-i18n="keep_cards_title"></h2>
+        <div id="keep-grid" class="suit-grid"></div>
+        <p id="keep-count"></p>
+        <div class="actions">
+          <button id="btn-keep-cancel" type="button" data-i18n="cancel_button"></button>
+          <button id="btn-keep-submit" type="button" class="primary-btn" data-i18n="submit_button"></button>
         </div>
       </div>
     </div>
@@ -171,5 +188,5 @@ def build_night_html() -> str:
         body=BODY,
         static_prefix="../static/",
         home_href="../index.html",
-        extra_scripts=("games.js", "night.js"),
+        extra_scripts=("games.js", "scenarios.js", "character_types.js", "night.js"),
     )

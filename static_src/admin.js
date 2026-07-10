@@ -1,5 +1,6 @@
 (function () {
   var Games = window.PriTestGames;
+  var Scenarios = window.PriTestScenarios;
 
   function requireAdmin() {
     var ok = Games.checkAdminPassword(window.I18N.t("admin_password_prompt"));
@@ -7,6 +8,23 @@
       alert(window.I18N.t("admin_password_wrong"));
       window.location.href = "../index.html";
     }
+  }
+
+  function renderScenarioSelect() {
+    var select = document.getElementById("scenario-select");
+    var current = select.value;
+    select.innerHTML = "";
+    var customOpt = document.createElement("option");
+    customOpt.value = "";
+    customOpt.textContent = window.I18N.t("scenario_custom_option");
+    select.appendChild(customOpt);
+    Scenarios.list().forEach(function (s) {
+      var opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = Scenarios.localizedName(s.name);
+      select.appendChild(opt);
+    });
+    if (current) select.value = current;
   }
 
   function renderGameList() {
@@ -34,6 +52,15 @@
       date.textContent = new Date(game.createdAt).toLocaleString();
       info.appendChild(name);
       info.appendChild(date);
+      if (game.scenarioId) {
+        var scenario = Scenarios.get(game.scenarioId);
+        if (scenario) {
+          var badge = document.createElement("span");
+          badge.className = "game-date";
+          badge.textContent = window.I18N.t("scenario_badge_label") + window.I18N.t("colon_separator") + Scenarios.localizedName(scenario.name);
+          info.appendChild(badge);
+        }
+      }
 
       var actions = document.createElement("div");
       actions.className = "game-actions";
@@ -72,14 +99,19 @@
     }
     var name = window.prompt(window.I18N.t("admin_new_game_prompt"));
     if (!name) return;
-    Games.create(name.trim());
+    var scenarioId = document.getElementById("scenario-select").value || null;
+    Games.create(name.trim(), scenarioId);
     renderGameList();
   }
 
   document.addEventListener("DOMContentLoaded", function () {
     requireAdmin();
+    renderScenarioSelect();
     renderGameList();
     document.getElementById("btn-add-game").addEventListener("click", handleAddGame);
-    window.addEventListener("i18n:change", renderGameList);
+    window.addEventListener("i18n:change", function () {
+      renderScenarioSelect();
+      renderGameList();
+    });
   });
 })();

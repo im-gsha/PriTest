@@ -26,7 +26,7 @@ def build_static_assets() -> None:
     static_dist = DIST_DIR / "static"
     static_dist.mkdir(parents=True, exist_ok=True)
     shutil.copy(STATIC_SRC_DIR / "style.css", static_dist / "style.css")
-    for name in ("games.js", "night.js", "admin.js", "characters.js"):
+    for name in ("games.js", "scenarios.js", "character_types.js", "night.js", "admin.js", "characters.js"):
         shutil.copy(STATIC_SRC_DIR / name, static_dist / name)
 
     template = (STATIC_SRC_DIR / "i18n.template.js").read_text(encoding="utf-8")

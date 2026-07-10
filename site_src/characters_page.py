@@ -22,6 +22,10 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
     </div>
 
     <section id="screen-characters">
+      <div class="field-row-block">
+        <label data-i18n="character_type_label"></label>
+        <select id="character-type-select"></select>
+      </div>
       <div class="actions">
         <button id="btn-add-character" type="button" class="primary-btn" data-i18n="add_character_button"></button>
         <a id="btn-enter-map" class="primary-btn" href="#" data-i18n="enter_map_button"></a>
@@ -34,6 +38,7 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
       <div class="drawer-backdrop" id="character-drawer-backdrop"></div>
       <div class="drawer-panel">
         <h2 id="character-drawer-name"></h2>
+        <p id="character-type-badge" class="character-type-badge"></p>
 
         <label class="field-row">
           <input type="checkbox" id="char-entered">
@@ -115,6 +120,71 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
           </div>
         </div>
 
+        <div class="threat-ref-block">
+          <h3 data-i18n="record_sheet_title"></h3>
+          <div class="field-grid">
+            <label class="field-row">
+              <span data-i18n="record_level_label"></span>
+              <input type="number" id="char-level" class="stat-input">
+            </label>
+            <label class="field-row">
+              <span data-i18n="record_runes_label"></span>
+              <input type="number" id="char-runes" class="stat-input">
+            </label>
+          </div>
+          <div class="field-grid">
+            <label class="field-row">
+              <span data-i18n="character_blessing_slots_label"></span>
+              <input type="number" id="char-blessing-current" class="stat-input">
+              <span>/</span>
+              <input type="number" id="char-blessing-max" class="stat-input">
+            </label>
+          </div>
+          <div class="field-grid">
+            <label class="field-row">
+              <span data-i18n="record_flask_base_label"></span>
+              <input type="number" id="char-flask-base-used" class="stat-input">
+              <span>/</span>
+              <input type="number" id="char-flask-base-max" class="stat-input">
+            </label>
+            <label class="field-row">
+              <span data-i18n="record_flask_extra_label"></span>
+              <input type="number" id="char-flask-extra-used" class="stat-input">
+              <span>/</span>
+              <input type="number" id="char-flask-extra-max" class="stat-input">
+            </label>
+          </div>
+          <label class="field-row">
+            <span data-i18n="record_revival_label"></span>
+            <input type="number" id="char-revival-count" class="stat-input" min="0">
+          </label>
+        </div>
+
+        <div class="tag-field" data-field="talismans">
+          <h3 data-i18n="record_talismans_label"></h3>
+          <div class="tag-list" id="tag-list-talismans"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-talismans">
+            <button type="button" class="tag-add-btn" data-field="talismans" data-i18n="tag_add_button"></button>
+          </div>
+        </div>
+
+        <div class="tag-field" data-field="buildup">
+          <h3 data-i18n="record_buildup_label"></h3>
+          <div class="tag-list" id="tag-list-buildup"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-buildup">
+            <button type="button" class="tag-add-btn" data-field="buildup" data-i18n="tag_add_button"></button>
+          </div>
+        </div>
+
+        <div class="threat-ref-block" id="type-reference-block" hidden>
+          <h3 id="type-reference-title"></h3>
+          <p id="type-reference-stats" class="threat-ref-body"></p>
+          <button type="button" id="btn-toggle-type-detail"></button>
+          <div id="type-reference-detail" hidden></div>
+        </div>
+
         <div class="actions">
           <button id="btn-delete-character" type="button" data-i18n="delete_character_button"></button>
           <button id="btn-character-close" type="button" class="primary-btn" data-i18n="close_button"></button>
@@ -130,5 +200,5 @@ def build_characters_html() -> str:
         body=BODY,
         static_prefix="../static/",
         home_href="../index.html",
-        extra_scripts=("games.js", "characters.js"),
+        extra_scripts=("games.js", "character_types.js", "characters.js"),
     )
