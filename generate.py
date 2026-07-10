@@ -43,6 +43,10 @@ def build_static_assets() -> None:
         template.replace("__I18N_DATA__", data), encoding="utf-8"
     )
 
+    images_src = STATIC_SRC_DIR / "images"
+    if images_src.is_dir():
+        shutil.copytree(images_src, static_dist / "images")
+
 
 def build_pages() -> None:
     (DIST_DIR / "index.html").write_text(build_index_html(), encoding="utf-8")

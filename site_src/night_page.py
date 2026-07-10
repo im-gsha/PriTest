@@ -68,6 +68,7 @@ BODY = """    <div class="night-header-row">
         <table class="character-roster-table" id="character-roster-table">
           <thead>
             <tr>
+              <th></th>
               <th data-i18n="character_roster_col_name"></th>
               <th data-i18n="character_type_label"></th>
               <th data-i18n="record_level_label"></th>
@@ -199,6 +200,7 @@ BODY = """    <div class="night-header-row">
       <div class="drawer-panel">
         <h2 id="character-drawer-name"></h2>
         <p id="character-type-badge" class="character-type-badge"></p>
+        <img id="character-portrait" class="character-portrait" hidden>
 
         <label class="field-row">
           <input type="checkbox" id="char-entered">

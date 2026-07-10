@@ -188,6 +188,17 @@
         ? window.I18N.t("character_type_label") + window.I18N.t("colon_separator") + CharacterTypes.localizedName(type.name)
         : "";
     }
+    var portrait = document.getElementById("character-portrait");
+    if (portrait) {
+      var src = type ? CharacterTypes.imagePath(type) : null;
+      if (src) {
+        portrait.src = src;
+        portrait.alt = CharacterTypes.localizedName(type.name);
+        portrait.hidden = false;
+      } else {
+        portrait.hidden = true;
+      }
+    }
     if (!block) return;
     if (!type) {
       block.hidden = true;

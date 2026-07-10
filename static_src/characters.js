@@ -82,6 +82,35 @@
     if (current) select.value = current;
   }
 
+  function renderGallery() {
+    var grid = document.getElementById("gallery-grid");
+    grid.innerHTML = "";
+    CharacterTypes.list().forEach(function (t) {
+      var card = document.createElement("div");
+      card.className = "gallery-card";
+      var src = CharacterTypes.imagePath(t);
+      if (src) {
+        var img = document.createElement("img");
+        img.src = src;
+        img.alt = CharacterTypes.localizedName(t.name);
+        card.appendChild(img);
+      }
+      var name = document.createElement("p");
+      name.textContent = CharacterTypes.localizedName(t.name);
+      card.appendChild(name);
+      grid.appendChild(card);
+    });
+  }
+
+  function openGallery() {
+    renderGallery();
+    document.getElementById("gallery-modal").hidden = false;
+  }
+
+  function closeGallery() {
+    document.getElementById("gallery-modal").hidden = true;
+  }
+
   function handleAddCharacter() {
     if (characters.length >= Games.MAX_CHARACTERS) {
       alert(window.I18N.t("character_max_reached", { max: Games.MAX_CHARACTERS }));
@@ -120,6 +149,8 @@
     renderList();
 
     document.getElementById("btn-add-character").addEventListener("click", handleAddCharacter);
+    document.getElementById("btn-view-gallery").addEventListener("click", openGallery);
+    document.getElementById("btn-gallery-close").addEventListener("click", closeGallery);
 
     var openId = new URLSearchParams(window.location.search).get("open");
     if (openId && findCharacter(openId)) CharacterDrawer.open(openId);

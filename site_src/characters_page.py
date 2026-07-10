@@ -29,16 +29,28 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
       <div class="actions">
         <button id="btn-add-character" type="button" class="primary-btn" data-i18n="add_character_button"></button>
         <a id="btn-enter-map" class="primary-btn" href="#" data-i18n="enter_map_button"></a>
+        <button id="btn-view-gallery" type="button" data-i18n="character_gallery_button"></button>
       </div>
 
       <ul id="character-list" class="character-list"></ul>
     </section>
+
+    <div id="gallery-modal" class="modal" hidden>
+      <div class="modal-box gallery-modal-box">
+        <h2 data-i18n="character_gallery_title"></h2>
+        <div id="gallery-grid" class="gallery-grid"></div>
+        <div class="actions">
+          <button id="btn-gallery-close" type="button" class="primary-btn" data-i18n="close_button"></button>
+        </div>
+      </div>
+    </div>
 
     <div id="character-drawer" class="drawer">
       <div class="drawer-backdrop" id="character-drawer-backdrop"></div>
       <div class="drawer-panel">
         <h2 id="character-drawer-name"></h2>
         <p id="character-type-badge" class="character-type-badge"></p>
+        <img id="character-portrait" class="character-portrait" hidden>
 
         <label class="field-row">
           <input type="checkbox" id="char-entered">

@@ -179,6 +179,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "roll_effect_flask_uses_label": "PC「聖杯瓶使用次數」減少",
         "roll_effect_flask_uses_tier1": "-1",
         "roll_effect_flask_uses_tier2": "-2",
+        "character_gallery_button": "查看全部角色圖鑑",
+        "character_gallery_title": "角色圖鑑",
     },
     "ja": {
         "site_name": "PriTest",
@@ -351,6 +353,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "roll_effect_flask_uses_label": "PCの「聖杯瓶使用回数」が減少",
         "roll_effect_flask_uses_tier1": "-1",
         "roll_effect_flask_uses_tier2": "-2",
+        "character_gallery_button": "全キャラクター図鑑を見る",
+        "character_gallery_title": "キャラクター図鑑",
     },
     "en": {
         "site_name": "PriTest",
@@ -523,5 +527,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "roll_effect_flask_uses_label": "PC Flask Use Count Decrease",
         "roll_effect_flask_uses_tier1": "-1",
         "roll_effect_flask_uses_tier2": "-2",
+        "character_gallery_button": "View Character Gallery",
+        "character_gallery_title": "Character Gallery",
     },
 }

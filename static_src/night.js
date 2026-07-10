@@ -48,7 +48,7 @@
     if (entered.length === 0) {
       var emptyRow = document.createElement("tr");
       var td = document.createElement("td");
-      td.colSpan = 5;
+      td.colSpan = 6;
       td.className = "character-roster-empty";
       td.textContent = window.I18N.t("character_roster_empty");
       emptyRow.appendChild(td);
@@ -60,6 +60,18 @@
       var type = c.typeId && CharacterTypes ? CharacterTypes.get(c.typeId) : null;
 
       var tr = document.createElement("tr");
+
+      var thumbTd = document.createElement("td");
+      var thumbSrc = type ? CharacterTypes.imagePath(type) : null;
+      if (thumbSrc) {
+        var thumb = document.createElement("img");
+        thumb.className = "character-thumb";
+        thumb.src = thumbSrc;
+        thumb.alt = c.name;
+        thumbTd.appendChild(thumb);
+      }
+      tr.appendChild(thumbTd);
+
       var nameTd = document.createElement("td");
       var nameBtn = document.createElement("button");
       nameBtn.type = "button";

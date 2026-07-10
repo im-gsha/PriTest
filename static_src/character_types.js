@@ -6,6 +6,7 @@
     {
       id: "tracker",
       name: { zh: "追蹤者", ja: "追跡者", en: "Tracker" },
+      image: "c1.jpg",
       staminaDice: { action: 5, defense: 0 },
       resourceSlots: { hp: 5, fp: 3, blessing: 2 },
       checkValues: { luck: 3, physical: 4, mental: 2 },
@@ -226,10 +227,16 @@
     return field[l] || field.zh || field.ja || field.en;
   }
 
+  function imagePath(type, staticPrefix) {
+    if (!type || !type.image) return null;
+    return (staticPrefix || "../static/") + "images/characters/" + type.image;
+  }
+
   window.PriTestCharacterTypes = {
     list: list,
     get: get,
     localizedName: localizedName,
     localizedText: localizedName,
+    imagePath: imagePath,
   };
 })();
