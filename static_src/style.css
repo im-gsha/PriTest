@@ -585,12 +585,62 @@ button {
 }
 
 .ability-entry {
-  margin: 0.75rem 0;
+  margin: 0.5rem 0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
 }
 
-.ability-entry h4 {
-  margin: 0 0 0.25rem;
+.ability-entry summary {
+  cursor: pointer;
   font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.ability-entry p {
+  margin: 0.5rem 0 0;
+}
+
+.ability-uses {
+  margin-top: 0.5rem;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.ability-uses-label {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.character-roster-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+}
+
+.character-roster-table th,
+.character-roster-table td {
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.roster-character-block {
+  margin: 1rem 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid #ddd;
+}
+
+.roster-character-block h4 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+
+.roster-character-block h5 {
+  margin: 0.6rem 0 0.3rem;
+  font-size: 0.85rem;
+  color: #888;
 }
 
 .threat-ref-block {
@@ -927,6 +977,16 @@ button {
     color: #aaa;
   }
   .tl-row {
+    border-color: #333;
+  }
+  .ability-entry {
+    border-color: #333;
+  }
+  .character-roster-table th,
+  .character-roster-table td {
+    border-color: #333;
+  }
+  .roster-character-block {
     border-color: #333;
   }
 }
