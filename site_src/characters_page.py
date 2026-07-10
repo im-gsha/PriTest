@@ -186,7 +186,7 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
         </div>
 
         <div class="actions">
-          <button id="btn-delete-character" type="button" data-i18n="delete_character_button"></button>
+          <button id="btn-delete-character" type="button" class="danger-btn" data-i18n="delete_character_button"></button>
           <button id="btn-character-close" type="button" class="primary-btn" data-i18n="close_button"></button>
         </div>
       </div>

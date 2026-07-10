@@ -40,12 +40,93 @@
       return;
     }
     characters.forEach(function (c) {
-      var link = document.createElement("a");
-      link.href = "../characters/index.html?game=" + encodeURIComponent(gameId) + "&open=" + encodeURIComponent(c.id);
+      var btn = document.createElement("button");
+      btn.type = "button";
       var type = c.typeId && CharacterTypes ? CharacterTypes.get(c.typeId) : null;
-      link.textContent = type ? c.name + "（" + CharacterTypes.localizedName(type.name) + "）" : c.name;
-      list.appendChild(link);
+      btn.textContent = type ? c.name + "（" + CharacterTypes.localizedName(type.name) + "）" : c.name;
+      btn.addEventListener("click", function () {
+        openCharacterView(c.id);
+      });
+      list.appendChild(btn);
     });
+  }
+
+  var CV_TAG_FIELDS = ["status", "equipment", "weapons", "skills", "items", "talismans", "buildup"];
+
+  function renderReadonlyTagList(containerId, values) {
+    var container = document.getElementById(containerId);
+    container.innerHTML = "";
+    (values || []).forEach(function (v) {
+      var chip = document.createElement("span");
+      chip.className = "tag-chip";
+      chip.textContent = v;
+      container.appendChild(chip);
+    });
+  }
+
+  function renderAbilityEntryReadonly(container, entry) {
+    var box = document.createElement("div");
+    box.className = "ability-entry";
+    var h = document.createElement("h4");
+    h.textContent =
+      CharacterTypes.localizedText(entry.name) +
+      "［" + entry.kind + "］" +
+      (entry.level ? "　" + window.I18N.t("ability_level_label", { level: entry.level }) : "");
+    var body = document.createElement("p");
+    body.className = "threat-ref-body";
+    body.textContent = CharacterTypes.localizedText(entry.body);
+    box.appendChild(h);
+    box.appendChild(body);
+    container.appendChild(box);
+  }
+
+  function openCharacterView(id) {
+    var characters = loadRosterCharacters();
+    var c = characters.filter(function (x) {
+      return x.id === id;
+    })[0];
+    if (!c) return;
+    var type = c.typeId && CharacterTypes ? CharacterTypes.get(c.typeId) : null;
+
+    document.getElementById("cv-name").textContent = c.name;
+    document.getElementById("cv-type-badge").textContent = type
+      ? window.I18N.t("character_type_label") + window.I18N.t("colon_separator") + CharacterTypes.localizedName(type.name)
+      : "";
+    document.getElementById("cv-summary").textContent = [
+      window.I18N.t("character_hp_label") + window.I18N.t("colon_separator") + c.hp.current + "/" + c.hp.max,
+      window.I18N.t("character_fp_label") + window.I18N.t("colon_separator") + c.fp.current + "/" + c.fp.max,
+      window.I18N.t("character_blessing_slots_label") + window.I18N.t("colon_separator") + c.blessingSlots.current + "/" + c.blessingSlots.max,
+      window.I18N.t("record_level_label") + window.I18N.t("colon_separator") + c.level,
+      window.I18N.t("record_runes_label") + window.I18N.t("colon_separator") + c.runes,
+    ].join("　");
+    document.getElementById("cv-ultimate").textContent = c.ultimate || "";
+
+    var activeContainer = document.getElementById("cv-active-skills");
+    var passiveContainer = document.getElementById("cv-passives");
+    activeContainer.innerHTML = "";
+    passiveContainer.innerHTML = "";
+    if (type) {
+      var allEntries = [].concat(type.abilities || []).concat(type.skills || []).concat(type.arts || []);
+      type.relicEffectGroups.forEach(function (g) {
+        allEntries = allEntries.concat(g.effects);
+      });
+      allEntries.forEach(function (entry) {
+        renderAbilityEntryReadonly(entry.kind === "Passive" ? passiveContainer : activeContainer, entry);
+      });
+    }
+
+    CV_TAG_FIELDS.forEach(function (field) {
+      renderReadonlyTagList("cv-" + field, c[field]);
+    });
+
+    document.getElementById("cv-edit-link").href =
+      "../characters/index.html?game=" + encodeURIComponent(gameId) + "&open=" + encodeURIComponent(id);
+
+    document.getElementById("character-view-drawer").classList.add("open");
+  }
+
+  function closeCharacterView() {
+    document.getElementById("character-view-drawer").classList.remove("open");
   }
 
   function buildDeck() {
@@ -365,17 +446,20 @@
   function renderTimeLossSummary() {
     var dayKey = isSwappedDay() ? "day2" : "day1";
     var rows = state.timeLoss[dayKey];
-    var activeRowIndex = -1;
-    for (var i = 0; i < TIME_LOSS_ROW_DEFS.length; i++) {
-      if (rows[i].some(Boolean)) activeRowIndex = i;
-    }
+    var triggered = [];
+    TIME_LOSS_ROW_DEFS.forEach(function (def, i) {
+      if (rows[i].every(Boolean)) triggered.push(timeLossRowLabelDetail(dayKey, def));
+    });
     var summaryEl = document.getElementById("time-loss-summary");
-    if (activeRowIndex === -1) {
+    if (triggered.length === 0) {
       summaryEl.textContent = window.I18N.t("time_loss_none");
       return;
     }
-    var parts = timeLossRowLabelDetail(dayKey, TIME_LOSS_ROW_DEFS[activeRowIndex]);
-    summaryEl.textContent = parts[0] + window.I18N.t("colon_separator") + parts[1];
+    summaryEl.textContent = triggered
+      .map(function (parts) {
+        return parts[0] + window.I18N.t("colon_separator") + parts[1];
+      })
+      .join("、");
   }
 
   function buildWanderingBlessingChecks() {
@@ -721,7 +805,7 @@
 
     targetPositions.forEach(function (pos, i) {
       state.slots[pos] = { code: codes[i], revealed: false };
-      state.cardLevels[pos] = null;
+      state.cardLevels[pos] = 0;
     });
 
     var wasContinue = state.selectMode === "continue";
@@ -751,7 +835,7 @@
     scenario.day1.forEach(function (row) {
       var idx = row.pos - 1;
       state.slots[idx] = { code: row.suit + "-" + row.rank, revealed: false };
-      state.cardLevels[idx] = null;
+      state.cardLevels[idx] = 0;
     });
     state.boardStarted = true;
     renderBoard();
@@ -832,7 +916,7 @@
       var pos = emptyPositions[i];
       if (pos === undefined) return;
       state.slots[pos] = { code: row.suit + "-" + row.rank, revealed: false };
-      state.cardLevels[pos] = null;
+      state.cardLevels[pos] = 0;
     });
 
     advanceToNextNight();
@@ -1074,6 +1158,8 @@
     document.getElementById("btn-time-loss-info").addEventListener("click", openThreatDrawer);
     document.getElementById("btn-threat-drawer-close").addEventListener("click", closeThreatDrawer);
     document.getElementById("threat-drawer-backdrop").addEventListener("click", closeThreatDrawer);
+    document.getElementById("btn-character-view-close").addEventListener("click", closeCharacterView);
+    document.getElementById("character-view-backdrop").addEventListener("click", closeCharacterView);
     document.getElementById("input-smithing-stone").addEventListener("input", function (e) {
       state.smithingStone = e.target.value;
       saveState();

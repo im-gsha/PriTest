@@ -15,15 +15,21 @@ from __future__ import annotations
 
 from site_src.layout import page_shell
 
-BODY = """    <a id="link-characters" class="back-link" href="../index.html" data-i18n="back_characters"></a>
-    <h1 data-i18n="project_night_name"></h1>
-    <div class="day-status-row" id="day-status-row">
-      <p id="day-status" class="day-status"></p>
-      <button type="button" class="info-btn" id="btn-setup-info">i</button>
-      <div id="setup-info-bubble" class="info-bubble" hidden>
-        <button type="button" class="info-bubble-close" id="setup-info-close">&times;</button>
-        <h3 id="setup-info-title"></h3>
-        <div id="setup-info-body"></div>
+BODY = """    <div class="night-header-row">
+      <div class="night-header-left">
+        <a id="link-characters" class="back-link" href="../index.html" data-i18n="back_characters"></a>
+        <h1 data-i18n="project_night_name"></h1>
+        <p id="day-status" class="day-status"></p>
+        <button type="button" class="info-btn" id="btn-setup-info">i</button>
+        <div id="setup-info-bubble" class="info-bubble" hidden>
+          <button type="button" class="info-bubble-close" id="setup-info-close">&times;</button>
+          <h3 id="setup-info-title"></h3>
+          <div id="setup-info-body"></div>
+        </div>
+      </div>
+      <div class="night-header-actions">
+        <button id="btn-primary-action" type="button" class="primary-btn"></button>
+        <button id="btn-new-game" type="button" class="danger-btn" data-i18n="new_game_button"></button>
       </div>
     </div>
 
@@ -56,10 +62,6 @@ BODY = """    <a id="link-characters" class="back-link" href="../index.html" dat
         <span data-i18n="time_loss_summary_label"></span>
         <span id="time-loss-summary"></span>
         <button type="button" class="info-btn" id="btn-time-loss-info">i</button>
-      </div>
-      <div class="actions">
-        <button id="btn-primary-action" type="button" class="primary-btn"></button>
-        <button id="btn-new-game" type="button" data-i18n="new_game_button"></button>
       </div>
       <div class="character-roster" id="character-roster">
         <h3 data-i18n="character_roster_title"></h3>
@@ -176,6 +178,64 @@ BODY = """    <a id="link-characters" class="back-link" href="../index.html" dat
 
         <div class="actions">
           <button id="btn-threat-drawer-close" type="button" class="primary-btn" data-i18n="close_button"></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="character-view-drawer" class="drawer">
+      <div class="drawer-backdrop" id="character-view-backdrop"></div>
+      <div class="drawer-panel">
+        <h2 id="cv-name"></h2>
+        <p id="cv-type-badge" class="character-type-badge"></p>
+        <p id="cv-summary" class="threat-ref-body"></p>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="cv_ultimate_label"></h3>
+          <p id="cv-ultimate" class="threat-ref-body"></p>
+        </div>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="cv_active_skills_title"></h3>
+          <div id="cv-active-skills"></div>
+        </div>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="cv_passives_title"></h3>
+          <div id="cv-passives"></div>
+        </div>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="character_status_label"></h3>
+          <div id="cv-status" class="tag-list"></div>
+        </div>
+        <div class="threat-ref-block">
+          <h3 data-i18n="character_equipment_label"></h3>
+          <div id="cv-equipment" class="tag-list"></div>
+        </div>
+        <div class="threat-ref-block">
+          <h3 data-i18n="character_weapons_label"></h3>
+          <div id="cv-weapons" class="tag-list"></div>
+        </div>
+        <div class="threat-ref-block">
+          <h3 data-i18n="character_skills_label"></h3>
+          <div id="cv-skills" class="tag-list"></div>
+        </div>
+        <div class="threat-ref-block">
+          <h3 data-i18n="character_items_label"></h3>
+          <div id="cv-items" class="tag-list"></div>
+        </div>
+        <div class="threat-ref-block">
+          <h3 data-i18n="record_talismans_label"></h3>
+          <div id="cv-talismans" class="tag-list"></div>
+        </div>
+        <div class="threat-ref-block">
+          <h3 data-i18n="record_buildup_label"></h3>
+          <div id="cv-buildup" class="tag-list"></div>
+        </div>
+
+        <div class="actions">
+          <a id="cv-edit-link" class="primary-btn" href="#" data-i18n="cv_edit_link"></a>
+          <button id="btn-character-view-close" type="button" data-i18n="close_button"></button>
         </div>
       </div>
     </div>
