@@ -70,6 +70,13 @@
       openBtn.href = "../characters/index.html?game=" + encodeURIComponent(game.id);
       openBtn.textContent = window.I18N.t("admin_open_button");
 
+      var shareBtn = document.createElement("button");
+      shareBtn.type = "button";
+      shareBtn.textContent = window.I18N.t("share_button");
+      shareBtn.addEventListener("click", function () {
+        openShareModal(game.id);
+      });
+
       var deleteBtn = document.createElement("button");
       deleteBtn.type = "button";
       deleteBtn.className = "danger-btn";
@@ -81,6 +88,7 @@
       });
 
       actions.appendChild(openBtn);
+      actions.appendChild(shareBtn);
       actions.appendChild(deleteBtn);
 
       li.appendChild(info);
@@ -90,6 +98,67 @@
 
     var addBtn = document.getElementById("btn-add-game");
     addBtn.disabled = games.length >= Games.MAX_GAMES;
+  }
+
+  function shareUrlFor(bundle) {
+    var encoded = Games.utf8ToBase64Url(JSON.stringify(bundle));
+    var base = window.location.href.split("#")[0];
+    return base + "#import=" + encoded;
+  }
+
+  function openShareModal(gameId) {
+    var bundle = Games.exportGame(gameId);
+    if (!bundle) return;
+    var url = shareUrlFor(bundle);
+
+    document.getElementById("share-url-input").value = url;
+
+    var canvas = document.getElementById("share-qr-canvas");
+    var note = document.getElementById("share-oversize-note");
+    var result = window.PriTestQRCode.renderToCanvas(canvas, url, { level: "L", scale: 6, margin: 3 });
+    if (result) {
+      canvas.hidden = false;
+      note.hidden = true;
+    } else {
+      canvas.hidden = true;
+      note.hidden = false;
+    }
+
+    document.getElementById("share-modal").hidden = false;
+  }
+
+  function closeShareModal() {
+    document.getElementById("share-modal").hidden = true;
+  }
+
+  function handleImportFromHash() {
+    var hash = window.location.hash;
+    if (hash.indexOf("#import=") !== 0) return;
+    var encoded = hash.slice("#import=".length);
+    // インポート後にURLへ再度残らないよう、先にhashを消しておく
+    history.replaceState(null, "", window.location.pathname + window.location.search);
+
+    var bundle;
+    try {
+      bundle = JSON.parse(Games.base64UrlToUtf8(encoded));
+    } catch (e) {
+      alert(window.I18N.t("share_import_invalid"));
+      return;
+    }
+    if (!bundle || !bundle.game || typeof bundle.game.name !== "string") {
+      alert(window.I18N.t("share_import_invalid"));
+      return;
+    }
+    if (Games.list().length >= Games.MAX_GAMES) {
+      alert(window.I18N.t("share_import_full", { max: Games.MAX_GAMES }));
+      return;
+    }
+    if (!window.confirm(window.I18N.t("share_import_confirm", { name: bundle.game.name }))) return;
+    var newGame = Games.importGame(bundle);
+    if (newGame) {
+      alert(window.I18N.t("share_import_success", { name: newGame.name }));
+      renderGameList();
+    }
   }
 
   function handleAddGame() {
@@ -109,7 +178,22 @@
     requireAdmin();
     renderScenarioSelect();
     renderGameList();
+    handleImportFromHash();
     document.getElementById("btn-add-game").addEventListener("click", handleAddGame);
+    document.getElementById("btn-share-close").addEventListener("click", closeShareModal);
+    document.getElementById("btn-share-copy").addEventListener("click", function () {
+      var input = document.getElementById("share-url-input");
+      input.select();
+      input.setSelectionRange(0, input.value.length);
+      navigator.clipboard
+        .writeText(input.value)
+        .then(function () {
+          alert(window.I18N.t("share_copied"));
+        })
+        .catch(function () {
+          document.execCommand("copy");
+        });
+    });
     window.addEventListener("i18n:change", function () {
       renderScenarioSelect();
       renderGameList();
