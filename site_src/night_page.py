@@ -29,8 +29,20 @@ BODY = """    <a id="link-characters" class="back-link" href="../index.html" dat
         <div class="field-level field-level-0" id="field-level-0"></div>
         <div class="field-level field-level-1" id="field-level-1"></div>
         <div class="field-level field-level-2" id="field-level-2"></div>
-        <button type="button" class="pile pile-start" id="pile-start"></button>
-        <button type="button" class="pile pile-end" id="pile-end"></button>
+        <div class="pile-wrap pile-wrap-start" id="pile-wrap-start">
+          <button type="button" class="pile pile-start" id="pile-start"></button>
+          <div class="pile-checks">
+            <label class="pile-check"><input type="checkbox" id="pile-check-start-one">1</label>
+            <label class="pile-check"><input type="checkbox" id="pile-check-start-all"><span data-i18n="check_all_label"></span></label>
+          </div>
+        </div>
+        <div class="pile-wrap pile-wrap-end" id="pile-wrap-end">
+          <button type="button" class="pile pile-end" id="pile-end"></button>
+          <div class="pile-checks">
+            <label class="pile-check"><input type="checkbox" id="pile-check-end-one">1</label>
+            <label class="pile-check"><input type="checkbox" id="pile-check-end-all"><span data-i18n="check_all_label"></span></label>
+          </div>
+        </div>
       </div>
       <div class="actions">
         <button id="btn-primary-action" type="button" class="primary-btn"></button>

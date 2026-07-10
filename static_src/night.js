@@ -34,6 +34,10 @@
     CARD_BY_CODE[c.code] = c;
   });
 
+  function defaultChecks() {
+    return { one: false, all: false };
+  }
+
   var state = {
     slots: new Array(SLOT_COUNT).fill(null), // { code, revealed } | null
     cardLevels: new Array(SLOT_COUNT).fill(null), // null("全") | 0-5
@@ -46,6 +50,10 @@
     dayNumber: 1,
     startSuit: null,
     endSuit: null,
+    startChecks: defaultChecks(),
+    endChecks: defaultChecks(),
+    startDefeated: false, // 前日の終點が「撃破済み」として起點側に引き継がれた状態か
+    startDefeatedDay: null,
   };
 
   function shuffle(arr) {
@@ -85,8 +93,17 @@
       dayNumber: state.dayNumber,
       startSuit: state.startSuit,
       endSuit: state.endSuit,
+      startChecks: state.startChecks,
+      endChecks: state.endChecks,
+      startDefeated: state.startDefeated,
+      startDefeatedDay: state.startDefeatedDay,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function loadChecks(raw) {
+    if (!raw || typeof raw !== "object") return defaultChecks();
+    return { one: !!raw.one, all: !!raw.all };
   }
 
   function loadState() {
@@ -106,6 +123,10 @@
       state.dayNumber = typeof data.dayNumber === "number" ? data.dayNumber : 1;
       state.startSuit = SUITS.indexOf(data.startSuit) !== -1 ? data.startSuit : null;
       state.endSuit = SUITS.indexOf(data.endSuit) !== -1 ? data.endSuit : null;
+      state.startChecks = loadChecks(data.startChecks);
+      state.endChecks = loadChecks(data.endChecks);
+      state.startDefeated = !!data.startDefeated;
+      state.startDefeatedDay = typeof data.startDefeatedDay === "number" ? data.startDefeatedDay : null;
     } catch (e) {
       // 壊れた状態は無視して初期状態のまま続行する
     }
@@ -120,6 +141,10 @@
     state.dayNumber = 1;
     state.startSuit = null;
     state.endSuit = null;
+    state.startChecks = defaultChecks();
+    state.endChecks = defaultChecks();
+    state.startDefeated = false;
+    state.startDefeatedDay = null;
     localStorage.removeItem(STORAGE_KEY);
   }
 
@@ -164,7 +189,17 @@
   function renderFieldLevels() {
     var levels = fieldLevelsForDay();
     levels.forEach(function (n, i) {
-      document.getElementById("field-level-" + i).textContent = "±" + n;
+      var el = document.getElementById("field-level-" + i);
+      var value = "±" + n;
+      el.innerHTML = "";
+      var main = document.createElement("span");
+      main.className = "field-level-main";
+      main.textContent = value;
+      var sub = document.createElement("span");
+      sub.className = "field-level-sub";
+      sub.textContent = window.I18N.t("field_level_note", { value: value });
+      el.appendChild(main);
+      el.appendChild(sub);
     });
   }
 
@@ -175,8 +210,9 @@
 
   function renderPiles() {
     document.getElementById("board-grid").classList.toggle("swapped", isSwappedDay());
-    renderPileButton("pile-start", "start_point_label", state.startSuit);
+    renderStartPile();
     renderPileButton("pile-end", "end_point_label", state.endSuit);
+    renderPileChecks("end", state.endChecks, false);
   }
 
   function renderPileButton(id, labelKey, suit) {
@@ -188,6 +224,37 @@
     el.textContent = suit ? label + " " + SUIT_SYMBOL[suit] : label;
     if (suit) el.classList.add(SUIT_CLASS[suit]);
     el.classList.toggle("active", state.boardStarted);
+  }
+
+  function renderStartPile() {
+    var el = document.getElementById("pile-start");
+    SUIT_CLASSES.forEach(function (cls) {
+      el.classList.remove(cls);
+    });
+    el.classList.remove("defeated");
+    if (state.startDefeated) {
+      var goalLabel = window.I18N.t("end_point_label");
+      var note = window.I18N.t("pile_defeated_note", { day: state.startDefeatedDay });
+      el.textContent = (state.startSuit ? goalLabel + " " + SUIT_SYMBOL[state.startSuit] : goalLabel) + " " + note;
+      if (state.startSuit) el.classList.add(SUIT_CLASS[state.startSuit]);
+      el.classList.add("defeated", "active");
+      el.disabled = true;
+    } else {
+      var label = window.I18N.t("start_point_label");
+      el.textContent = state.startSuit ? label + " " + SUIT_SYMBOL[state.startSuit] : label;
+      if (state.startSuit) el.classList.add(SUIT_CLASS[state.startSuit]);
+      el.classList.toggle("active", state.boardStarted);
+      el.disabled = false;
+    }
+    renderPileChecks("start", state.startChecks, state.startDefeated);
+  }
+
+  function renderPileChecks(which, checks, locked) {
+    ["one", "all"].forEach(function (field) {
+      var el = document.getElementById("pile-check-" + which + "-" + field);
+      el.checked = locked ? true : !!checks[field];
+      el.disabled = locked;
+    });
   }
 
   function renderCardLevel(index) {
@@ -361,7 +428,15 @@
     var wasContinue = state.selectMode === "continue";
     var logKey = wasContinue ? "log_continue_submit" : "log_select_submit";
     state.boardStarted = true;
-    if (wasContinue) state.dayNumber += 1;
+    if (wasContinue) {
+      state.startDefeatedDay = state.dayNumber;
+      state.startSuit = state.endSuit;
+      state.startChecks = { one: true, all: true };
+      state.startDefeated = true;
+      state.endSuit = null;
+      state.endChecks = defaultChecks();
+      state.dayNumber += 1;
+    }
     closeSelectDrawer();
     renderBoard();
     addLog(logKey, { n: codes.length, cards: cardsLabel });
@@ -371,6 +446,7 @@
   // --- suit picker ---
   function openSuitPicker(which) {
     if (!state.boardStarted) return;
+    if (which === "start" && state.startDefeated) return;
     var modal = document.getElementById("suit-modal");
     document.getElementById("suit-modal-title").textContent = window.I18N.t(
       which === "start" ? "select_suit_start_title" : "select_suit_end_title"
@@ -568,6 +644,19 @@
     });
     document.getElementById("pile-end").addEventListener("click", function () {
       openSuitPicker("end");
+    });
+    ["start", "end"].forEach(function (which) {
+      ["one", "all"].forEach(function (field) {
+        document.getElementById("pile-check-" + which + "-" + field).addEventListener("change", function (e) {
+          if (which === "start" && state.startDefeated) {
+            renderStartPile();
+            return;
+          }
+          var checks = which === "start" ? state.startChecks : state.endChecks;
+          checks[field] = e.target.checked;
+          saveState();
+        });
+      });
     });
 
     window.addEventListener("i18n:change", function () {
