@@ -156,6 +156,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "ability_level_label": "Lv.{level} 習得",
         "character_roster_title": "角色",
         "character_roster_empty": "尚未新增角色",
+        "cv_ultimate_label": "大招",
+        "cv_active_skills_title": "可發動技能",
+        "cv_passives_title": "被動能力",
+        "cv_edit_link": "編輯角色資料",
     },
     "ja": {
         "site_name": "PriTest",
@@ -305,6 +309,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "ability_level_label": "レベル{level}習得",
         "character_roster_title": "キャラクター",
         "character_roster_empty": "まだキャラクターがいません",
+        "cv_ultimate_label": "大技",
+        "cv_active_skills_title": "発動可能なスキル",
+        "cv_passives_title": "パッシブ能力",
+        "cv_edit_link": "キャラクター情報を編集",
     },
     "en": {
         "site_name": "PriTest",
@@ -454,5 +462,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "ability_level_label": "Learned at Lv.{level}",
         "character_roster_title": "Characters",
         "character_roster_empty": "No characters yet",
+        "cv_ultimate_label": "Ultimate",
+        "cv_active_skills_title": "Activatable Skills",
+        "cv_passives_title": "Passive Abilities",
+        "cv_edit_link": "Edit Character",
     },
 }

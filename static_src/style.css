@@ -210,12 +210,41 @@ button {
   transform: translateX(0);
 }
 
-.day-status-row {
+.night-header-row {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.night-header-left {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.6rem;
   position: relative;
-  margin: -0.5rem 0 0;
+}
+
+.night-header-left h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.night-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+.danger-btn {
+  background: #d64545;
+  color: #fff;
+  border: 1px solid #d64545;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
 }
 
 .day-status {
@@ -495,7 +524,7 @@ button {
   gap: 0.5rem;
 }
 
-.character-roster-list a {
+.character-roster-list button {
   display: inline-block;
   padding: 0.4rem 0.8rem;
   border: 1px solid #bbb;
@@ -503,6 +532,8 @@ button {
   font-size: 0.85rem;
   color: inherit;
   text-decoration: none;
+  background: none;
+  cursor: pointer;
 }
 
 .character-roster-empty {

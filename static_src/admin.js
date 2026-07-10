@@ -72,6 +72,7 @@
 
       var deleteBtn = document.createElement("button");
       deleteBtn.type = "button";
+      deleteBtn.className = "danger-btn";
       deleteBtn.textContent = window.I18N.t("admin_delete_button");
       deleteBtn.addEventListener("click", function () {
         if (!window.confirm(window.I18N.t("admin_confirm_delete", { name: game.name }))) return;

@@ -202,8 +202,8 @@
           type.powerMod.faith,
           type.powerMod.arcane,
         ].join("／"),
-      window.I18N.t("stat_favored_weapons") + window.I18N.t("colon_separator") + type.favoredWeapons,
-      window.I18N.t("stat_starting_equipment") + window.I18N.t("colon_separator") + type.startingEquipment,
+      window.I18N.t("stat_favored_weapons") + window.I18N.t("colon_separator") + CharacterTypes.localizedText(type.favoredWeapons),
+      window.I18N.t("stat_starting_equipment") + window.I18N.t("colon_separator") + CharacterTypes.localizedText(type.startingEquipment),
     ];
     document.getElementById("type-reference-stats").textContent = lines.join("\n");
 
@@ -219,7 +219,7 @@
       renderAbilityGroup(detail, type.arts);
       type.relicEffectGroups.forEach(function (group) {
         var h = document.createElement("h3");
-        h.textContent = group.title;
+        h.textContent = CharacterTypes.localizedText(group.title);
         detail.appendChild(h);
         renderAbilityGroup(detail, group.effects);
       });
@@ -231,10 +231,13 @@
       var box = document.createElement("div");
       box.className = "ability-entry";
       var h = document.createElement("h4");
-      h.textContent = entry.name + "［" + entry.kind + "］" + (entry.level ? "　" + window.I18N.t("ability_level_label", { level: entry.level }) : "");
+      h.textContent =
+        CharacterTypes.localizedText(entry.name) +
+        "［" + entry.kind + "］" +
+        (entry.level ? "　" + window.I18N.t("ability_level_label", { level: entry.level }) : "");
       var body = document.createElement("p");
       body.className = "threat-ref-body";
-      body.textContent = entry.body;
+      body.textContent = CharacterTypes.localizedText(entry.body);
       box.appendChild(h);
       box.appendChild(body);
       container.appendChild(box);
