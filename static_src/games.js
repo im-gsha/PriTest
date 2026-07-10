@@ -1,5 +1,6 @@
 (function () {
   var GAMES_KEY = "pritest-admin-games";
+  var ADMIN_SESSION_KEY = "pritest-admin-session";
   var MAX_GAMES = 5;
   var MAX_CHARACTERS = 10;
   var ADMIN_PASSWORD = "night";
@@ -43,9 +44,17 @@
     localStorage.removeItem("pritest-characters-" + id);
   }
 
+  function isAdminAuthenticated() {
+    return sessionStorage.getItem(ADMIN_SESSION_KEY) === "1";
+  }
+
+  // ブラウザタブを閉じるまで有効な管理員認証。すでに認証済みならプロンプトを出さない。
   function checkAdminPassword(promptText) {
+    if (isAdminAuthenticated()) return true;
     var input = window.prompt(promptText);
-    return input === ADMIN_PASSWORD;
+    var ok = input === ADMIN_PASSWORD;
+    if (ok) sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
+    return ok;
   }
 
   function getGameIdFromQuery() {
@@ -62,6 +71,7 @@
     create: createGame,
     remove: deleteGame,
     checkAdminPassword: checkAdminPassword,
+    isAdminAuthenticated: isAdminAuthenticated,
     getGameIdFromQuery: getGameIdFromQuery,
   };
 })();

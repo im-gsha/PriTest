@@ -850,6 +850,10 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    if (!Games.checkAdminPassword(window.I18N.t("admin_password_prompt"))) {
+      window.location.href = "../admin/index.html";
+      return;
+    }
     if (!game) {
       document.getElementById("screen-missing-game").hidden = false;
       document.getElementById("screen-board").hidden = true;
