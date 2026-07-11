@@ -183,6 +183,15 @@
     return obj;
   }
 
+  function defaultBattleState() {
+    return {
+      frontNames: ["", "", "", "", "", ""],
+      backNames: ["", "", "", "", "", ""],
+      enemyHp: new Array(40).fill(false),
+      mobHpRows: [],
+    };
+  }
+
   var state = {
     slots: new Array(SLOT_COUNT).fill(null), // { code, revealed } | null
     cardLevels: new Array(SLOT_COUNT).fill(null), // null("全") | 0-5
@@ -205,6 +214,7 @@
     smithingStone: "",
     stoneswordKey: "",
     grace: "",
+    battle: defaultBattleState(),
   };
 
   function shuffle(arr) {
@@ -254,8 +264,28 @@
       smithingStone: state.smithingStone,
       stoneswordKey: state.stoneswordKey,
       grace: state.grace,
+      battle: state.battle,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function loadBattleState(raw) {
+    var fallback = defaultBattleState();
+    if (!raw || typeof raw !== "object") return fallback;
+    var frontNames = Array.isArray(raw.frontNames) ? raw.frontNames.slice(0, 6) : fallback.frontNames.slice();
+    while (frontNames.length < 6) frontNames.push("");
+    var backNames = Array.isArray(raw.backNames) ? raw.backNames.slice(0, 6) : fallback.backNames.slice();
+    while (backNames.length < 6) backNames.push("");
+    var enemyHp = Array.isArray(raw.enemyHp) ? raw.enemyHp.slice(0, 40).map(Boolean) : fallback.enemyHp.slice();
+    while (enemyHp.length < 40) enemyHp.push(false);
+    var mobHpRows = Array.isArray(raw.mobHpRows)
+      ? raw.mobHpRows.map(function (row) {
+          var r = Array.isArray(row) ? row.slice(0, 10).map(Boolean) : [];
+          while (r.length < 10) r.push(false);
+          return r;
+        })
+      : [];
+    return { frontNames: frontNames, backNames: backNames, enemyHp: enemyHp, mobHpRows: mobHpRows };
   }
 
   function loadTimeLossDay(raw) {
@@ -325,6 +355,7 @@
       state.smithingStone = typeof data.smithingStone === "string" ? data.smithingStone : "";
       state.stoneswordKey = typeof data.stoneswordKey === "string" ? data.stoneswordKey : "";
       state.grace = typeof data.grace === "string" ? data.grace : "";
+      state.battle = loadBattleState(data.battle);
     } catch (e) {
       // 壊れた状態は無視して初期状態のまま続行する
     }
@@ -349,6 +380,7 @@
     state.smithingStone = "";
     state.stoneswordKey = "";
     state.grace = "";
+    state.battle = defaultBattleState();
     localStorage.removeItem(STORAGE_KEY);
   }
 
@@ -598,6 +630,144 @@
     document.getElementById("threat-drawer").classList.remove("open");
   }
 
+  // --- 戦場シート ---
+  function buildBattleAreaGrid(containerId, namesArray) {
+    var container = document.getElementById(containerId);
+    container.innerHTML = "";
+    for (var i = 0; i < namesArray.length; i++) {
+      (function (idx) {
+        var row = document.createElement("label");
+        row.className = "battle-aggro-row";
+        var span = document.createElement("span");
+        span.className = "battle-aggro-index";
+        span.textContent = idx;
+        var input = document.createElement("input");
+        input.type = "text";
+        input.id = containerId + "-" + idx;
+        input.value = namesArray[idx] || "";
+        input.addEventListener("input", function (e) {
+          namesArray[idx] = e.target.value;
+          saveState();
+        });
+        row.appendChild(span);
+        row.appendChild(input);
+        container.appendChild(row);
+      })(i);
+    }
+  }
+
+  function renderBattleAreaValues(containerId, namesArray) {
+    namesArray.forEach(function (name, idx) {
+      var input = document.getElementById(containerId + "-" + idx);
+      if (input) input.value = name || "";
+    });
+  }
+
+  function buildBattleAreas() {
+    buildBattleAreaGrid("battle-front-grid", state.battle.frontNames);
+    buildBattleAreaGrid("battle-back-grid", state.battle.backNames);
+  }
+
+  function buildEnemyHpGrid() {
+    var container = document.getElementById("battle-enemy-hp-grid");
+    container.innerHTML = "";
+    for (var row = 0; row < 4; row++) {
+      var rowDiv = document.createElement("div");
+      rowDiv.className = "battle-hp-row";
+      for (var col = 0; col < 10; col++) {
+        (function (idx) {
+          var cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.id = "battle-enemy-hp-" + idx;
+          cb.addEventListener("change", function (e) {
+            state.battle.enemyHp[idx] = e.target.checked;
+            saveState();
+          });
+          rowDiv.appendChild(cb);
+        })(row * 10 + col);
+      }
+      container.appendChild(rowDiv);
+    }
+  }
+
+  function renderEnemyHpGrid() {
+    for (var i = 0; i < 40; i++) {
+      var cb = document.getElementById("battle-enemy-hp-" + i);
+      if (cb) cb.checked = !!state.battle.enemyHp[i];
+    }
+  }
+
+  function renderMobHpList() {
+    var container = document.getElementById("battle-mob-hp-list");
+    container.innerHTML = "";
+    state.battle.mobHpRows.forEach(function (row, rowIndex) {
+      var rowWrap = document.createElement("div");
+      rowWrap.className = "battle-hp-row-wrap";
+      var rowDiv = document.createElement("div");
+      rowDiv.className = "battle-hp-row";
+      row.forEach(function (checked, col) {
+        var cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = checked;
+        cb.addEventListener("change", function (e) {
+          state.battle.mobHpRows[rowIndex][col] = e.target.checked;
+          saveState();
+        });
+        rowDiv.appendChild(cb);
+      });
+      var removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "tag-remove battle-row-remove";
+      removeBtn.textContent = "×";
+      removeBtn.title = window.I18N.t("battle_remove_row_button");
+      removeBtn.addEventListener("click", function () {
+        state.battle.mobHpRows.splice(rowIndex, 1);
+        saveState();
+        renderMobHpList();
+      });
+      rowWrap.appendChild(rowDiv);
+      rowWrap.appendChild(removeBtn);
+      container.appendChild(rowWrap);
+    });
+  }
+
+  function handleAddMobRow() {
+    state.battle.mobHpRows.push(new Array(10).fill(false));
+    saveState();
+    renderMobHpList();
+  }
+
+  function renderBattleRefTexts() {
+    document.getElementById("battle-pc-damage-body").textContent = window.I18N.t("battle_pc_damage_body");
+    document.getElementById("battle-enemy-damage-body").textContent = window.I18N.t("battle_enemy_damage_body");
+    document.getElementById("battle-position-body").textContent = window.I18N.t("battle_position_body");
+    document.getElementById("battle-simple-combat-body").textContent = window.I18N.t("battle_simple_combat_body");
+    document.getElementById("battle-pc-count-body").textContent = [
+      window.I18N.t("battle_pc_count_1"),
+      window.I18N.t("battle_pc_count_2"),
+      window.I18N.t("battle_pc_count_3"),
+      window.I18N.t("battle_pc_count_4"),
+    ].join("\n");
+  }
+
+  function handleBattleClear() {
+    if (!window.confirm(window.I18N.t("battle_clear_confirm"))) return;
+    state.battle = defaultBattleState();
+    saveState();
+    renderBattleAreaValues("battle-front-grid", state.battle.frontNames);
+    renderBattleAreaValues("battle-back-grid", state.battle.backNames);
+    renderEnemyHpGrid();
+    renderMobHpList();
+  }
+
+  function openBattleDrawer() {
+    document.getElementById("battle-drawer").classList.add("open");
+  }
+
+  function closeBattleDrawer() {
+    document.getElementById("battle-drawer").classList.remove("open");
+  }
+
   function renderFieldLevels() {
     var levels = fieldLevelsForDay();
     levels.forEach(function (n, i) {
@@ -626,18 +796,22 @@
   }
 
   function renderSetupInfo() {
-    var dayKey = isSwappedDay() ? "day2" : "day1";
     document.getElementById("btn-setup-info").title = window.I18N.t("setup_info_button");
-    document.getElementById("setup-info-title").textContent = window.I18N.t("setup_info_title_" + dayKey);
+    document.getElementById("setup-info-title").textContent = window.I18N.t("setup_info_button");
     var body = document.getElementById("setup-info-body");
     body.innerHTML = "";
-    window.I18N.t("setup_info_body_" + dayKey)
-      .split("\n")
-      .forEach(function (line) {
-        var p = document.createElement("p");
-        p.textContent = line;
-        body.appendChild(p);
-      });
+    ["day1", "day2"].forEach(function (dayKey) {
+      var h = document.createElement("h4");
+      h.textContent = window.I18N.t("setup_info_title_" + dayKey);
+      body.appendChild(h);
+      window.I18N.t("setup_info_body_" + dayKey)
+        .split("\n")
+        .forEach(function (line) {
+          var p = document.createElement("p");
+          p.textContent = line;
+          body.appendChild(p);
+        });
+    });
   }
 
   function toggleSetupInfo() {
@@ -1213,6 +1387,11 @@
       onChange: renderCharacterRoster,
     });
     loadState();
+    buildBattleAreas();
+    buildEnemyHpGrid();
+    renderEnemyHpGrid();
+    renderMobHpList();
+    renderBattleRefTexts();
     renderBoard();
     renderLog();
     renderLogToggleLabel();
@@ -1242,6 +1421,11 @@
     document.getElementById("btn-time-loss-info").addEventListener("click", openThreatDrawer);
     document.getElementById("btn-threat-drawer-close").addEventListener("click", closeThreatDrawer);
     document.getElementById("threat-drawer-backdrop").addEventListener("click", closeThreatDrawer);
+    document.getElementById("btn-battle-info").addEventListener("click", openBattleDrawer);
+    document.getElementById("btn-battle-drawer-close").addEventListener("click", closeBattleDrawer);
+    document.getElementById("battle-drawer-backdrop").addEventListener("click", closeBattleDrawer);
+    document.getElementById("btn-battle-add-mob-row").addEventListener("click", handleAddMobRow);
+    document.getElementById("btn-battle-clear").addEventListener("click", handleBattleClear);
     document.getElementById("input-smithing-stone").addEventListener("input", function (e) {
       state.smithingStone = e.target.value;
       saveState();
@@ -1279,6 +1463,7 @@
       renderLog();
       renderLogToggleLabel();
       renderSelectScreen();
+      renderBattleRefTexts();
     });
   });
 })();
