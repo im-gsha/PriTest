@@ -67,6 +67,13 @@ BODY = """    <div class="night-header-row">
         <span data-i18n="battle_sheet_label"></span>
         <button type="button" class="info-btn" id="btn-battle-info">i</button>
       </div>
+      <div class="dice-pool-block" id="dice-pool-bar">
+        <div class="dice-pool-header">
+          <span data-i18n="dice_pool_label"></span>
+          <button type="button" class="icon-btn" id="btn-dice-pool-add">+</button>
+        </div>
+        <div class="dice-pool-list" id="dice-pool-list"></div>
+      </div>
       <div class="character-roster" id="character-roster">
         <h3 data-i18n="character_roster_title"></h3>
         <table class="character-roster-table" id="character-roster-table">
@@ -224,6 +231,14 @@ BODY = """    <div class="night-header-row">
             <span>/</span>
             <input type="number" id="char-fp-max" class="stat-input">
           </label>
+        </div>
+
+        <div class="dice-pool-block">
+          <div class="dice-pool-header">
+            <h3 data-i18n="character_dice_pool_label"></h3>
+            <button type="button" class="icon-btn" id="btn-char-dice-add">+</button>
+          </div>
+          <div class="dice-pool-list" id="char-dice-pool-list"></div>
         </div>
 
         <label class="field-row-block">

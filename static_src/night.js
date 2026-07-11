@@ -192,9 +192,28 @@
     };
   }
 
+  // イベントチット（靈脈・商人・祝福・強敵・ランダム）: 毎晩、9マスにランダム配置され、
+  // カードを翻開するまで内容は分からない（自訂・固定副本のどちらでも共通）。
+  var EVENT_CHIP_TYPES = [
+    { id: "spirit_vein", icon: "spirit-vein.png" },
+    { id: "merchant", icon: "merchant.png" },
+    { id: "merchant", icon: "merchant.png" },
+    { id: "blessing", icon: "blessing.png" },
+    { id: "blessing", icon: "blessing.png" },
+    { id: "blessing", icon: "blessing.png" },
+    { id: "strong_enemy", icon: "strong-enemy.png" },
+    { id: "strong_enemy", icon: "strong-enemy.png" },
+    { id: "random", icon: "random.png" },
+  ];
+
+  function rollEventChips() {
+    return shuffle(EVENT_CHIP_TYPES.map(function (c) { return c.id; }));
+  }
+
   var state = {
     slots: new Array(SLOT_COUNT).fill(null), // { code, revealed } | null
     cardLevels: new Array(SLOT_COUNT).fill(null), // null("全") | 0-5
+    eventChips: new Array(SLOT_COUNT).fill(null), // 各マスのイベントチット（翻開まで非公開）
     boardStarted: false,
     log: [], // { key, params, time(ms) }
     focusedIndex: null,
@@ -215,6 +234,7 @@
     stoneswordKey: "",
     grace: "",
     battle: defaultBattleState(),
+    dicePool: [],
   };
 
   function shuffle(arr) {
@@ -248,6 +268,7 @@
     var data = {
       slots: state.slots,
       cardLevels: state.cardLevels,
+      eventChips: state.eventChips,
       boardStarted: state.boardStarted,
       log: state.log,
       focusedIndex: state.focusedIndex,
@@ -265,6 +286,7 @@
       stoneswordKey: state.stoneswordKey,
       grace: state.grace,
       battle: state.battle,
+      dicePool: state.dicePool,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
@@ -325,6 +347,15 @@
     return { one: !!raw.one, all: !!raw.all };
   }
 
+  function loadDicePool(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .filter(function (v) {
+        return typeof v === "number" && v >= 1 && v <= 6;
+      })
+      .slice(0, CharacterDrawer.MAX_DICE_POOL);
+  }
+
   function loadState() {
     var raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
@@ -335,6 +366,9 @@
       }
       if (Array.isArray(data.cardLevels) && data.cardLevels.length === SLOT_COUNT) {
         state.cardLevels = data.cardLevels;
+      }
+      if (Array.isArray(data.eventChips) && data.eventChips.length === SLOT_COUNT) {
+        state.eventChips = data.eventChips;
       }
       state.boardStarted = !!data.boardStarted;
       state.log = Array.isArray(data.log) ? data.log : [];
@@ -356,6 +390,7 @@
       state.stoneswordKey = typeof data.stoneswordKey === "string" ? data.stoneswordKey : "";
       state.grace = typeof data.grace === "string" ? data.grace : "";
       state.battle = loadBattleState(data.battle);
+      state.dicePool = loadDicePool(data.dicePool);
     } catch (e) {
       // 壊れた状態は無視して初期状態のまま続行する
     }
@@ -364,6 +399,7 @@
   function resetState() {
     state.slots = new Array(SLOT_COUNT).fill(null);
     state.cardLevels = new Array(SLOT_COUNT).fill(null);
+    state.eventChips = new Array(SLOT_COUNT).fill(null);
     state.boardStarted = false;
     state.log = [];
     state.focusedIndex = null;
@@ -381,6 +417,7 @@
     state.stoneswordKey = "";
     state.grace = "";
     state.battle = defaultBattleState();
+    state.dicePool = [];
     localStorage.removeItem(STORAGE_KEY);
   }
 
@@ -760,6 +797,27 @@
     renderMobHpList();
   }
 
+  function renderDicePool() {
+    var listEl = document.getElementById("dice-pool-list");
+    CharacterDrawer.renderDicePool(
+      listEl,
+      state.dicePool,
+      function (index) {
+        state.dicePool.splice(index, 1);
+        saveState();
+        renderDicePool();
+      },
+      document.getElementById("btn-dice-pool-add")
+    );
+  }
+
+  function handleAddDice() {
+    if (state.dicePool.length >= CharacterDrawer.MAX_DICE_POOL) return;
+    state.dicePool.push(CharacterDrawer.rollD6());
+    saveState();
+    renderDicePool();
+  }
+
   function openBattleDrawer() {
     document.getElementById("battle-drawer").classList.add("open");
   }
@@ -881,14 +939,39 @@
     var el = document.getElementById("slot-effect-" + index);
     var slot = state.slots[index];
     if (!el) return;
-    if (!scenario || !slot || !slot.revealed) {
-      el.textContent = "";
-      return;
+    el.innerHTML = "";
+    if (!slot || !slot.revealed) return;
+
+    if (scenario) {
+      var card = CARD_BY_CODE[slot.code];
+      var dayKey = isSwappedDay() ? "day2" : "day1";
+      var effect = Scenarios.findCardEffect(game.scenarioId, dayKey, card.suit, card.rank);
+      if (effect) {
+        var effectLine = document.createElement("div");
+        effectLine.textContent = Scenarios.localizedName(effect.name);
+        el.appendChild(effectLine);
+      }
     }
-    var card = CARD_BY_CODE[slot.code];
-    var dayKey = isSwappedDay() ? "day2" : "day1";
-    var effect = Scenarios.findCardEffect(game.scenarioId, dayKey, card.suit, card.rank);
-    el.textContent = effect ? Scenarios.localizedName(effect.name) : "";
+
+    var chipId = state.eventChips[index];
+    var chipDef = chipId
+      ? EVENT_CHIP_TYPES.filter(function (c) {
+          return c.id === chipId;
+        })[0]
+      : null;
+    if (chipDef) {
+      var chipRow = document.createElement("div");
+      chipRow.className = "slot-chip-row";
+      var img = document.createElement("img");
+      img.className = "slot-chip-icon";
+      img.src = "../static/images/icons/" + chipDef.icon;
+      img.alt = window.I18N.t("event_chip_" + chipId);
+      var label = document.createElement("span");
+      label.textContent = window.I18N.t("event_chip_" + chipId);
+      chipRow.appendChild(img);
+      chipRow.appendChild(label);
+      el.appendChild(chipRow);
+    }
   }
 
   function stepCardLevel(index, dir) {
@@ -1059,6 +1142,7 @@
       state.slots[pos] = { code: codes[i], revealed: false };
       state.cardLevels[pos] = 0;
     });
+    state.eventChips = rollEventChips();
 
     var wasContinue = state.selectMode === "continue";
     var logKey = wasContinue ? "log_continue_submit" : "log_select_submit";
@@ -1084,11 +1168,19 @@
   function dealScenarioInitial() {
     state.startSuit = scenario.start.suit;
     state.endSuit = scenario.end.suit;
-    scenario.day1.forEach(function (row) {
-      var idx = row.pos - 1;
+    // 副本で決まっているのは「9枚のカードと場効果の組」だけで、どのマスに入るかは
+    // 自訂モードと同様にランダム（プレイのたびに配置が変わる）。
+    var positions = shuffle(
+      Array.from({ length: SLOT_COUNT }, function (_, i) {
+        return i;
+      })
+    );
+    scenario.day1.forEach(function (row, i) {
+      var idx = positions[i];
       state.slots[idx] = { code: row.suit + "-" + row.rank, revealed: false };
       state.cardLevels[idx] = 0;
     });
+    state.eventChips = rollEventChips();
     state.boardStarted = true;
     renderBoard();
     addLog("log_select_submit", {
@@ -1157,10 +1249,15 @@
         state.cardLevels[i] = null;
       }
     }
-    var emptyPositions = [];
-    state.slots.forEach(function (s, i) {
-      if (s === null) emptyPositions.push(i);
-    });
+    var emptyPositions = shuffle(
+      state.slots
+        .map(function (s, i) {
+          return s === null ? i : null;
+        })
+        .filter(function (v) {
+          return v !== null;
+        })
+    );
     var day2Rows = scenario.day2.slice().sort(function (a, b) {
       return a.pos - b.pos;
     });
@@ -1170,6 +1267,7 @@
       state.slots[pos] = { code: row.suit + "-" + row.rank, revealed: false };
       state.cardLevels[pos] = 0;
     });
+    state.eventChips = rollEventChips();
 
     advanceToNextNight();
     closeKeepCardsDrawer();
@@ -1302,6 +1400,7 @@
     resetState();
     renderBoard();
     renderLog();
+    renderDicePool();
     if (hadBoard) addLog("log_new_game");
   }
 
@@ -1392,6 +1491,7 @@
     renderEnemyHpGrid();
     renderMobHpList();
     renderBattleRefTexts();
+    renderDicePool();
     renderBoard();
     renderLog();
     renderLogToggleLabel();
@@ -1426,6 +1526,7 @@
     document.getElementById("battle-drawer-backdrop").addEventListener("click", closeBattleDrawer);
     document.getElementById("btn-battle-add-mob-row").addEventListener("click", handleAddMobRow);
     document.getElementById("btn-battle-clear").addEventListener("click", handleBattleClear);
+    document.getElementById("btn-dice-pool-add").addEventListener("click", handleAddDice);
     document.getElementById("input-smithing-stone").addEventListener("input", function (e) {
       state.smithingStone = e.target.value;
       saveState();

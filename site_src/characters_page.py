@@ -72,6 +72,14 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
           </label>
         </div>
 
+        <div class="dice-pool-block">
+          <div class="dice-pool-header">
+            <h3 data-i18n="character_dice_pool_label"></h3>
+            <button type="button" class="icon-btn" id="btn-char-dice-add">+</button>
+          </div>
+          <div class="dice-pool-list" id="char-dice-pool-list"></div>
+        </div>
+
         <label class="field-row-block">
           <span data-i18n="character_blessing_label"></span>
           <input type="text" id="char-blessing">

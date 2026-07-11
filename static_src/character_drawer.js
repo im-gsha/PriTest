@@ -5,6 +5,34 @@
   // 自分の characters 配列（参照）と永続化関数を渡す。
   var CharacterTypes = window.PriTestCharacterTypes;
   var TAG_FIELDS = ["status", "equipment", "weapons", "skills", "items", "talismans", "buildup"];
+  var MAX_DICE_POOL = 20;
+
+  function rollD6() {
+    return 1 + Math.floor(Math.random() * 6);
+  }
+
+  // 骰子池（1-6の出目配列）をアイコン＋削除ボタンで描画する。
+  // night.js の共有骰子池、このファイル自身のキャラクター別骰子池の両方から使う。
+  function renderDicePool(listEl, pool, onRemove, addBtnEl) {
+    listEl.innerHTML = "";
+    pool.forEach(function (value, index) {
+      var die = document.createElement("span");
+      die.className = "dice-item";
+      die.textContent = value;
+
+      var remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "dice-remove";
+      remove.textContent = "×";
+      remove.addEventListener("click", function () {
+        onRemove(index);
+      });
+
+      die.appendChild(remove);
+      listEl.appendChild(die);
+    });
+    if (addBtnEl) addBtnEl.disabled = pool.length >= MAX_DICE_POOL;
+  }
 
   var characters = [];
   var activeCharacterId = null;
@@ -36,6 +64,7 @@
       talismans: [],
       buildup: [],
       abilityUses: {},
+      dicePool: [],
     };
   }
 
@@ -235,6 +264,23 @@
     renderAbilitySections(c, type, document.getElementById("type-active-skills"), document.getElementById("type-passives"));
   }
 
+  function renderCharacterDicePool() {
+    var c = findCharacter(activeCharacterId);
+    if (!c) return;
+    var listEl = document.getElementById("char-dice-pool-list");
+    if (!listEl) return;
+    renderDicePool(
+      listEl,
+      c.dicePool,
+      function (index) {
+        c.dicePool.splice(index, 1);
+        saveFn();
+        renderCharacterDicePool();
+      },
+      document.getElementById("btn-char-dice-add")
+    );
+  }
+
   function openDrawer(id) {
     activeCharacterId = id;
     var c = findCharacter(id);
@@ -260,6 +306,7 @@
     document.getElementById("char-revival-count").value = c.revivalCount;
     TAG_FIELDS.forEach(renderTagList);
     renderTypeReference(c);
+    renderCharacterDicePool();
 
     document.getElementById("character-drawer").classList.add("open");
   }
@@ -296,6 +343,13 @@
     document.getElementById("btn-character-close").addEventListener("click", closeDrawer);
     document.getElementById("character-drawer-backdrop").addEventListener("click", closeDrawer);
     document.getElementById("btn-delete-character").addEventListener("click", handleDeleteCharacter);
+    document.getElementById("btn-char-dice-add").addEventListener("click", function () {
+      var c = findCharacter(activeCharacterId);
+      if (!c || c.dicePool.length >= MAX_DICE_POOL) return;
+      c.dicePool.push(rollD6());
+      saveFn();
+      renderCharacterDicePool();
+    });
 
     document.querySelectorAll(".tag-add-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -384,5 +438,8 @@
     newCharacter: newCharacter,
     ensureDefaults: ensureDefaults,
     renderAbilitySections: renderAbilitySections,
+    rollD6: rollD6,
+    renderDicePool: renderDicePool,
+    MAX_DICE_POOL: MAX_DICE_POOL,
   };
 })();
