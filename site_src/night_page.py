@@ -63,6 +63,10 @@ BODY = """    <div class="night-header-row">
         <span id="time-loss-summary"></span>
         <button type="button" class="info-btn" id="btn-time-loss-info">i</button>
       </div>
+      <div class="time-loss-bar" id="battle-bar">
+        <span data-i18n="battle_sheet_label"></span>
+        <button type="button" class="info-btn" id="btn-battle-info">i</button>
+      </div>
       <div class="character-roster" id="character-roster">
         <h3 data-i18n="character_roster_title"></h3>
         <table class="character-roster-table" id="character-roster-table">
@@ -356,6 +360,68 @@ BODY = """    <div class="night-header-row">
         <div class="actions">
           <button id="btn-delete-character" type="button" class="danger-btn" data-i18n="delete_character_button"></button>
           <button id="btn-character-close" type="button" class="primary-btn" data-i18n="close_button"></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="battle-drawer" class="drawer">
+      <div class="drawer-backdrop" id="battle-drawer-backdrop"></div>
+      <div class="drawer-panel">
+        <h2 data-i18n="battle_sheet_title"></h2>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="battle_areas_title"></h3>
+          <div class="battle-areas">
+            <div class="battle-area">
+              <h4 data-i18n="battle_front_area_label"></h4>
+              <p class="threat-ref-body" data-i18n="battle_front_area_note"></p>
+              <div class="battle-aggro-grid" id="battle-front-grid"></div>
+            </div>
+            <div class="battle-area">
+              <h4 data-i18n="battle_back_area_label"></h4>
+              <p class="threat-ref-body" data-i18n="battle_back_area_note"></p>
+              <div class="battle-aggro-grid" id="battle-back-grid"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="battle_enemy_hp_title"></h3>
+          <p class="threat-ref-body" data-i18n="battle_hp_apply_order_note"></p>
+          <div class="battle-hp-grid" id="battle-enemy-hp-grid"></div>
+        </div>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="battle_mob_hp_title"></h3>
+          <p class="threat-ref-body" data-i18n="battle_mob_hp_note"></p>
+          <div id="battle-mob-hp-list"></div>
+          <button type="button" id="btn-battle-add-mob-row" data-i18n="battle_add_mob_row_button"></button>
+        </div>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="battle_pc_damage_title"></h3>
+          <p class="threat-ref-body" id="battle-pc-damage-body"></p>
+        </div>
+        <div class="threat-ref-block">
+          <h3 data-i18n="battle_enemy_damage_title"></h3>
+          <p class="threat-ref-body" id="battle-enemy-damage-body"></p>
+        </div>
+        <div class="threat-ref-block">
+          <h3 data-i18n="battle_position_title"></h3>
+          <p class="threat-ref-body" id="battle-position-body"></p>
+        </div>
+        <div class="threat-ref-block">
+          <h3 data-i18n="battle_simple_combat_title"></h3>
+          <p class="threat-ref-body" id="battle-simple-combat-body"></p>
+        </div>
+        <div class="threat-ref-block">
+          <h3 data-i18n="battle_pc_count_title"></h3>
+          <p class="threat-ref-body" id="battle-pc-count-body"></p>
+        </div>
+
+        <div class="actions">
+          <button id="btn-battle-clear" type="button" class="danger-btn" data-i18n="battle_clear_button"></button>
+          <button id="btn-battle-drawer-close" type="button" class="primary-btn" data-i18n="close_button"></button>
         </div>
       </div>
     </div>

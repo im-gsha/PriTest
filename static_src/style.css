@@ -273,7 +273,9 @@ button {
   top: 26px;
   left: 0;
   z-index: 20;
-  width: min(320px, 88vw);
+  width: min(340px, 88vw);
+  max-height: min(420px, 70vh);
+  overflow-y: auto;
   background: #fff;
   border: 1px solid #ccc;
   border-radius: 10px;
@@ -282,6 +284,15 @@ button {
   font-size: 0.78rem;
   line-height: 1.55;
   color: #333;
+}
+
+.info-bubble h4 {
+  margin: 0.75rem 0 0.35rem;
+  font-size: 0.85rem;
+}
+
+.info-bubble h4:first-child {
+  margin-top: 0;
 }
 
 .info-bubble::before {
@@ -710,6 +721,86 @@ button {
   margin: 0.6rem 0 0.3rem;
   font-size: 0.85rem;
   color: #888;
+}
+
+.battle-areas {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.battle-area {
+  flex: 1 1 160px;
+  min-width: 140px;
+}
+
+.battle-area h4 {
+  margin: 0 0 0.2rem;
+  font-size: 0.85rem;
+}
+
+.battle-aggro-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 0.4rem;
+}
+
+.battle-aggro-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.battle-aggro-index {
+  flex: 0 0 auto;
+  width: 1.4em;
+  height: 1.4em;
+  line-height: 1.4em;
+  text-align: center;
+  border: 1px solid #999;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  color: #888;
+}
+
+.battle-aggro-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font-size: 0.8rem;
+}
+
+.battle-hp-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 0.5rem;
+}
+
+.battle-hp-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.battle-hp-row-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.battle-row-remove {
+  flex: 0 0 auto;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
 }
 
 .threat-ref-block {
