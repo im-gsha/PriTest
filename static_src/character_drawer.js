@@ -4,7 +4,7 @@
   // 呼び出し側は init({ characters, save, onChange }) でこのモジュールに
   // 自分の characters 配列（参照）と永続化関数を渡す。
   var CharacterTypes = window.PriTestCharacterTypes;
-  var TAG_FIELDS = ["status", "equipment", "weapons", "skills", "items", "talismans", "buildup"];
+  var TAG_FIELDS = ["notes", "status", "equipment", "weapons", "skills", "items", "talismans", "buildup"];
   var MAX_DICE_POOL = 20;
 
   function rollD6() {
@@ -226,7 +226,7 @@
     ],
   ];
   var MAX_ATTACHED_EFFECTS = 3;
-  var attachedRollResult = null; // { mode: "1D"|"2D", block: 0-3, candidates: [...] } | null
+  var attachedRollResult = null; // { dice: [x,y], block: 0-3, candidates: [effect] } | null
   var attachedPendingCandidate = null; // 上限到達時、置き換え対象を選ぶまで保留する新規候補
 
   // 1個目の骰子の出目からブロック(0-3)を決める: 1→0 / 2,3→1 / 4,5→2 / 6→3
@@ -290,10 +290,7 @@
 
     var label = document.createElement("p");
     label.className = "threat-ref-body";
-    label.textContent =
-      attachedRollResult.mode === "1D"
-        ? window.I18N.t("attached_pick_from_block_label")
-        : window.I18N.t("attached_choose_one_label");
+    label.textContent = window.I18N.t("attached_choose_one_label");
     container.appendChild(label);
 
     if (candidates.length === 0) {
@@ -374,27 +371,65 @@
     });
   }
 
+  // 「顯示全部」: 全24種の付帯効果を、ブロック位置・習得済みかどうか付きで一覧表示する（閲覧専用）。
+  var attachedShowAll = false;
+
+  function renderAttachedAllList() {
+    var c = findCharacter(activeCharacterId);
+    var container = document.getElementById("attached-all-list");
+    var toggleBtn = document.getElementById("btn-attached-toggle-all");
+    if (!container) return;
+    if (toggleBtn) {
+      toggleBtn.textContent = window.I18N.t(attachedShowAll ? "relic_hide_all_button" : "relic_show_all_button");
+    }
+    container.hidden = !attachedShowAll;
+    container.innerHTML = "";
+    if (!attachedShowAll || !c) return;
+
+    var learned = c.learnedAttachedEffects || [];
+    var BLOCK_LABEL = ["A", "B", "C", "D"];
+    ATTACHED_EFFECT_BLOCKS.forEach(function (block, bi) {
+      block.forEach(function (e, ei) {
+        var isLearned = learned.indexOf(e.id) !== -1;
+        var details = document.createElement("details");
+        details.className = "ability-entry";
+        var summary = document.createElement("summary");
+        summary.textContent =
+          CharacterTypes.localizedText(e.name) +
+          "［Passive］　" +
+          (BLOCK_LABEL[bi] || bi) +
+          (ei + 1) +
+          "　" +
+          window.I18N.t(isLearned ? "relic_learned_tag" : "relic_unlearned_tag");
+        details.appendChild(summary);
+        var body = document.createElement("p");
+        body.className = "threat-ref-body";
+        body.textContent = CharacterTypes.localizedText(e.body);
+        details.appendChild(body);
+        container.appendChild(details);
+      });
+    });
+  }
+
   function renderAttachedSection() {
     var c = findCharacter(activeCharacterId);
     var progressEl = document.getElementById("attached-progress-text");
-    var roll1Btn = document.getElementById("btn-attached-roll-1d");
     var roll2Btn = document.getElementById("btn-attached-roll-2d");
     var diceEl = document.getElementById("attached-dice-display");
     if (!progressEl) return;
 
     if (!c) {
       progressEl.textContent = "";
-      if (roll1Btn) roll1Btn.disabled = true;
       if (roll2Btn) roll2Btn.disabled = true;
       if (diceEl) diceEl.innerHTML = "";
       document.getElementById("attached-candidates").innerHTML = "";
       document.getElementById("attached-learned-list").innerHTML = "";
+      renderAttachedAllList();
       return;
     }
 
     var learned = (c.learnedAttachedEffects || []).length;
     progressEl.textContent = window.I18N.t("attached_progress_text", { learned: learned, max: MAX_ATTACHED_EFFECTS });
-    if (roll1Btn) roll1Btn.disabled = false;
     if (roll2Btn) roll2Btn.disabled = false;
     if (diceEl) {
       if (attachedRollResult) renderDiceDisplay(diceEl, attachedRollResult.dice);
@@ -402,16 +437,7 @@
     }
     renderAttachedCandidates();
     renderAttachedLearnedList();
-  }
-
-  function handleAttachedRoll1D() {
-    var c = findCharacter(activeCharacterId);
-    if (!c) return;
-    attachedPendingCandidate = null;
-    var v = rollD6();
-    var block = attachedBlockForValue(v);
-    attachedRollResult = { mode: "1D", dice: [v], block: block, candidates: ATTACHED_EFFECT_BLOCKS[block] };
-    renderAttachedSection();
+    renderAttachedAllList();
   }
 
   function handleAttachedRoll2D() {
@@ -422,7 +448,7 @@
     var y = rollD6();
     var block = attachedBlockForValue(x);
     var effect = ATTACHED_EFFECT_BLOCKS[block][y - 1];
-    attachedRollResult = { mode: "2D", dice: [x, y], block: block, candidates: [effect] };
+    attachedRollResult = { dice: [x, y], block: block, candidates: [effect] };
     renderAttachedSection();
   }
 
@@ -643,9 +669,7 @@
       entered: false,
       hp: { current: 0, max: 0 },
       fp: { current: 0, max: 0 },
-      blessing: "",
-      attribute: "",
-      ultimate: "",
+      notes: [],
       status: [],
       equipment: [],
       weapons: [],
@@ -893,9 +917,6 @@
     document.getElementById("char-hp-max").value = c.hp.max;
     document.getElementById("char-fp-current").value = c.fp.current;
     document.getElementById("char-fp-max").value = c.fp.max;
-    document.getElementById("char-blessing").value = c.blessing;
-    document.getElementById("char-attribute").value = c.attribute;
-    document.getElementById("char-ultimate").value = c.ultimate;
     document.getElementById("char-level").value = c.level;
     document.getElementById("char-runes").value = c.runes;
     document.getElementById("char-blessing-current").value = c.blessingSlots.current;
@@ -910,6 +931,7 @@
     relicShowAll = false;
     attachedRollResult = null;
     attachedPendingCandidate = null;
+    attachedShowAll = false;
     renderTypeReference(c);
     renderCharacterDicePool();
     renderRelicSection();
@@ -968,8 +990,11 @@
       relicShowAll = !relicShowAll;
       renderRelicAllList();
     });
-    document.getElementById("btn-attached-roll-1d").addEventListener("click", handleAttachedRoll1D);
     document.getElementById("btn-attached-roll-2d").addEventListener("click", handleAttachedRoll2D);
+    document.getElementById("btn-attached-toggle-all").addEventListener("click", function () {
+      attachedShowAll = !attachedShowAll;
+      renderAttachedAllList();
+    });
 
     document.querySelectorAll(".tag-add-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -1001,15 +1026,6 @@
     });
     bindFieldSave("char-fp-max", function (c, el) {
       c.fp.max = Number(el.value) || 0;
-    });
-    bindFieldSave("char-blessing", function (c, el) {
-      c.blessing = el.value;
-    });
-    bindFieldSave("char-attribute", function (c, el) {
-      c.attribute = el.value;
-    });
-    bindFieldSave("char-ultimate", function (c, el) {
-      c.ultimate = el.value;
     });
     bindFieldSave("char-level", function (c, el) {
       c.level = Math.max(1, Math.min(LEVEL_CAP, Number(el.value) || 1));

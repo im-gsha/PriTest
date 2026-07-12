@@ -460,6 +460,22 @@
     renderPrimaryButton();
     renderThreatSheet();
     renderCharacterRoster();
+    renderNight3BossImage();
+  }
+
+  // 第三天（最終夜）到達時のみ、管理員が設定した夜の王画像を盤面右側に表示する
+  function renderNight3BossImage() {
+    var img = document.getElementById("night3-boss-image");
+    if (!img) return;
+    var boss = game && game.night3BossId ? window.PriTestNightBosses.get(game.night3BossId) : null;
+    if (!boss || state.dayNumber < 3) {
+      img.hidden = true;
+      img.removeAttribute("src");
+      return;
+    }
+    img.src = window.PriTestNightBosses.imagePath(boss);
+    img.alt = boss.title + " - " + boss.subtitle;
+    img.hidden = false;
   }
 
   // --- 夜の脅威シート（タイムロス／さまよう祝福／参考情報） ---
