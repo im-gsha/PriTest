@@ -45,6 +45,387 @@
     });
   }
 
+  // --- 附帯効果（装備品から獲得する、キャラクタータイプに依存しない共通の付帯効果） ---
+  // 出典:「付帯効果決定表」。全24種、6個ずつ4ブロックに分かれる。
+  var ATTACHED_EFFECT_BLOCKS = [
+    [
+      {
+        id: "attack_dmg",
+        name: { zh: "攻擊傷害+", ja: "アタックダメージ+" },
+        body: {
+          zh: "將自身近戰武器與射擊武器所產生的攻擊傷害設為「1Hit：+5／2Hit：+10」。",
+          ja: "自身の近接武器と射撃武器から発生するアタックによるダメージを「1Hit：+5／2Hit：+10」する。",
+        },
+      },
+      {
+        id: "arts_dmg",
+        name: { zh: "戰技傷害+5", ja: "戦技ダメージ+5" },
+        body: { zh: "將自身戰技造成的傷害「+5」。", ja: "自身の戦技から発生するダメージを「+5」する。" },
+      },
+      {
+        id: "sorcery_dmg",
+        name: { zh: "魔術傷害+5", ja: "魔術ダメージ+5" },
+        body: { zh: "將自身魔術造成的傷害「+5」。", ja: "自身の魔術から発生するダメージを「+5」する。" },
+      },
+      {
+        id: "incant_dmg",
+        name: { zh: "祈禱傷害+5", ja: "祈祷ダメージ+5" },
+        body: { zh: "將自身祈禱造成的傷害「+5」。", ja: "自身の祈祷から発生するダメージを「+5」する。" },
+      },
+      {
+        id: "max_hp_up",
+        name: { zh: "最大HP上升", ja: "最大HP上昇" },
+        body: { zh: "將自身「最大HP：+□」。", ja: "自身を「最大HP：+□」する。" },
+      },
+      {
+        id: "max_fp_up",
+        name: { zh: "最大FP上升", ja: "最大FP上昇" },
+        body: { zh: "將自身「最大FP：+□」。", ja: "自身を「最大FP：+□」する。" },
+      },
+    ],
+    [
+      {
+        id: "hp_regen",
+        name: { zh: "HP持續回復", ja: "HP持続回復" },
+        body: {
+          zh: "於戰鬥結束時與防禦階段結束時，對自身施加「HP回復□」的效果。",
+          ja: "戦闘終了時とディフェンスフェイズ終了時に、自身に「HP回復□」の効果を処理する。",
+        },
+      },
+      {
+        id: "fp_regen",
+        name: { zh: "FP持續回復", ja: "FP持続回復" },
+        body: {
+          zh: "於戰鬥結束時與防禦階段結束時，對自身施加「FP回復□」的效果。",
+          ja: "戦闘終了時とディフェンスフェイズ終了時に、自身に「FP回復□」の効果を処理する。",
+        },
+      },
+      {
+        id: "guard_hp_regen",
+        name: { zh: "防禦成功時HP回復", ja: "ガード成功時HP回復" },
+        body: {
+          zh: "「防禦」敵人的傷害成功時，先施加「HP回復□」後，再處理HP損害。",
+          ja: "エネミーからのダメージを「ガード」したとき、まず「HP回復□」した後、HP損害を処理する。",
+        },
+      },
+      {
+        id: "guard_counter_up",
+        name: { zh: "防禦反擊強化", ja: "ガードカウンター強化" },
+        body: {
+          zh: "將遺物效果「防禦反擊」造成的傷害「+□」。",
+          ja: "遺物効果「ガードカウンター」から発生するダメージを「+□」する。",
+        },
+      },
+      {
+        id: "jump_atk_up",
+        name: { zh: "跳躍攻擊強化", ja: "ジャンプ攻撃強化" },
+        body: {
+          zh: "將遺物效果「跳躍攻擊」造成的傷害「+10」。",
+          ja: "遺物効果「ジャンプ攻撃」から発生するダメージを「+10」する。",
+        },
+      },
+      {
+        id: "dash_atk_up",
+        name: { zh: "衝刺攻擊強化", ja: "ダッシュ攻撃強化" },
+        body: {
+          zh: "將遺物效果「衝刺攻擊」造成的傷害「+10」。",
+          ja: "遺物効果「ダッシュ攻撃」から発生するダメージを「+10」する。",
+        },
+      },
+    ],
+    [
+      {
+        id: "crit_up",
+        name: { zh: "致命一擊強化", ja: "致命の一撃強化" },
+        body: {
+          zh: "將遺物效果「致命一擊」造成傷害的上限值「+15」。",
+          ja: "遺物効果「致命の一撃」から発生するダメージの上限値を「+15」する。",
+        },
+      },
+      {
+        id: "status_resist",
+        name: { zh: "狀態異常耐性", ja: "状態異常耐性" },
+        body: {
+          zh: "習得此附帶效果時選擇1種狀態異常。自身承受所選狀態異常的蓄積值，將原本的「□×8」變更為「□×10」，變得較不容易陷入該狀態異常。",
+          ja: "この付帯効果の獲得時に状態異常を1つ選ぶ。自身に適用される選んだ状態異常の蓄積値は、通常「□×8」のところ「□×10」になり、状態異常になりにくくなる。",
+        },
+      },
+      {
+        id: "element_resist",
+        name: { zh: "屬性耐性", ja: "属性耐性" },
+        body: {
+          zh: "習得此附帶效果時選擇1種屬性。自身承受所選屬性的蓄積值上限，將原本的「□×8」變更為「□×9」，變得較不容易受到屬性損害。",
+          ja: "この付帯効果の獲得時に属性を1つ選ぶ。自身に適用される選んだ属性の蓄積値の上限を、通常「□×8」のところ「□×9」にし、属性損害を受けにくくする。",
+        },
+      },
+      {
+        id: "easy_target",
+        name: { zh: "容易被盯上", ja: "狙われやすい" },
+        body: { zh: "將自身常時設為「敵視：+1」。", ja: "自身を常に「敵視：+1」する。" },
+      },
+      {
+        id: "hard_target",
+        name: { zh: "不易被盯上", ja: "狙われにくい" },
+        body: { zh: "將自身常時設為「敵視：-1」。", ja: "自身を常に「敵視：-1」する。" },
+      },
+      {
+        id: "phys_cut",
+        name: { zh: "物理減傷+", ja: "物理カット値+" },
+        body: { zh: "將自身的「物理減傷值：+□」。", ja: "自身を「物理カット値：+□」する。" },
+      },
+    ],
+    [
+      {
+        id: "arts_revive_regen",
+        name: { zh: "復歸時恢復戰技", ja: "復帰時アーツ回復" },
+        body: {
+          zh: "從瀕死狀態復歸時，回復自身戰技的使用次數1次份。",
+          ja: "瀕死状態から復帰した時、自身のアーツの使用回数1回分を回復する。",
+        },
+      },
+      {
+        id: "sprint_fire",
+        name: { zh: "疾跑時發生火焰", ja: "疾走で赤い落雷が発生" },
+        body: {
+          zh: "行動階段開始時，若自身從「後衛移動至前衛」，則對敵人造成「火：1D」。此附帶效果每個行動階段中僅發揮1次。（原文判讀不易，內容待確認）",
+          ja: "アクションフェイズ開始時に自身が「後衛から前衛」に変化した場合、エネミーに「炎：1D」を与える。この付帯効果はアクションフェイズ中に1回しか発揮されない。（原文判読が難しく、内容要確認）",
+        },
+      },
+      {
+        id: "walk_lightning",
+        name: { zh: "步行時發生落雷", ja: "歩きで溶岩が発生" },
+        body: {
+          zh: "行動階段開始時若位於前衛，則給予「敵視：1D」，並對敵人造成「魔：1D」。此附帶效果每個行動階段中僅發揮1次。（原文判讀不易，內容待確認）",
+          ja: "アクションフェイズ開始時に前衛の場合、「敵視：1D」を与える。エネミーに「魔：1D」を与える。この付帯効果はアクションフェイズ中に1回しか発揮されない。（原文判読が難しく、内容要確認）",
+        },
+      },
+      {
+        id: "time_gem",
+        name: { zh: "一定時間後產生輝石", ja: "一定時間で輝石が発生" },
+        body: {
+          zh: "（原文判讀不易，內容待確認）",
+          ja: "（原文判読が難しく、内容要確認）",
+        },
+      },
+      {
+        id: "two_hand_up",
+        name: { zh: "雙手持握強化", ja: "両手持ち強化" },
+        body: {
+          zh: "僅在自身只裝備1把武器時，將攻擊造成的傷害設為「1Hit：+5／2Hit：+10」。",
+          ja: "自身が武器を1つしか装備状態にしていないとき、アタックのダメージを「1Hit：+5／2Hit：+10」する。",
+        },
+      },
+      {
+        id: "dual_wield_up",
+        name: { zh: "雙刀持握強化", ja: "二刀持ち強化" },
+        body: {
+          zh: "僅在自身同時裝備2把同類別近戰武器時，將攻擊造成的傷害設為「1Hit：+5／2Hit：+10」。",
+          ja: "自身が同じカテゴリの近接武器を2つ装備状態にしているとき、アタックから発生するダメージを「1Hit：+5／2Hit：+10」する。",
+        },
+      },
+    ],
+  ];
+  var MAX_ATTACHED_EFFECTS = 3;
+  var attachedRollResult = null; // { mode: "1D"|"2D", block: 0-3, candidates: [...] } | null
+  var attachedPendingCandidate = null; // 上限到達時、置き換え対象を選ぶまで保留する新規候補
+
+  // 1個目の骰子の出目からブロック(0-3)を決める: 1→0 / 2,3→1 / 4,5→2 / 6→3
+  function attachedBlockForValue(value) {
+    if (value === 1) return 0;
+    if (value === 2 || value === 3) return 1;
+    if (value === 4 || value === 5) return 2;
+    return 3;
+  }
+
+  function attachedEffectById(id) {
+    for (var b = 0; b < ATTACHED_EFFECT_BLOCKS.length; b++) {
+      for (var i = 0; i < ATTACHED_EFFECT_BLOCKS[b].length; i++) {
+        if (ATTACHED_EFFECT_BLOCKS[b][i].id === id) return ATTACHED_EFFECT_BLOCKS[b][i];
+      }
+    }
+    return null;
+  }
+
+  function renderAttachedCandidateCard(container, effect, c) {
+    var card = document.createElement("div");
+    card.className = "relic-candidate-card";
+    var title = document.createElement("div");
+    title.className = "relic-candidate-name";
+    title.textContent = CharacterTypes.localizedText(effect.name) + "［Passive］";
+    card.appendChild(title);
+    var body = document.createElement("p");
+    body.className = "threat-ref-body";
+    body.textContent = CharacterTypes.localizedText(effect.body);
+    card.appendChild(body);
+    var learnBtn = document.createElement("button");
+    learnBtn.type = "button";
+    learnBtn.textContent = window.I18N.t("relic_learn_button");
+    learnBtn.addEventListener("click", function () {
+      if (!c.learnedAttachedEffects) c.learnedAttachedEffects = [];
+      if (c.learnedAttachedEffects.length >= MAX_ATTACHED_EFFECTS) {
+        attachedPendingCandidate = effect;
+        renderAttachedSection();
+        return;
+      }
+      c.learnedAttachedEffects.push(effect.id);
+      saveFn();
+      attachedRollResult = null;
+      renderAttachedSection();
+    });
+    card.appendChild(learnBtn);
+    container.appendChild(card);
+  }
+
+  function renderAttachedCandidates() {
+    var c = findCharacter(activeCharacterId);
+    var container = document.getElementById("attached-candidates");
+    if (!container) return;
+    container.innerHTML = "";
+    if (!c || !attachedRollResult) return;
+
+    var learned = c.learnedAttachedEffects || [];
+    var candidates = attachedRollResult.candidates.filter(function (e) {
+      return learned.indexOf(e.id) === -1;
+    });
+
+    var label = document.createElement("p");
+    label.className = "threat-ref-body";
+    label.textContent =
+      attachedRollResult.mode === "1D"
+        ? window.I18N.t("attached_pick_from_block_label")
+        : window.I18N.t("attached_choose_one_label");
+    container.appendChild(label);
+
+    if (candidates.length === 0) {
+      var freeLabel = document.createElement("p");
+      freeLabel.className = "threat-ref-body";
+      freeLabel.textContent = window.I18N.t("relic_free_choice_label");
+      container.appendChild(freeLabel);
+      candidates = ATTACHED_EFFECT_BLOCKS[attachedRollResult.block].filter(function (e) {
+        return learned.indexOf(e.id) === -1;
+      });
+      if (candidates.length === 0) {
+        // 同ブロックが全て習得済みの場合は、全24種の未習得から自由に選ぶ
+        candidates = [].concat.apply([], ATTACHED_EFFECT_BLOCKS).filter(function (e) {
+          return learned.indexOf(e.id) === -1;
+        });
+      }
+    }
+
+    candidates.forEach(function (e) {
+      renderAttachedCandidateCard(container, e, c);
+    });
+  }
+
+  function renderAttachedLearnedList() {
+    var c = findCharacter(activeCharacterId);
+    var container = document.getElementById("attached-learned-list");
+    if (!container) return;
+    container.innerHTML = "";
+    if (!c) return;
+
+    if (attachedPendingCandidate) {
+      var prompt = document.createElement("p");
+      prompt.className = "threat-ref-body";
+      prompt.textContent = window.I18N.t("attached_replace_prompt", {
+        name: CharacterTypes.localizedText(attachedPendingCandidate.name),
+      });
+      container.appendChild(prompt);
+
+      var cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.textContent = window.I18N.t("cancel_button");
+      cancelBtn.addEventListener("click", function () {
+        attachedPendingCandidate = null;
+        renderAttachedSection();
+      });
+      container.appendChild(cancelBtn);
+    }
+
+    (c.learnedAttachedEffects || []).forEach(function (id) {
+      var effect = attachedEffectById(id);
+      if (!effect) return;
+      var details = document.createElement("details");
+      details.className = "ability-entry";
+      var summary = document.createElement("summary");
+      summary.textContent = CharacterTypes.localizedText(effect.name) + "［Passive］";
+      details.appendChild(summary);
+      var body = document.createElement("p");
+      body.className = "threat-ref-body";
+      body.textContent = CharacterTypes.localizedText(effect.body);
+      details.appendChild(body);
+
+      if (attachedPendingCandidate) {
+        var replaceBtn = document.createElement("button");
+        replaceBtn.type = "button";
+        replaceBtn.textContent = window.I18N.t("attached_replace_button");
+        replaceBtn.addEventListener("click", function () {
+          var idx = c.learnedAttachedEffects.indexOf(id);
+          if (idx !== -1) c.learnedAttachedEffects.splice(idx, 1, attachedPendingCandidate.id);
+          saveFn();
+          attachedPendingCandidate = null;
+          attachedRollResult = null;
+          renderAttachedSection();
+        });
+        details.appendChild(replaceBtn);
+      }
+
+      container.appendChild(details);
+    });
+  }
+
+  function renderAttachedSection() {
+    var c = findCharacter(activeCharacterId);
+    var progressEl = document.getElementById("attached-progress-text");
+    var roll1Btn = document.getElementById("btn-attached-roll-1d");
+    var roll2Btn = document.getElementById("btn-attached-roll-2d");
+    var diceEl = document.getElementById("attached-dice-display");
+    if (!progressEl) return;
+
+    if (!c) {
+      progressEl.textContent = "";
+      if (roll1Btn) roll1Btn.disabled = true;
+      if (roll2Btn) roll2Btn.disabled = true;
+      if (diceEl) diceEl.innerHTML = "";
+      document.getElementById("attached-candidates").innerHTML = "";
+      document.getElementById("attached-learned-list").innerHTML = "";
+      return;
+    }
+
+    var learned = (c.learnedAttachedEffects || []).length;
+    progressEl.textContent = window.I18N.t("attached_progress_text", { learned: learned, max: MAX_ATTACHED_EFFECTS });
+    if (roll1Btn) roll1Btn.disabled = false;
+    if (roll2Btn) roll2Btn.disabled = false;
+    if (diceEl) {
+      if (attachedRollResult) renderDiceDisplay(diceEl, attachedRollResult.dice);
+      else diceEl.innerHTML = "";
+    }
+    renderAttachedCandidates();
+    renderAttachedLearnedList();
+  }
+
+  function handleAttachedRoll1D() {
+    var c = findCharacter(activeCharacterId);
+    if (!c) return;
+    attachedPendingCandidate = null;
+    var v = rollD6();
+    var block = attachedBlockForValue(v);
+    attachedRollResult = { mode: "1D", dice: [v], block: block, candidates: ATTACHED_EFFECT_BLOCKS[block] };
+    renderAttachedSection();
+  }
+
+  function handleAttachedRoll2D() {
+    var c = findCharacter(activeCharacterId);
+    if (!c) return;
+    attachedPendingCandidate = null;
+    var x = rollD6();
+    var y = rollD6();
+    var block = attachedBlockForValue(x);
+    var effect = ATTACHED_EFFECT_BLOCKS[block][y - 1];
+    attachedRollResult = { mode: "2D", dice: [x, y], block: block, candidates: [effect] };
+    renderAttachedSection();
+  }
+
   // --- レベルアップ遺物効果の習得（骰子2個で正選／逆選） ---
   // レベル4-15の12回分、群A(1-2)/B(3-4)/C(5-6)＋群内位置(1-6)で対象を決める。
   var RELIC_LEVEL_START = 4;
@@ -173,6 +554,7 @@
       else diceEl.innerHTML = "";
     }
     renderRelicCandidates();
+    renderRelicAllList();
   }
 
   function handleRelicRoll() {
@@ -183,20 +565,69 @@
     renderRelicSection();
   }
 
-  // レベルアップで得られるHP/FP/加護上限の+1（2等HP→3等FP→4等加護、以降繰り返し）を、
-  // 該当する項目のラベル横に「(+1)」として表示する。
+  // 「顯示全部」: そのタイプの全アビリティ/スキル/アーツ/遺物効果を、
+  // レベル条件・群/位置・習得済みかどうか付きで一覧表示する（閲覧専用、参照用）。
+  var relicShowAll = false;
+
+  function renderRelicAllEntry(container, entry, tagText, learnedTag) {
+    var details = document.createElement("details");
+    details.className = "ability-entry";
+    var summary = document.createElement("summary");
+    summary.textContent =
+      CharacterTypes.localizedText(entry.name) +
+      "［" + entry.kind + "］　" + tagText + (learnedTag ? "　" + learnedTag : "");
+    details.appendChild(summary);
+    var body = document.createElement("p");
+    body.className = "threat-ref-body";
+    body.textContent = CharacterTypes.localizedText(entry.body);
+    details.appendChild(body);
+    container.appendChild(details);
+  }
+
+  function renderRelicAllList() {
+    var c = findCharacter(activeCharacterId);
+    var type = c && c.typeId ? CharacterTypes.get(c.typeId) : null;
+    var container = document.getElementById("relic-all-list");
+    var toggleBtn = document.getElementById("btn-relic-toggle-all");
+    if (!container) return;
+    if (toggleBtn) {
+      toggleBtn.textContent = window.I18N.t(relicShowAll ? "relic_hide_all_button" : "relic_show_all_button");
+    }
+    container.hidden = !relicShowAll;
+    container.innerHTML = "";
+    if (!relicShowAll || !c || !type) return;
+
+    var learned = c.learnedRelicEffects || [];
+    var GROUP_LABEL = ["A", "B", "C"];
+
+    [].concat(type.abilities || [], type.skills || [], type.arts || []).forEach(function (entry) {
+      renderRelicAllEntry(container, entry, window.I18N.t("ability_level_label", { level: entry.level }), null);
+    });
+    (type.relicEffectGroups || []).forEach(function (g, gi) {
+      g.effects.forEach(function (e, ei) {
+        var key = relicEffectKey(type.id, gi, ei);
+        var isLearned = learned.indexOf(key) !== -1;
+        var tag = (GROUP_LABEL[gi] || gi) + (ei + 1);
+        renderRelicAllEntry(container, e, tag, window.I18N.t(isLearned ? "relic_learned_tag" : "relic_unlearned_tag"));
+      });
+    });
+  }
+
+  // レベルアップで得られるHP/FP/加護上限の累加値（2等→HP、3等→FP、4等→加護、以降繰り返し、
+  // 上限15等）を、該当する項目のラベル横に「(+N)」として表示する（Lv15なら+5/+5/+4）。
+  var LEVEL_CAP = 15;
+
   function renderLevelBonusMarkers(c) {
     var hpEl = document.getElementById("char-hp-level-bonus");
     var fpEl = document.getElementById("char-fp-level-bonus");
     var blessingEl = document.getElementById("char-blessing-level-bonus");
     if (!hpEl || !fpEl || !blessingEl) return;
-    hpEl.textContent = "";
-    fpEl.textContent = "";
-    blessingEl.textContent = "";
-    if (!c || c.level < 2) return;
-    var order = [hpEl, fpEl, blessingEl];
-    var target = order[(c.level - 2) % 3];
-    target.textContent = window.I18N.t("level_bonus_marker");
+    var counts = [0, 0, 0];
+    var level = c ? Math.min(c.level || 0, LEVEL_CAP) : 0;
+    for (var lv = 2; lv <= level; lv++) counts[(lv - 2) % 3]++;
+    [hpEl, fpEl, blessingEl].forEach(function (el, i) {
+      el.textContent = counts[i] > 0 ? window.I18N.t("level_bonus_marker", { count: counts[i] }) : "";
+    });
   }
 
   var characters = [];
@@ -231,6 +662,7 @@
       abilityUses: {},
       dicePool: [],
       learnedRelicEffects: [],
+      learnedAttachedEffects: [],
     };
   }
 
@@ -475,10 +907,14 @@
     document.getElementById("char-revival-count").value = c.revivalCount;
     TAG_FIELDS.forEach(renderTagList);
     relicRolledDice = null;
+    relicShowAll = false;
+    attachedRollResult = null;
+    attachedPendingCandidate = null;
     renderTypeReference(c);
     renderCharacterDicePool();
     renderRelicSection();
     renderLevelBonusMarkers(c);
+    renderAttachedSection();
 
     document.getElementById("character-drawer").classList.add("open");
   }
@@ -528,6 +964,12 @@
       renderCharacterDicePool();
     });
     document.getElementById("btn-relic-roll").addEventListener("click", handleRelicRoll);
+    document.getElementById("btn-relic-toggle-all").addEventListener("click", function () {
+      relicShowAll = !relicShowAll;
+      renderRelicAllList();
+    });
+    document.getElementById("btn-attached-roll-1d").addEventListener("click", handleAttachedRoll1D);
+    document.getElementById("btn-attached-roll-2d").addEventListener("click", handleAttachedRoll2D);
 
     document.querySelectorAll(".tag-add-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -570,7 +1012,8 @@
       c.ultimate = el.value;
     });
     bindFieldSave("char-level", function (c, el) {
-      c.level = Number(el.value) || 0;
+      c.level = Math.max(1, Math.min(LEVEL_CAP, Number(el.value) || 1));
+      el.value = c.level;
     });
     bindFieldSave("char-runes", function (c, el) {
       c.runes = Number(el.value) || 0;
