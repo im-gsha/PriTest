@@ -47,5 +47,5 @@ def build_admin_html() -> str:
         body=BODY,
         static_prefix="../static/",
         home_href="../index.html",
-        extra_scripts=("games.js", "scenarios.js", "qrcode.js", "admin.js"),
+        extra_scripts=("games.js", "scenarios.js", "night_bosses.js", "qrcode.js", "admin.js"),
     )

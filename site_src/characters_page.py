@@ -82,20 +82,14 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
           <div class="dice-pool-list" id="char-dice-pool-list"></div>
         </div>
 
-        <label class="field-row-block">
-          <span data-i18n="character_blessing_label"></span>
-          <input type="text" id="char-blessing">
-        </label>
-
-        <label class="field-row-block">
-          <span data-i18n="character_attribute_label"></span>
-          <input type="text" id="char-attribute">
-        </label>
-
-        <label class="field-row-block">
-          <span data-i18n="character_ultimate_label"></span>
-          <input type="text" id="char-ultimate">
-        </label>
+        <div class="tag-field" data-field="notes">
+          <h3 data-i18n="character_notes_label"></h3>
+          <div class="tag-list" id="tag-list-notes"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-notes">
+            <button type="button" class="tag-add-btn" data-field="notes" data-i18n="tag_add_button"></button>
+          </div>
+        </div>
 
         <div class="tag-field" data-field="status">
           <h3 data-i18n="character_status_label"></h3>
@@ -230,12 +224,13 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
           <h3 data-i18n="attached_select_title"></h3>
           <p class="threat-ref-body" id="attached-progress-text"></p>
           <div class="actions">
-            <button type="button" id="btn-attached-roll-1d" data-i18n="attached_roll_1d_button"></button>
             <button type="button" id="btn-attached-roll-2d" data-i18n="attached_roll_2d_button"></button>
+            <button type="button" id="btn-attached-toggle-all" data-i18n="relic_show_all_button"></button>
           </div>
           <div class="dice-pool-list" id="attached-dice-display"></div>
           <div id="attached-candidates"></div>
           <div id="attached-learned-list"></div>
+          <div id="attached-all-list" hidden></div>
         </div>
 
         <div class="actions">

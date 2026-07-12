@@ -1,6 +1,7 @@
 (function () {
   var Games = window.PriTestGames;
   var Scenarios = window.PriTestScenarios;
+  var NightBosses = window.PriTestNightBosses;
 
   function requireAdmin() {
     var ok = Games.checkAdminPassword(window.I18N.t("admin_password_prompt"));
@@ -61,6 +62,29 @@
           info.appendChild(badge);
         }
       }
+
+      var bossRow = document.createElement("div");
+      bossRow.className = "game-boss-row";
+      var bossLabel = document.createElement("label");
+      bossLabel.textContent = window.I18N.t("night3_boss_label");
+      var bossSelect = document.createElement("select");
+      var noneOpt = document.createElement("option");
+      noneOpt.value = "";
+      noneOpt.textContent = window.I18N.t("night3_boss_none_option");
+      bossSelect.appendChild(noneOpt);
+      NightBosses.list().forEach(function (b) {
+        var opt = document.createElement("option");
+        opt.value = b.id;
+        opt.textContent = b.title + " - " + b.subtitle;
+        bossSelect.appendChild(opt);
+      });
+      bossSelect.value = game.night3BossId || "";
+      bossSelect.addEventListener("change", function () {
+        Games.update(game.id, { night3BossId: bossSelect.value || null });
+      });
+      bossLabel.appendChild(bossSelect);
+      bossRow.appendChild(bossLabel);
+      info.appendChild(bossRow);
 
       var actions = document.createElement("div");
       actions.className = "game-actions";

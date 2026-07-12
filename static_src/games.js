@@ -34,8 +34,22 @@
       name: name,
       createdAt: Date.now(),
       scenarioId: scenarioId || null,
+      night3BossId: null,
     };
     games.push(game);
+    saveGames(games);
+    return game;
+  }
+
+  function updateGame(id, patch) {
+    var games = listGames();
+    var game = games.filter(function (g) {
+      return g.id === id;
+    })[0];
+    if (!game) return null;
+    Object.keys(patch).forEach(function (key) {
+      game[key] = patch[key];
+    });
     saveGames(games);
     return game;
   }
@@ -75,7 +89,7 @@
     var charactersRaw = localStorage.getItem("pritest-characters-" + id);
     var bundle = {
       v: 1,
-      game: { name: game.name, scenarioId: game.scenarioId || null },
+      game: { name: game.name, scenarioId: game.scenarioId || null, night3BossId: game.night3BossId || null },
       nightState: nightStateRaw ? JSON.parse(nightStateRaw) : null,
       characters: charactersRaw ? JSON.parse(charactersRaw) : [],
     };
@@ -91,6 +105,7 @@
       name: (bundle.game && bundle.game.name) || "",
       createdAt: Date.now(),
       scenarioId: (bundle.game && bundle.game.scenarioId) || null,
+      night3BossId: (bundle.game && bundle.game.night3BossId) || null,
     };
     games.push(newGame);
     saveGames(games);
@@ -122,6 +137,7 @@
     save: saveGames,
     get: getGame,
     create: createGame,
+    update: updateGame,
     remove: deleteGame,
     checkAdminPassword: checkAdminPassword,
     isAdminAuthenticated: isAdminAuthenticated,

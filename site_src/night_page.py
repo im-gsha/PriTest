@@ -39,24 +39,27 @@ BODY = """    <div class="night-header-row">
     </div>
 
     <section id="screen-board" class="screen">
-      <div class="board-grid" id="board-grid">
-        <div class="field-level field-level-0" id="field-level-0"></div>
-        <div class="field-level field-level-1" id="field-level-1"></div>
-        <div class="field-level field-level-2" id="field-level-2"></div>
-        <div class="pile-wrap pile-wrap-start" id="pile-wrap-start">
-          <button type="button" class="pile pile-start" id="pile-start"></button>
-          <div class="pile-checks">
-            <label class="pile-check"><input type="checkbox" id="pile-check-start-one">1</label>
-            <label class="pile-check"><input type="checkbox" id="pile-check-start-all"><span data-i18n="check_all_label"></span></label>
+      <div class="board-area" id="board-area">
+        <div class="board-grid" id="board-grid">
+          <div class="field-level field-level-0" id="field-level-0"></div>
+          <div class="field-level field-level-1" id="field-level-1"></div>
+          <div class="field-level field-level-2" id="field-level-2"></div>
+          <div class="pile-wrap pile-wrap-start" id="pile-wrap-start">
+            <button type="button" class="pile pile-start" id="pile-start"></button>
+            <div class="pile-checks">
+              <label class="pile-check"><input type="checkbox" id="pile-check-start-one">1</label>
+              <label class="pile-check"><input type="checkbox" id="pile-check-start-all"><span data-i18n="check_all_label"></span></label>
+            </div>
+          </div>
+          <div class="pile-wrap pile-wrap-end" id="pile-wrap-end">
+            <button type="button" class="pile pile-end" id="pile-end"></button>
+            <div class="pile-checks">
+              <label class="pile-check"><input type="checkbox" id="pile-check-end-one">1</label>
+              <label class="pile-check"><input type="checkbox" id="pile-check-end-all"><span data-i18n="check_all_label"></span></label>
+            </div>
           </div>
         </div>
-        <div class="pile-wrap pile-wrap-end" id="pile-wrap-end">
-          <button type="button" class="pile pile-end" id="pile-end"></button>
-          <div class="pile-checks">
-            <label class="pile-check"><input type="checkbox" id="pile-check-end-one">1</label>
-            <label class="pile-check"><input type="checkbox" id="pile-check-end-all"><span data-i18n="check_all_label"></span></label>
-          </div>
-        </div>
+        <img id="night3-boss-image" class="night3-boss-image" hidden>
       </div>
       <div class="time-loss-bar" id="time-loss-bar">
         <span data-i18n="time_loss_summary_label"></span>
@@ -243,20 +246,14 @@ BODY = """    <div class="night-header-row">
           <div class="dice-pool-list" id="char-dice-pool-list"></div>
         </div>
 
-        <label class="field-row-block">
-          <span data-i18n="character_blessing_label"></span>
-          <input type="text" id="char-blessing">
-        </label>
-
-        <label class="field-row-block">
-          <span data-i18n="character_attribute_label"></span>
-          <input type="text" id="char-attribute">
-        </label>
-
-        <label class="field-row-block">
-          <span data-i18n="character_ultimate_label"></span>
-          <input type="text" id="char-ultimate">
-        </label>
+        <div class="tag-field" data-field="notes">
+          <h3 data-i18n="character_notes_label"></h3>
+          <div class="tag-list" id="tag-list-notes"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-notes">
+            <button type="button" class="tag-add-btn" data-field="notes" data-i18n="tag_add_button"></button>
+          </div>
+        </div>
 
         <div class="tag-field" data-field="status">
           <h3 data-i18n="character_status_label"></h3>
@@ -391,12 +388,13 @@ BODY = """    <div class="night-header-row">
           <h3 data-i18n="attached_select_title"></h3>
           <p class="threat-ref-body" id="attached-progress-text"></p>
           <div class="actions">
-            <button type="button" id="btn-attached-roll-1d" data-i18n="attached_roll_1d_button"></button>
             <button type="button" id="btn-attached-roll-2d" data-i18n="attached_roll_2d_button"></button>
+            <button type="button" id="btn-attached-toggle-all" data-i18n="relic_show_all_button"></button>
           </div>
           <div class="dice-pool-list" id="attached-dice-display"></div>
           <div id="attached-candidates"></div>
           <div id="attached-learned-list"></div>
+          <div id="attached-all-list" hidden></div>
         </div>
 
         <div class="actions">
@@ -481,6 +479,7 @@ def build_night_html() -> str:
             "scenarios.js",
             "character_types.js",
             "character_drawer.js",
+            "night_bosses.js",
             "night.js",
         ),
     )
