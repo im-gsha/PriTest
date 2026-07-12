@@ -34,6 +34,171 @@
     if (addBtnEl) addBtnEl.disabled = pool.length >= MAX_DICE_POOL;
   }
 
+  // 出目のみを表示する（削除ボタン無し）。レベルアップ遺物効果の擲骰結果表示に使う。
+  function renderDiceDisplay(listEl, values) {
+    listEl.innerHTML = "";
+    values.forEach(function (v) {
+      var die = document.createElement("span");
+      die.className = "dice-item";
+      die.textContent = v;
+      listEl.appendChild(die);
+    });
+  }
+
+  // --- レベルアップ遺物効果の習得（骰子2個で正選／逆選） ---
+  // レベル4-15の12回分、群A(1-2)/B(3-4)/C(5-6)＋群内位置(1-6)で対象を決める。
+  var RELIC_LEVEL_START = 4;
+  var RELIC_LEVEL_END = 15;
+  var relicRolledDice = null; // { x, y } | null
+
+  function relicEffectKey(typeId, groupIndex, effectIndex) {
+    return typeId + "-r" + groupIndex + "-" + effectIndex;
+  }
+
+  function relicThird(value) {
+    if (value <= 2) return 0;
+    if (value <= 4) return 1;
+    return 2;
+  }
+
+  function relicMaxLearnable(level) {
+    return Math.max(0, Math.min(level - (RELIC_LEVEL_START - 1), RELIC_LEVEL_END - RELIC_LEVEL_START + 1));
+  }
+
+  // groupValue で群（A/B/C）、indexValue（1-6）で群内の位置を決める。
+  // 該当位置が存在しない、または既に習得済みなら null（=選択不可）を返す。
+  function relicCandidateFor(type, c, groupValue, indexValue) {
+    var group = type.relicEffectGroups[relicThird(groupValue)];
+    var idx = indexValue - 1;
+    if (!group || idx >= group.effects.length) return null;
+    var key = relicEffectKey(type.id, relicThird(groupValue), idx);
+    if ((c.learnedRelicEffects || []).indexOf(key) !== -1) return null;
+    return { key: key, effect: group.effects[idx] };
+  }
+
+  function relicAllUnlearned(type, c) {
+    var out = [];
+    (type.relicEffectGroups || []).forEach(function (g, gi) {
+      g.effects.forEach(function (e, ei) {
+        var key = relicEffectKey(type.id, gi, ei);
+        if ((c.learnedRelicEffects || []).indexOf(key) === -1) out.push({ key: key, effect: e });
+      });
+    });
+    return out;
+  }
+
+  function renderRelicCandidateCard(container, candidate, c) {
+    var card = document.createElement("div");
+    card.className = "relic-candidate-card";
+
+    var title = document.createElement("div");
+    title.className = "relic-candidate-name";
+    title.textContent = CharacterTypes.localizedText(candidate.effect.name) + "［" + candidate.effect.kind + "］";
+    card.appendChild(title);
+
+    var body = document.createElement("p");
+    body.className = "threat-ref-body";
+    body.textContent = CharacterTypes.localizedText(candidate.effect.body);
+    card.appendChild(body);
+
+    var learnBtn = document.createElement("button");
+    learnBtn.type = "button";
+    learnBtn.textContent = window.I18N.t("relic_learn_button");
+    learnBtn.addEventListener("click", function () {
+      if (!c.learnedRelicEffects) c.learnedRelicEffects = [];
+      c.learnedRelicEffects.push(candidate.key);
+      saveFn();
+      relicRolledDice = null;
+      renderRelicSection();
+      renderTypeReference(c);
+    });
+    card.appendChild(learnBtn);
+
+    container.appendChild(card);
+  }
+
+  function renderRelicCandidates() {
+    var c = findCharacter(activeCharacterId);
+    var type = c && c.typeId ? CharacterTypes.get(c.typeId) : null;
+    var candidatesEl = document.getElementById("relic-candidates");
+    if (!candidatesEl) return;
+    candidatesEl.innerHTML = "";
+    if (!c || !type || !relicRolledDice) return;
+    if ((c.learnedRelicEffects || []).length >= relicMaxLearnable(c.level)) return;
+
+    var forward = relicCandidateFor(type, c, relicRolledDice.x, relicRolledDice.y);
+    var reverse = relicCandidateFor(type, c, relicRolledDice.y, relicRolledDice.x);
+    if (forward && reverse && forward.key === reverse.key) reverse = null;
+
+    if (forward || reverse) {
+      var label = document.createElement("p");
+      label.className = "threat-ref-body";
+      label.textContent = window.I18N.t("relic_choose_one_label");
+      candidatesEl.appendChild(label);
+      if (forward) renderRelicCandidateCard(candidatesEl, forward, c);
+      if (reverse) renderRelicCandidateCard(candidatesEl, reverse, c);
+    } else {
+      var freeLabel = document.createElement("p");
+      freeLabel.className = "threat-ref-body";
+      freeLabel.textContent = window.I18N.t("relic_free_choice_label");
+      candidatesEl.appendChild(freeLabel);
+      relicAllUnlearned(type, c).forEach(function (cand) {
+        renderRelicCandidateCard(candidatesEl, cand, c);
+      });
+    }
+  }
+
+  function renderRelicSection() {
+    var c = findCharacter(activeCharacterId);
+    var type = c && c.typeId ? CharacterTypes.get(c.typeId) : null;
+    var progressEl = document.getElementById("relic-progress-text");
+    var rollBtn = document.getElementById("btn-relic-roll");
+    var diceEl = document.getElementById("relic-dice-display");
+    if (!progressEl) return;
+
+    if (!c || !type) {
+      progressEl.textContent = "";
+      if (rollBtn) rollBtn.disabled = true;
+      if (diceEl) diceEl.innerHTML = "";
+      document.getElementById("relic-candidates").innerHTML = "";
+      return;
+    }
+
+    var learned = (c.learnedRelicEffects || []).length;
+    var maxLearnable = relicMaxLearnable(c.level);
+    progressEl.textContent = window.I18N.t("relic_progress_text", { learned: learned, max: maxLearnable });
+    if (rollBtn) rollBtn.disabled = learned >= maxLearnable;
+    if (diceEl) {
+      if (relicRolledDice) renderDiceDisplay(diceEl, [relicRolledDice.x, relicRolledDice.y]);
+      else diceEl.innerHTML = "";
+    }
+    renderRelicCandidates();
+  }
+
+  function handleRelicRoll() {
+    var c = findCharacter(activeCharacterId);
+    if (!c) return;
+    if ((c.learnedRelicEffects || []).length >= relicMaxLearnable(c.level)) return;
+    relicRolledDice = { x: rollD6(), y: rollD6() };
+    renderRelicSection();
+  }
+
+  // レベルアップで得られるHP/FP/加護上限の+1（2等HP→3等FP→4等加護、以降繰り返し）を、
+  // 該当する項目のラベル横に「(+1)」として表示する。
+  function renderLevelBonusMarkers(c) {
+    var hpEl = document.getElementById("char-hp-level-bonus");
+    var fpEl = document.getElementById("char-fp-level-bonus");
+    var blessingEl = document.getElementById("char-blessing-level-bonus");
+    if (!hpEl || !fpEl || !blessingEl) return;
+    hpEl.textContent = "";
+    fpEl.textContent = "";
+    blessingEl.textContent = "";
+    if (!c || c.level < 2) return;
+    var order = [hpEl, fpEl, blessingEl];
+    var target = order[(c.level - 2) % 3];
+    target.textContent = window.I18N.t("level_bonus_marker");
+  }
+
   var characters = [];
   var activeCharacterId = null;
   var saveFn = function () {};
@@ -65,6 +230,7 @@
       buildup: [],
       abilityUses: {},
       dicePool: [],
+      learnedRelicEffects: [],
     };
   }
 
@@ -200,8 +366,11 @@
     passiveContainer.innerHTML = "";
     if (!type) return;
     var entries = [].concat(type.abilities || []).concat(type.skills || []).concat(type.arts || []);
-    (type.relicEffectGroups || []).forEach(function (g) {
-      entries = entries.concat(g.effects);
+    var learned = c.learnedRelicEffects || [];
+    (type.relicEffectGroups || []).forEach(function (g, gi) {
+      g.effects.forEach(function (e, ei) {
+        if (learned.indexOf(relicEffectKey(type.id, gi, ei)) !== -1) entries.push(e);
+      });
     });
     entries.forEach(function (entry) {
       renderAbilityEntry(entry.kind === "Passive" ? passiveContainer : activeContainer, entry, c);
@@ -305,8 +474,11 @@
     document.getElementById("char-flask-extra-max").value = c.flaskExtra.max;
     document.getElementById("char-revival-count").value = c.revivalCount;
     TAG_FIELDS.forEach(renderTagList);
+    relicRolledDice = null;
     renderTypeReference(c);
     renderCharacterDicePool();
+    renderRelicSection();
+    renderLevelBonusMarkers(c);
 
     document.getElementById("character-drawer").classList.add("open");
   }
@@ -326,7 +498,12 @@
       apply(c, e.target);
       saveFn();
       if (elId === "char-entered") onChangeFn();
-      if (elId === "char-level") renderTypeReference(c);
+      if (elId === "char-level") {
+        relicRolledDice = null;
+        renderTypeReference(c);
+        renderRelicSection();
+        renderLevelBonusMarkers(c);
+      }
     });
   }
 
@@ -350,6 +527,7 @@
       saveFn();
       renderCharacterDicePool();
     });
+    document.getElementById("btn-relic-roll").addEventListener("click", handleRelicRoll);
 
     document.querySelectorAll(".tag-add-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {

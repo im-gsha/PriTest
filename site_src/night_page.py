@@ -224,12 +224,14 @@ BODY = """    <div class="night-header-row">
             <input type="number" id="char-hp-current" class="stat-input">
             <span>/</span>
             <input type="number" id="char-hp-max" class="stat-input">
+            <span id="char-hp-level-bonus" class="level-bonus-marker"></span>
           </label>
           <label class="field-row">
             <span data-i18n="character_fp_label"></span>
             <input type="number" id="char-fp-current" class="stat-input">
             <span>/</span>
             <input type="number" id="char-fp-max" class="stat-input">
+            <span id="char-fp-level-bonus" class="level-bonus-marker"></span>
           </label>
         </div>
 
@@ -319,6 +321,7 @@ BODY = """    <div class="night-header-row">
               <input type="number" id="char-blessing-current" class="stat-input">
               <span>/</span>
               <input type="number" id="char-blessing-max" class="stat-input">
+              <span id="char-blessing-level-bonus" class="level-bonus-marker"></span>
             </label>
           </div>
           <div class="field-grid">
@@ -370,6 +373,16 @@ BODY = """    <div class="night-header-row">
         <div class="threat-ref-block">
           <h3 data-i18n="cv_passives_title"></h3>
           <div id="type-passives"></div>
+        </div>
+
+        <div class="threat-ref-block" id="relic-select-block">
+          <h3 data-i18n="relic_select_title"></h3>
+          <p class="threat-ref-body" id="relic-progress-text"></p>
+          <div class="actions">
+            <button type="button" id="btn-relic-roll" data-i18n="relic_roll_button"></button>
+          </div>
+          <div class="dice-pool-list" id="relic-dice-display"></div>
+          <div id="relic-candidates"></div>
         </div>
 
         <div class="actions">

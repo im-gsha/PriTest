@@ -859,6 +859,24 @@ button {
   font-size: 1rem;
 }
 
+.level-bonus-marker {
+  font-size: 0.8rem;
+  color: #d9822b;
+  font-weight: 600;
+}
+
+.relic-candidate-card {
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  padding: 0.6rem 0.7rem;
+  margin: 0.5rem 0;
+}
+
+.relic-candidate-name {
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+
 .dice-remove {
   position: absolute;
   top: -8px;
@@ -1230,5 +1248,8 @@ button {
     background: #1c1c1c;
     border-color: #444;
     color: #aaa;
+  }
+  .relic-candidate-card {
+    border-color: #444;
   }
 }
