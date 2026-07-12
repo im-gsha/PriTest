@@ -308,7 +308,7 @@ BODY = """    <div class="night-header-row">
           <div class="field-grid">
             <label class="field-row">
               <span data-i18n="record_level_label"></span>
-              <input type="number" id="char-level" class="stat-input">
+              <input type="number" id="char-level" class="stat-input" min="1" max="15">
             </label>
             <label class="field-row">
               <span data-i18n="record_runes_label"></span>
@@ -380,9 +380,23 @@ BODY = """    <div class="night-header-row">
           <p class="threat-ref-body" id="relic-progress-text"></p>
           <div class="actions">
             <button type="button" id="btn-relic-roll" data-i18n="relic_roll_button"></button>
+            <button type="button" id="btn-relic-toggle-all" data-i18n="relic_show_all_button"></button>
           </div>
           <div class="dice-pool-list" id="relic-dice-display"></div>
           <div id="relic-candidates"></div>
+          <div id="relic-all-list" hidden></div>
+        </div>
+
+        <div class="threat-ref-block" id="attached-select-block">
+          <h3 data-i18n="attached_select_title"></h3>
+          <p class="threat-ref-body" id="attached-progress-text"></p>
+          <div class="actions">
+            <button type="button" id="btn-attached-roll-1d" data-i18n="attached_roll_1d_button"></button>
+            <button type="button" id="btn-attached-roll-2d" data-i18n="attached_roll_2d_button"></button>
+          </div>
+          <div class="dice-pool-list" id="attached-dice-display"></div>
+          <div id="attached-candidates"></div>
+          <div id="attached-learned-list"></div>
         </div>
 
         <div class="actions">
