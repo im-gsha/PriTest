@@ -6,6 +6,8 @@
   var RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
   var SLOT_COUNT = 9;
   var NEW_GAME_PASSWORD = "night";
+  var RULEBOOK_PASSWORD = "nightnight";
+  var RULEBOOK_SESSION_KEY = "pritest-rulebook-session";
   var LEVEL_STEPS = [null, 0, 1, 2, 3, 4, 5]; // null = "全"（未指定）
 
   var Games = window.PriTestGames;
@@ -568,6 +570,40 @@
       details.appendChild(buildBossTable(boss.actionColumns, boss.actions, T));
 
       container.appendChild(details);
+    });
+  }
+
+  // 規則書モーダル: 管理員パスワード（"nightnight"、通常のadmin認証とは別）＋タブ切替
+  function isRulebookAuthenticated() {
+    return sessionStorage.getItem(RULEBOOK_SESSION_KEY) === "1";
+  }
+
+  function checkRulebookPassword() {
+    if (isRulebookAuthenticated()) return true;
+    var input = window.prompt(window.I18N.t("rulebook_password_prompt"));
+    var ok = input === RULEBOOK_PASSWORD;
+    if (ok) sessionStorage.setItem(RULEBOOK_SESSION_KEY, "1");
+    return ok;
+  }
+
+  function handleOpenRulebook() {
+    if (!checkRulebookPassword()) {
+      alert(window.I18N.t("rulebook_password_wrong"));
+      return;
+    }
+    document.getElementById("rulebook-modal").hidden = false;
+  }
+
+  function closeRulebookModal() {
+    document.getElementById("rulebook-modal").hidden = true;
+  }
+
+  function switchRulebookTab(tabId) {
+    document.querySelectorAll(".rulebook-tab-btn").forEach(function (btn) {
+      btn.classList.toggle("active", btn.getAttribute("data-tab") === tabId);
+    });
+    document.querySelectorAll(".rulebook-tab-panel").forEach(function (panel) {
+      panel.hidden = panel.id !== "rulebook-panel-" + tabId;
     });
   }
 
@@ -1605,6 +1641,14 @@
     renderLog();
     renderLogToggleLabel();
     renderBossRulebook();
+
+    document.getElementById("btn-open-rulebook").addEventListener("click", handleOpenRulebook);
+    document.getElementById("btn-rulebook-close").addEventListener("click", closeRulebookModal);
+    document.querySelectorAll(".rulebook-tab-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        switchRulebookTab(btn.getAttribute("data-tab"));
+      });
+    });
 
     document.getElementById("btn-select-submit").addEventListener("click", submitSelection);
     document.getElementById("btn-select-cancel").addEventListener("click", closeSelectDrawer);

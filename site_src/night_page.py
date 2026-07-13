@@ -102,11 +102,41 @@ BODY = """    <div class="night-header-row">
         <ul id="log-list"></ul>
       </div>
 
-      <div class="threat-ref-block" id="boss-rulebook-block">
-        <h3 data-i18n="boss_rulebook_title"></h3>
-        <div id="boss-rulebook-list"></div>
+      <div class="threat-ref-block">
+        <button type="button" id="btn-open-rulebook" data-i18n="rulebook_open_button"></button>
       </div>
     </section>
+
+    <div id="rulebook-modal" class="modal" hidden>
+      <div class="modal-box gallery-modal-box">
+        <h2 data-i18n="boss_rulebook_title"></h2>
+        <div class="rulebook-tabs" id="rulebook-tabs">
+          <button type="button" class="rulebook-tab-btn active" data-tab="nightking" data-i18n="rulebook_tab_nightking"></button>
+          <button type="button" class="rulebook-tab-btn" data-tab="miniking" data-i18n="rulebook_tab_miniking"></button>
+          <button type="button" class="rulebook-tab-btn" data-tab="weapon" data-i18n="rulebook_tab_weapon"></button>
+          <button type="button" class="rulebook-tab-btn" data-tab="board" data-i18n="rulebook_tab_board"></button>
+          <button type="button" class="rulebook-tab-btn" data-tab="event" data-i18n="rulebook_tab_event"></button>
+        </div>
+        <div class="rulebook-tab-panel" id="rulebook-panel-nightking">
+          <div id="boss-rulebook-list"></div>
+        </div>
+        <div class="rulebook-tab-panel" id="rulebook-panel-miniking" hidden>
+          <p class="threat-ref-body" data-i18n="rulebook_no_data"></p>
+        </div>
+        <div class="rulebook-tab-panel" id="rulebook-panel-weapon" hidden>
+          <p class="threat-ref-body" data-i18n="rulebook_no_data"></p>
+        </div>
+        <div class="rulebook-tab-panel" id="rulebook-panel-board" hidden>
+          <p class="threat-ref-body" data-i18n="rulebook_no_data"></p>
+        </div>
+        <div class="rulebook-tab-panel" id="rulebook-panel-event" hidden>
+          <p class="threat-ref-body" data-i18n="rulebook_no_data"></p>
+        </div>
+        <div class="actions">
+          <button type="button" id="btn-rulebook-close" class="primary-btn" data-i18n="close_button"></button>
+        </div>
+      </div>
+    </div>
 
     <div id="select-drawer" class="drawer">
       <div class="drawer-backdrop" id="drawer-backdrop"></div>
