@@ -1,0 +1,733 @@
+(function () {
+  // 第7部「エネミーセクション」討伐対象の通常エネミー（夜の王を除く）。
+  // 出典: 規則書 P.230-238。系統（科）ごとに基礎データ（レベル別HP枠・乱戦ダメージ）を共有し、
+  // 各エネミーは「サイズ・耐性・アクション決定表（出目→アクション→乱戦ダメージ修正）・特殊能力」を持つ。
+  // 写真の解像度・回転により、基礎データ表の一部数値・一部エネミー名は判読信頼度が低い（family.note参照）。
+  function C(ja, zh) {
+    return { ja: ja, zh: zh };
+  }
+
+  function base(dmgRow, hpRow) {
+    // dmgRow: レベル1〜15の乱戦ダメージ基準値。hpRow（任意）: 同レベルのHP枠表記（規則書の「□×n」表記）。
+    return dmgRow.map(function (dmg, i) {
+      return { level: i + 1, dmg: dmg, hp: (hpRow && hpRow[i]) || null };
+    });
+  }
+
+  var DRAGON_HP = [
+    "×3/×3", "×3/×4", "×4/×4", "×4/×5", "×4/×5", "×5/×5", "×5/×6",
+    "×5/×6", "×6/×6", "×6/×7", "×6/×7", "×7/×7", "×7/×7", "×7/×8", "×8/×9",
+  ];
+
+  var FAMILIES = [
+    {
+      id: "dragon",
+      name: C("ドラゴン・土竜系", "龍・土龍系"),
+      base: base([360, 420, 480, 480, 540, 540, 600, 600, 660, 660, 720, 720, 780, 840, 900], DRAGON_HP),
+      enemies: [
+        {
+          id: "great_earth_dragon",
+          name: C("大土竜", "大土龍"),
+          size: "LL",
+          resistance: C("凍傷・発狂", "凍傷・發狂"),
+          actions: [
+            { roll: "1", name: C("剣雉き払い", "揮劍掃擊"), mod: "+120" },
+            { roll: "2", name: C("武器叩きつけ", "武器揮砸"), mod: "±0" },
+            { roll: "3", name: C("尻尾振り回し", "尾巴甩擊"), mod: "+60" },
+            { roll: "4", name: C("溶岩吐き＆溶岩の滞留", "吐熔岩＆熔岩滯留"), mod: "±0＆炎:1D" },
+            { roll: "5", name: C("這いずり回り＆溶岩の滞留", "匍匐移動＆熔岩滯留"), mod: "-240" },
+            { roll: "6", name: C("立ち上がり剣撃＆溶岩の滞留", "站立揮劍＆熔岩滯留"), mod: "±0" },
+          ],
+          special: C(
+            "〔竜特効〕このエネミーは「竜」として扱う。溶岩の滞留：このエネミーがエンドフェイズ開始時、後衛のPC全員に「溶岩の滞留」効果を与える。",
+            "〔龍特效〕此敵人視為「龍」。熔岩滯留：此敵人於結束階段開始時，給予後衛全體PC「熔岩滯留」效果。"
+          ),
+        },
+        {
+          id: "gluttonous_dragon",
+          name: C("貪食ドラゴン", "貪食龍"),
+          size: "LL",
+          resistance: C("猛毒・腐敗・睡眠・発狂", "劇毒・腐敗・睡眠・發狂"),
+          actions: [
+            { roll: "1", name: C("這いずり回り", "匍匐移動"), mod: "+120" },
+            { roll: "2", name: C("爪ひっかき", "爪擊"), mod: "±0" },
+            { roll: "3", name: C("咥え込み＆飛び退き", "咬住＆後跳"), mod: "—" },
+            { roll: "4", name: C("前方ブレス", "前方吐息"), mod: "+60" },
+            { roll: "5", name: C("—", "—"), mod: "—" },
+            { roll: "6", name: C("—", "—"), mod: "—" },
+          ],
+          special: C(
+            "〔竜特効〕公開情報。このエネミーは「竜」として扱う。個別ダメージ「敵視:180」を与える。特殊効果「凍傷:1D」を与える。",
+            "〔龍特效〕公開資訊。此敵人視為「龍」。給予個別傷害「敵視:180」。給予特殊效果「凍傷:1D」。"
+          ),
+        },
+        {
+          id: "ancient_dragon",
+          name: C("古竜", "古龍"),
+          size: "LL",
+          resistance: C("凍傷・睡眠・発狂", "凍傷・睡眠・發狂"),
+          actions: [
+            { roll: "1", name: C("尻尾振り回し", "尾巴甩擊"), mod: "±0" },
+            { roll: "2", name: C("武器叩きつけ", "武器揮砸"), mod: "+60" },
+            { roll: "3", name: C("尻尾振り回し", "尾巴甩擊"), mod: "±0＆凍傷:1D" },
+            { roll: "4", name: C("鍔迫り合い＆溶岩の滞留", "鍔戰＆熔岩滯留"), mod: "180" },
+            { roll: "5", name: C("溶岩の滞留", "熔岩滯留"), mod: "—" },
+            { roll: "6", name: C("竜の跳躍", "龍之躍"), mod: "—" },
+          ],
+          special: C(
+            "〔竜特効〕〔耐入力〕このエネミーに与えるダメージは（2回実行）扱いとなる。エネミーが失敗したPCに「戦意崩し」を行う。",
+            "〔龍特效〕〔耐入力〕給予此敵人的傷害視為（執行2次）。此敵人對失敗的PC進行「戰意崩潰」。"
+          ),
+        },
+      ],
+    },
+    {
+      id: "tree_spirit",
+      name: C("樹霊・黄金樹系", "樹靈・黃金樹系"),
+      note: {
+        zh: "【不確定】部分敵人名稱因照片解析度限制判讀信心較低。",
+        ja: "【未確認】一部エネミー名は写真解像度の都合上、判読信頼度が低い。",
+      },
+      base: base([360, 420, 480, 480, 540, 540, 600, 600, 660, 660, 720, 720, 780, 840, 900]),
+      enemies: [
+        {
+          id: "golden_tree_avatar",
+          name: C("黄金樹の化身", "黃金樹的化身"),
+          size: "LL",
+          resistance: C("聖・出血・睡眠・発狂", "聖・出血・睡眠・發狂"),
+          actions: [
+            { roll: "1", name: C("突進", "突進"), mod: "+120" },
+            { roll: "2", name: C("尻尾雑ぎ払い", "尾部橫掃"), mod: "-240" },
+            { roll: "3", name: C("黄金樹の柱", "黃金樹之柱"), mod: "—" },
+            { roll: "4", name: C("咥え込み＆回り込み", "咬住＆迂迴"), mod: "±0＆聖:2D" },
+            { roll: "5", name: C("黄金の地", "黃金之地"), mod: "+180＆聖:1D" },
+            { roll: "6", name: C("黄金ブレス", "黃金吐息"), mod: "+120＆聖:1D" },
+          ],
+          special: C(
+            "〔弱点:炎＆凍傷＆腐敗＆凍傷〕（回り込みに配置）巫女が夜渡りたちを集合させる。それは出撃の合図。",
+            "〔弱點:炎＆凍傷＆腐敗＆凍傷〕（迂迴後配置）巫女讓夜渡者集合，那是出擊的合圖。"
+          ),
+        },
+        {
+          id: "crumbled_tree_spirit",
+          name: C("崩れた樹霊", "崩壞的樹靈"),
+          size: "LL",
+          resistance: C("聖・出血・腐敗・凍傷", "聖・出血・腐敗・凍傷"),
+          actions: [
+            { roll: "1", name: C("鍔叩きつけ", "鍔擊"), mod: "+120" },
+            { roll: "2", name: C("引っかき", "抓擊"), mod: "±0" },
+            { roll: "3", name: C("飛びかかり＆飛び退き", "撲擊＆後跳"), mod: "-120＆炎:1D" },
+            { roll: "4", name: C("拘束＆咬みつき", "束縛＆咬擊"), mod: "-180＆聖:1D" },
+            { roll: "5", name: C("動き回る", "四處走動"), mod: "—" },
+            { roll: "6", name: C("蓑尾", "蓑尾"), mod: "—" },
+          ],
+          special: null,
+        },
+      ],
+    },
+    {
+      id: "rock_spirit_beast",
+      name: C("岩獣・霊獣系", "岩獸・靈獸系"),
+      base: base([360, 360, 420, 420, 480, 480, 480, 540, 600, 600, 660, 720, 780, 840, 960]),
+      enemies: [
+        {
+          id: "golden_hippo",
+          name: C("黄金カバ（大）／黄金カバ", "黃金河馬（大）／黃金河馬"),
+          size: "L",
+          resistance: C("睡眠・発狂", "睡眠・發狂"),
+          actions: [
+            { roll: "1~2", name: C("突進", "突進"), mod: "+120" },
+            { roll: "3~4", name: C("叩きつけ", "揮砸"), mod: "±0" },
+            { roll: "5~6", name: C("食いつき", "咬擊"), mod: "-120" },
+            { roll: "7~8", name: C("大回転突進", "大迴轉突進"), mod: "—" },
+            { roll: "9~10", name: C("針飛ばし", "飛針"), mod: "-240＆聖:1D" },
+          ],
+          special: C(
+            "〔弱点:腐敗（大型）〕〔中型体〕「エネミー決定」名で「黄金カバ（大）」。黄金カバ決定時、アクション決定は「1D+4」で行う。",
+            "〔弱點:腐敗（大型）〕〔中型體〕「敵人決定」名為「黃金河馬（大）」。決定黃金河馬時，行動決定以「1D+4」進行。"
+          ),
+        },
+        {
+          id: "sacred_beast_lion_dance",
+          name: C("神獣獅子舞", "神獸獅子舞"),
+          size: "L",
+          resistance: C("発狂", "發狂"),
+          actions: [
+            { roll: "1~2", name: C("突撃", "突擊"), mod: "+120" },
+            { roll: "3~4", name: C("神獣竜巻", "神獸龍捲"), mod: "+120" },
+            { roll: "5", name: C("雷の槍", "雷之槍"), mod: "—" },
+            { roll: "6", name: C("広範囲降雷", "廣範圍降雷"), mod: "-120＆雷:2D" },
+            { roll: "7", name: C("神獣霜踏み", "神獸霜踏"), mod: "±0＆凍傷:1D" },
+            { roll: "8", name: C("神獣の舞", "神獸之舞"), mod: "—" },
+          ],
+          special: C(
+            "〔弱点:活血＆出血＆腐敗〕〔行動激化〕体勢崩しが発生した後、体勢崩しが発生した後、次のアクション決定は「1D+2」を戦闘終了まで行う。",
+            "〔弱點:活血＆出血＆腐敗〕〔行動激化〕發生體勢崩潰後，直到戰鬥終了為止的行動決定改為「1D+2」。"
+          ),
+        },
+        {
+          id: "falling_star_beast",
+          name: C("降る星の威獣", "降星的威獸"),
+          size: "L",
+          resistance: C("出血・凍傷", "出血・凍傷"),
+          actions: [
+            { roll: "1", name: C("突進＆重力破壊", "突進＆重力破壞"), mod: "+180" },
+            { roll: "2", name: C("跳躍回転当たり＆重力岩破壊", "跳躍回轉命中＆重力岩破壞"), mod: "+240" },
+            { roll: "3", name: C("尻尾雑き＆重力岩破壊", "尾部橫掃＆重力岩破壞"), mod: "+180" },
+            { roll: "4", name: C("ハサミ振り岩回し＆重力岩生成", "剪擊岩石迴旋＆重力岩生成"), mod: "-180" },
+            { roll: "5", name: C("重力操作＆重力岩生成", "重力操作＆重力岩生成"), mod: "+120＆「魔:1D」" },
+            { roll: "6", name: C("重力振り落とし", "重力甩落"), mod: "±0" },
+          ],
+          special: C(
+            "〔隠鉄特効〕このエネミーは「星の眷属」として扱う。「重力岩」が前衛エリアに存在する場合、選ぶ「重力岩」を破壊してから、リアクションを行う。",
+            "〔隱鐵特效〕此敵人視為「星之眷屬」。若前衛區域存在「重力岩」，須先破壞所選「重力岩」，才能進行反應。"
+          ),
+        },
+      ],
+    },
+    {
+      id: "insect_fairy",
+      name: C("蟲・妖精系", "蟲・妖精系"),
+      note: {
+        zh: "【不確定】本系統資料判讀信心中等，建議對照原書231頁確認。",
+        ja: "【未確認】本系統のデータは判読信頼度が中程度。原書231頁を参照して確認することを推奨する。",
+      },
+      base: base([300, 360, 420, 420, 480, 480, 540, 540, 600, 660, 660, 720, 780, 840, 960]),
+      enemies: [
+        {
+          id: "spider_branchling",
+          name: C("蜘蛛の枝子", "蜘蛛的枝子"),
+          size: "LL",
+          resistance: C("凍傷・睡眠・発狂", "凍傷・睡眠・發狂"),
+          actions: [
+            { roll: "1~2", name: C("尻尾振り回し", "尾部甩擊"), mod: "+120" },
+            { roll: "3~4", name: C("爪ひっかき＆飛び退き", "爪擊＆後跳"), mod: "±0" },
+            { roll: "5~6", name: C("前方ブレス", "前方吐息"), mod: "—" },
+          ],
+          special: null,
+        },
+        {
+          id: "spider_branchling_withered",
+          name: C("蜘蛛の枝子（枯れ）", "蜘蛛的枝子（枯萎）"),
+          size: "LL",
+          resistance: C("凍傷・睡眠・発狂", "凍傷・睡眠・發狂"),
+          actions: [
+            { roll: "1~2", name: C("尻尾振り回し＆氷霜", "尾部甩擊＆冰霜"), mod: "±0" },
+            { roll: "3~4", name: C("爪ひっかき＆飛び退き", "爪擊＆後跳"), mod: "+60" },
+            { roll: "5~6", name: C("角振り上げ", "角振上"), mod: "±0＆「炎:1D」" },
+          ],
+          special: null,
+        },
+      ],
+    },
+    {
+      id: "rat_basilisk",
+      name: C("ネズミ・バジリスク系", "老鼠・蜥蜴系"),
+      base: base([240, 300, 360, 420, 480, 480, 540, 540, 600, 660, 660, 720, 780, 840, 900]),
+      enemies: [
+        {
+          id: "rats",
+          name: C("ネズミたち", "老鼠們"),
+          size: "S",
+          resistance: C("睡眠・発狂", "睡眠・發狂"),
+          actions: [
+            { roll: "1~2", name: C("群がる", "群聚"), mod: "±0" },
+            { roll: "3~4", name: C("飛びかかり", "撲擊"), mod: "±0" },
+            { roll: "5~6", name: C("ひっかき", "抓擊"), mod: "+60" },
+          ],
+          special: null,
+        },
+        {
+          id: "goblins",
+          name: C("コビムシたち", "小蟲們"),
+          size: "S",
+          resistance: C("出血・睡眠", "出血・睡眠"),
+          actions: [
+            { roll: "1~2", name: C("群みかかり", "群起撲擊"), mod: null },
+          ],
+          special: null,
+        },
+        {
+          id: "basilisks",
+          name: C("バジリスクたち", "蜥蜴們"),
+          size: "S",
+          resistance: C("出血・睡眠", "出血・睡眠"),
+          actions: [
+            { roll: "1~2", name: C("後ずさる", "後退"), mod: "-60" },
+            { roll: "3~4", name: C("範囲ブレス", "範圍吐息"), mod: null },
+            { roll: "5~6", name: C("飛びかかりブレス", "撲擊吐息"), mod: null },
+          ],
+          special: C("〔弱点:出血・凍傷・睡眠〕", "〔弱點:出血・凍傷・睡眠〕"),
+        },
+      ],
+    },
+    {
+      id: "death_bird_raven",
+      name: C("死の鳥・大鴉系", "死鳥・大鴉系"),
+      base: base([360, 360, 420, 420, 480, 480, 540, 540, 600, 660, 660, 720, 780, 840, 900]),
+      enemies: [
+        {
+          id: "death_ritual_bird",
+          name: C("死儀礼の鳥", "死儀禮之鳥"),
+          size: "LL",
+          resistance: C("猛毒・出血・凍傷・睡眠・発狂", "劇毒・出血・凍傷・睡眠・發狂"),
+          actions: [
+            { roll: "1", name: C("槍振り回し", "揮槍"), mod: "+120" },
+            { roll: "2", name: C("尻尾振り回し＆飛び退き", "尾部甩擊＆後跳"), mod: "±0" },
+            { roll: "3", name: C("咥え込み＆飛び退き", "咬住＆後跳"), mod: "—" },
+            { roll: "4", name: C("霊灰発火", "靈灰發火"), mod: "±0" },
+            { roll: "5", name: C("槍呼び＆飛び退き", "喚槍＆後跳"), mod: "+180＆「炎:1D」＆「凍傷:1D」" },
+            { roll: "6", name: C("古き死の怨霊", "古老死之怨靈"), mod: "—" },
+          ],
+          special: C(
+            "〔亡者特効〕〔死に生きる者〕このエネミーは「死に生きる者」として扱われる。飛び退きが発生時、条件発揮でこのエネミーは後衛に配置される。",
+            "〔亡者特效〕〔生於死者〕此敵人視為「生於死者」。發生後跳時，條件發揮下此敵人配置於後衛。"
+          ),
+        },
+      ],
+    },
+    {
+      id: "demon",
+      name: C("デーモン系", "惡魔系"),
+      note: {
+        zh: "【不確定】部分行動判定與傷害數值判讀信心中等。",
+        ja: "【未確認】一部アクション判定・ダメージ数値の判読信頼度は中程度。",
+      },
+      base: base([360, 420, 480, 540, 540, 600, 600, 660, 660, 720, 720, 780, 840, 840, 900]),
+      enemies: [
+        {
+          id: "wounded_demon",
+          name: C("傷ついたデーモン＆うろ蓋のデーモン", "受傷惡魔＆窟蓋惡魔"),
+          size: "LL",
+          resistance: C("炎・猛毒・凍傷・睡眠・発狂", "炎・劇毒・凍傷・睡眠・發狂"),
+          actions: [
+            { roll: "1~2", name: C("炎爪ひっかき", "炎爪抓擊"), mod: "-300＆「炎:1D」" },
+            { roll: "3~6", name: C("火球", "火球"), mod: "-480" },
+            { roll: "7~8", name: C("敵の中で猛毒＆猛毒:2D", "敵人之中猛毒＆劇毒:2D"), mod: "-420＆「猛毒:2D」" },
+            { roll: "9~10", name: C("毒爪ひっかき", "毒爪抓擊"), mod: "—" },
+            { roll: "11~12", name: C("毒のブレス", "毒之吐息"), mod: "-600" },
+          ],
+          special: C(
+            "〔2回行動〕このエネミーは1回のディフェンスフェイズで、2回のアクション決定を行い、その双方を実行する。行動は「体勢崩し」が発生しても、片方の生き残った側のアクションを継続する。",
+            "〔2次行動〕此敵人於1次防禦階段中，進行2次行動決定並雙方皆執行。即使發生「體勢崩潰」，仍繼續存活一側的行動。"
+          ),
+        },
+        {
+          id: "demon_prince",
+          name: C("デーモンの王子", "惡魔王子"),
+          size: "LL",
+          resistance: C("炎・猛毒・凍傷・睡眠・発狂", "炎・劇毒・凍傷・睡眠・發狂"),
+          actions: [
+            { roll: "1~2", name: C("炎の隕石", "炎之隕石"), mod: "-120＆「炎:1D」" },
+            { roll: "3~4", name: C("浮遊火球＆突進", "浮游火球＆突進"), mod: "±0" },
+            { roll: "5", name: C("跳躍叩きつけ", "跳躍揮砸"), mod: "+240" },
+            { roll: "6", name: C("両腕振り＆体当たり", "雙臂揮擊＆衝撞"), mod: "±0" },
+            { roll: "7~8", name: C("毒の痛み", "毒之痛"), mod: "+120＆「猛毒:1D」" },
+            { roll: "9~10", name: C("熱戦爆発", "熱戰爆發"), mod: "-300＆「炎:1D」" },
+          ],
+          special: null,
+        },
+      ],
+    },
+    {
+      id: "grafted",
+      name: C("接ぎ木系", "接木系"),
+      base: base([360, 360, 420, 420, 480, 480, 540, 540, 600, 660, 660, 720, 780, 840, 900]),
+      enemies: [
+        {
+          id: "grafted_prince",
+          name: C("接ぎ木の負公子", "接木的負公子"),
+          size: "L",
+          resistance: null,
+          actions: [
+            { roll: "1", name: C("連続攻撃", "連續攻擊"), mod: "—" },
+            { roll: "2", name: C("転がりジャンプ斬り", "翻滾跳斬"), mod: "+60" },
+            { roll: "3", name: C("風飛ばし", "風飛"), mod: "+120" },
+            { roll: "4", name: C("アースシーカー", "尋地者"), mod: "—" },
+            { roll: "5", name: C("地擦り斬撃＆体当たり", "掠地斬擊＆衝撞"), mod: "+180" },
+            { roll: "6", name: C("尻尾雑ぎ＆叩きつけ", "尾部橫掃＆揮砸"), mod: "-180" },
+          ],
+          special: null,
+        },
+        {
+          id: "young_thrush",
+          name: C("若木鶫", "若木鶫"),
+          size: "L",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("突き刺し", "刺擊"), mod: "±0" },
+            { roll: "3~4", name: C("水鉄砲", "水槍"), mod: "-120" },
+            { roll: "5~6", name: C("挟み込み拘束", "夾擊束縛"), mod: "—" },
+          ],
+          special: null,
+        },
+        {
+          id: "grafted_ivy",
+          name: C("王託の腐胞", "王託的腐胞"),
+          size: "M",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("連続突撃", "連續突擊"), mod: "+120" },
+            { roll: "3~4", name: C("ダッシュ攻撃", "衝刺攻擊"), mod: "+120" },
+            { roll: "5~6", name: C("祈りの一撃", "祈禱之擊"), mod: "±0＆「聖:1D」" },
+          ],
+          special: null,
+        },
+      ],
+    },
+    {
+      id: "crustacean",
+      name: C("甲殻類系", "甲殼類系"),
+      base: base([300, 360, 420, 420, 480, 480, 540, 540, 600, 660, 660, 720, 780, 840, 900]),
+      enemies: [
+        {
+          id: "duke_pleyd",
+          name: C("公のプレイディア", "公爵普雷迪亞"),
+          size: "LL",
+          resistance: C("猛毒・腐敗", "劇毒・腐敗"),
+          actions: [
+            { roll: "1", name: C("振びかかり", "撲擊"), mod: "+120" },
+            { roll: "2", name: C("尻尾振り回し", "尾部甩擊"), mod: "-120" },
+            { roll: "3", name: C("子蜘蛛の牙", "子蜘蛛之牙"), mod: "—" },
+            { roll: "4", name: C("子蜘蛛の抱擁", "子蜘蛛之擁"), mod: "±0" },
+            { roll: "5", name: C("貫く糸", "貫穿之絲"), mod: "+120" },
+            { roll: "6", name: C("糸の雨", "絲之雨"), mod: "+180" },
+          ],
+          special: C(
+            "〔モブ2追加〕戦闘開始時、HP枠は「モブ1補」はL補「最大HP:PC人数×2」である。（子蜘蛛の産卵）子蜘蛛のエネミーは毎ターンのエンドフェイズで「捨て置く1」）最低回復する。",
+            "〔追加2隻〕戰鬥開始時，HP枠增加「小怪1」，其HP上限為「PC人數×2」。（子蜘蛛產卵）子蜘蛛敵人於每回合結束階段最少恢復。"
+          ),
+        },
+        {
+          id: "giant_leg_demon",
+          name: C("巨足のデーモン", "巨足惡魔"),
+          size: "LL",
+          resistance: C("炎・睡眠・発狂", "炎・睡眠・發狂"),
+          actions: [
+            { roll: "1~2", name: C("回転攻撃", "迴轉攻擊"), mod: "+120" },
+            { roll: "3", name: C("つかみかかり", "抓握攻擊"), mod: "±0" },
+            { roll: "4", name: C("跳躍体当たり", "跳躍衝撞"), mod: "±0＆「炎:2D」" },
+            { roll: "5~6", name: C("蓄み回る", "四處走動"), mod: "-120" },
+          ],
+          special: C(
+            "〔目立つ腕〕戦闘開始時、HP枠は「モブ1」補を「最大HP:現在HP行の2行」を「モブHP」がある間、追加行動が発生し「動き回る」判定を解決した後に「体勢崩し」「蓑尾」を行い、行動決定「1D」を追加する。",
+            "〔顯眼之臂〕戰鬥開始時，HP枠增加「小怪1」補。有「小怪HP」存在時，解決「四處走動」後追加行動並進行「體勢崩潰」「蓑尾」，追加行動決定「1D」。"
+          ),
+        },
+        {
+          id: "big_crabs",
+          name: C("大蟹たち", "大蟹們"),
+          size: "L",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("群がる", "群聚"), mod: "±0" },
+            { roll: "3~4", name: C("八叩きつけ", "揮砸"), mod: "-120" },
+            { roll: "5~6", name: C("挟み込み拘束", "夾擊束縛"), mod: "—" },
+          ],
+          special: null,
+        },
+        {
+          id: "big_spiders",
+          name: C("大蜘たち", "大蜘蛛們"),
+          size: "M",
+          resistance: C("猛毒・腐敗・出血", "劇毒・腐敗・出血"),
+          actions: [
+            { roll: "1~2", name: C("群がる", "群聚"), mod: "±0" },
+            { roll: "3~4", name: C("脚ひっかき", "腳爪抓擊"), mod: "+60" },
+            { roll: "5~6", name: C("蟻酸", "蟻酸"), mod: "-60" },
+          ],
+          special: null,
+        },
+      ],
+    },
+    {
+      id: "attacker_warrior",
+      name: C("襲撃者（戦士系）", "襲擊者（戰士系）"),
+      base: base([300, 300, 360, 360, 420, 420, 480, 480, 540, 600, 600, 660, 720, 780, 900]),
+      enemies: [
+        {
+          id: "enemy_swordsman",
+          name: C("敵の剣士", "敵方劍士"),
+          size: "M",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("雑ぎ払い", "橫掃"), mod: "+60" },
+            { roll: "3~4", name: C("構え斬り", "架式斬"), mod: "+120" },
+            { roll: "5~6", name: C("バックラーパリィ", "小盾格擋"), mod: "-60" },
+          ],
+          special: C("〔弱点:呪死〕", "〔弱點:咒死〕"),
+        },
+        {
+          id: "enemy_archer",
+          name: C("敵の弓兵", "敵方弓兵"),
+          size: "M",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("居合斬り", "居合斬"), mod: "+60" },
+            { roll: "3~4", name: C("連続斬り", "連續斬擊"), mod: "-300" },
+            { roll: "5~6", name: C("弾き＆妖刀解放", "彈開＆妖刀解放"), mod: "+120" },
+          ],
+          special: C("〔弱点:呪死〕", "〔弱點:咒死〕"),
+        },
+        {
+          id: "enemy_guard",
+          name: C("敵の警備者", "敵方警備者"),
+          size: "M",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("斧槍雑ぎ攻撃", "斧槍橫掃攻擊"), mod: "+60" },
+            { roll: "3~4", name: C("つむじ風", "旋風"), mod: "-240" },
+            { roll: "5~6", name: C("ハイガード＆ガードカウンター", "高防禦＆防禦反擊"), mod: "—" },
+          ],
+          special: C("〔弱点:呪死〕", "〔弱點:咒死〕"),
+        },
+        {
+          id: "crab_legs",
+          name: C("蟹足たち", "蟹足們"),
+          size: "M",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("我慢雑ぎ払い", "忍耐橫掃"), mod: "+60" },
+            { roll: "3~4", name: C("ジャンプ攻撃", "跳躍攻擊"), mod: "+120" },
+            { roll: "5~6", name: C("ダッシュ攻撃", "衝刺攻擊"), mod: "+120" },
+          ],
+          special: C("〔弱点:呪死〕", "〔弱點:咒死〕"),
+        },
+      ],
+    },
+    {
+      id: "formless_other",
+      name: C("不定形・その他系", "不定形・其他系"),
+      base: base([300, 300, 360, 360, 420, 420, 480, 480, 540, 600, 600, 660, 720, 780, 840]),
+      enemies: [
+        {
+          id: "reflection_trolls",
+          name: C("写し身トロルたち", "分身巨魔們"),
+          size: "L",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("群がる", "群聚"), mod: "±0" },
+            { roll: "3~4", name: C("散撒布", "散布"), mod: "-120＆「猛毒:1D」" },
+            { roll: "5~6", name: C("光の柱", "光之柱"), mod: "±0" },
+          ],
+          special: C("〔弱点:凍傷〕", "〔弱點:凍傷〕"),
+        },
+        {
+          id: "omen",
+          name: C("兆し", "兆頭"),
+          size: "L",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("魔力弾", "魔力彈"), mod: "—" },
+            { roll: "3~4", name: C("浮遊", "浮游"), mod: "±0" },
+            { roll: "5~6", name: C("大波", "大波"), mod: "+60" },
+          ],
+          special: C(
+            "〔耐久力〕（消失）戦闘開始から3ターン目の開始時までにこのエネミーの撃破の（合計値2倍を撃破ルーンとして扱わない。",
+            "〔耐久力〕（消失）戰鬥開始起至第3回合開始為止，未擊破此敵人時，其擊破合計值不視為擊破符文2倍。"
+          ),
+        },
+        {
+          id: "silver_drops",
+          name: C("銀の雫たち", "銀之滴們"),
+          size: "S",
+          resistance: C("出血・睡眠・発狂", "出血・睡眠・發狂"),
+          actions: [
+            { roll: "1~2", name: C("群がる", "群聚"), mod: "±0" },
+            { roll: "3~4", name: C("槍突き＆盾ガード", "槍刺＆盾牌防禦"), mod: "+60" },
+            { roll: "5~6", name: C("放電", "放電"), mod: "-60＆「雷:1D」" },
+          ],
+          special: null,
+        },
+        {
+          id: "invincible_crayfish",
+          name: C("無敵ザリガニ", "無敵螯蝦"),
+          size: "M",
+          resistance: C("猛毒・腐敗・出血", "劇毒・腐敗・出血"),
+          actions: [
+            { roll: "1~2", name: C("毒液噴射", "毒液噴射"), mod: "±0" },
+            { roll: "3~4", name: C("ハサミ連続攻撃", "剪擊連續攻擊"), mod: "+120" },
+            { roll: "5~6", name: C("掴みかかり", "抓握攻擊"), mod: "—" },
+          ],
+          special: null,
+        },
+        {
+          id: "mud_men",
+          name: C("泥人たち", "泥人們"),
+          size: "M",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("鉱突き", "鑽刺"), mod: "±0" },
+            { roll: "3~4", name: C("つかみかかり", "抓握攻擊"), mod: "—" },
+            { roll: "5~6", name: C("神話のシャボン", "神話泡泡"), mod: "±0" },
+          ],
+          special: null,
+        },
+        {
+          id: "man_bats",
+          name: C("人蝙蝠たち", "人蝙蝠們"),
+          size: "M",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("群がる", "群聚"), mod: "±0" },
+            { roll: "3~4", name: C("音波攻撃", "音波攻擊"), mod: "—" },
+            { roll: "5~6", name: C("爪ひっかき＆滞空", "爪擊＆滯空"), mod: "—" },
+          ],
+          special: null,
+        },
+      ],
+    },
+    {
+      id: "rot_sorcerer",
+      name: C("腐術師系", "腐術師系"),
+      note: {
+        zh: "【不確定】本系統資料判讀信心較低，圖片文字模糊。",
+        ja: "【未確認】本系統のデータは判読信頼度が低い。写真の文字が不鮮明。",
+      },
+      base: base([300, 300, 360, 360, 420, 420, 480, 480, 540, 600, 600, 660, 720, 780, 900]),
+      enemies: [
+        {
+          id: "light_towers",
+          name: C("光のタワーたち", "光之塔們"),
+          size: "L",
+          resistance: C("猛毒・発狂", "劇毒・發狂"),
+          actions: [
+            { roll: "1~2", name: C("群がる", "群聚"), mod: "±0＆「猛毒:1D」" },
+            { roll: "3~4", name: C("散撒布", "散布"), mod: "—" },
+            { roll: "5~6", name: C("光の柱", "光之柱"), mod: "±0" },
+          ],
+          special: C("〔弱点:凍傷〕公開情報（209頁）。", "〔弱點:凍傷〕公開資訊（209頁）。"),
+        },
+      ],
+    },
+    {
+      id: "attacker_mage",
+      name: C("襲撃者（魔術師系）", "襲擊者（魔術師系）"),
+      base: base([300, 300, 360, 360, 420, 420, 480, 480, 540, 600, 600, 660, 720, 780, 900]),
+      enemies: [
+        {
+          id: "enemy_robed_man",
+          name: C("衣の魔人", "衣袍魔人"),
+          size: "M",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("射撃", "射擊"), mod: "±0" },
+            { roll: "3~4", name: C("連続射撃", "連續射擊"), mod: "—" },
+            { roll: "5~6", name: C("マーキング", "標記"), mod: "±0" },
+          ],
+          special: C("〔弱点:呪死〕公開情報（209頁）。このエネミーは「状態異常:呪死」を発動しない。", "〔弱點:咒死〕公開資訊（209頁）。此敵人不會發動「異常狀態:咒死」。"),
+        },
+        {
+          id: "enemy_robed_ghost",
+          name: C("衣の亡霊", "衣袍亡靈"),
+          size: "M",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("爪攻撃", "爪擊"), mod: "+60" },
+            { roll: "3~4", name: C("拒絶", "拒絕"), mod: "-120" },
+            { roll: "5~6", name: C("光輪", "光輪"), mod: "±0＆「聖:1D」" },
+          ],
+          special: C("〔弱点:呪死〕公開情報（209頁）。このエネミーは「状態異常:呪死」を発動しない。", "〔弱點:咒死〕公開資訊（209頁）。此敵人不會發動「異常狀態:咒死」。"),
+        },
+        {
+          id: "enemy_priestess",
+          name: C("敵の巫女", "敵方巫女"),
+          size: "M",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("短剣連続攻撃", "短劍連續攻擊"), mod: "—" },
+            { roll: "3~4", name: C("背後致命", "背後致命"), mod: "±0＆「魔:1D」" },
+            { roll: "5~6", name: C("魔力の短剣", "魔力短劍"), mod: "—" },
+          ],
+          special: C("〔弱点:呪死〕公開情報（209頁）。", "〔弱點:咒死〕公開資訊（209頁）。"),
+        },
+        {
+          id: "enemy_witch",
+          name: C("敵の魔女", "敵方女巫"),
+          size: "M",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("癒石のつぶて", "治癒石礫"), mod: "-60＆「魔:1D」" },
+            { roll: "3~4", name: C("夜の星", "夜之星"), mod: "-120＆「魔:1D」" },
+            { roll: "5~6", name: C("創星雨", "創星雨"), mod: "-240＆「魔:1D」" },
+          ],
+          special: C(
+            "〔弱点:呪死〕公開情報（209頁）。このエネミーは「最も現在HPが減っている」PCを対象に優先する（PC全員が同数なら口頭で選ぶ）。",
+            "〔弱點:咒死〕公開資訊（209頁）。此敵人優先以「目前HP最低」的PC為對象（若全員同數則口頭選擇）。"
+          ),
+        },
+        {
+          id: "enemy_sorcerer",
+          name: C("敵の魔道師", "敵方魔導師"),
+          size: "M",
+          resistance: null,
+          actions: [
+            { roll: "1~2", name: C("連続突き＆回復", "連續突刺＆回復"), mod: "-60＆「魔:1D」" },
+            { roll: "3~4", name: C("腐敗壺投げ", "腐敗壺投擲"), mod: "-120＆「腐敗:1D」" },
+            { roll: "5~6", name: C("雑ぎ払い＆高場の香り", "橫掃＆高場之香"), mod: "±0" },
+          ],
+          special: C(
+            "〔弱点:呪死〕公開情報（209頁）。このエネミーは、最も現在HPが減っているエネミー1体に「HP回復:20（最大100）」を適用する。",
+            "〔弱點:咒死〕公開資訊（209頁）。此敵人對目前HP最低的敵人1隻施加「HP回復:20（上限100）」。"
+          ),
+        },
+      ],
+    },
+  ];
+
+  function localizedText(field) {
+    if (!field) return "";
+    var lang = window.I18N ? window.I18N.getLang() : "zh";
+    return field[lang] || field.zh || field.ja || "";
+  }
+
+  function listFamilies() {
+    return FAMILIES;
+  }
+
+  function allEnemies() {
+    var out = [];
+    FAMILIES.forEach(function (fam) {
+      fam.enemies.forEach(function (e) {
+        out.push({ familyId: fam.id, familyName: fam.name, familyBase: fam.base, enemy: e });
+      });
+    });
+    return out;
+  }
+
+  function search(query) {
+    var q = (query || "").trim().toLowerCase();
+    if (!q) return [];
+    return allEnemies().filter(function (row) {
+      var n = row.enemy.name;
+      return (
+        (n.ja && n.ja.toLowerCase().indexOf(q) !== -1) ||
+        (n.zh && n.zh.toLowerCase().indexOf(q) !== -1)
+      );
+    });
+  }
+
+  function get(familyId, enemyId) {
+    var fam = FAMILIES.filter(function (f) {
+      return f.id === familyId;
+    })[0];
+    if (!fam) return null;
+    var e = fam.enemies.filter(function (x) {
+      return x.id === enemyId;
+    })[0];
+    if (!e) return null;
+    return { familyId: fam.id, familyName: fam.name, familyBase: fam.base, enemy: e };
+  }
+
+  window.PriTestEnemies = {
+    listFamilies: listFamilies,
+    allEnemies: allEnemies,
+    search: search,
+    get: get,
+    localizedText: T,
+  };
+
+  function T(field) {
+    return localizedText(field);
+  }
+})();
