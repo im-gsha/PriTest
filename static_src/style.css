@@ -720,6 +720,42 @@ button {
   gap: 6px;
 }
 
+.boss-subheading {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #888;
+}
+
+.boss-table-scroll {
+  overflow-x: auto;
+  margin: 0.4rem 0;
+}
+
+.boss-action-table {
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.boss-action-table th,
+.boss-action-table td {
+  border: 1px solid #ddd;
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.boss-action-table td:last-child {
+  white-space: normal;
+  min-width: 280px;
+}
+
+.boss-action-table th {
+  background: #f5f5f5;
+  color: #555;
+}
+
 .ability-uses-label {
   font-size: 0.75rem;
   color: #888;
@@ -1281,6 +1317,14 @@ button {
     color: #aaa;
   }
   .relic-candidate-card {
+    border-color: #444;
+  }
+  .boss-action-table th {
+    background: #1c1c1c;
+    color: #aaa;
+  }
+  .boss-action-table th,
+  .boss-action-table td {
     border-color: #444;
   }
 }

@@ -101,6 +101,11 @@ BODY = """    <div class="night-header-row">
         </div>
         <ul id="log-list"></ul>
       </div>
+
+      <div class="threat-ref-block" id="boss-rulebook-block">
+        <h3 data-i18n="boss_rulebook_title"></h3>
+        <div id="boss-rulebook-list"></div>
+      </div>
     </section>
 
     <div id="select-drawer" class="drawer">
@@ -480,6 +485,7 @@ def build_night_html() -> str:
             "character_types.js",
             "character_drawer.js",
             "night_bosses.js",
+            "night_boss_rulebook.js",
             "night.js",
         ),
     )
