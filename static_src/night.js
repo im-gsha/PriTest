@@ -70,6 +70,9 @@
         thumb.className = "character-thumb";
         thumb.src = thumbSrc;
         thumb.alt = c.name;
+        thumb.addEventListener("click", function () {
+          CharacterDrawer.openSkills(c.id);
+        });
         thumbTd.appendChild(thumb);
       }
       tr.appendChild(thumbTd);

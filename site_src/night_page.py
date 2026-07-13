@@ -449,6 +449,24 @@ BODY = """    <div class="night-header-row">
       </div>
     </div>
 
+    <div id="skills-drawer" class="drawer drawer-left">
+      <div class="drawer-backdrop" id="skills-drawer-backdrop"></div>
+      <div class="drawer-panel">
+        <h2 id="skills-drawer-name"></h2>
+        <div class="threat-ref-block">
+          <h3 data-i18n="cv_active_skills_title"></h3>
+          <div id="skills-drawer-active"></div>
+        </div>
+        <div class="threat-ref-block">
+          <h3 data-i18n="cv_passives_title"></h3>
+          <div id="skills-drawer-passive"></div>
+        </div>
+        <div class="actions">
+          <button id="btn-skills-drawer-close" type="button" class="primary-btn" data-i18n="close_button"></button>
+        </div>
+      </div>
+    </div>
+
     <div id="battle-drawer" class="drawer">
       <div class="drawer-backdrop" id="battle-drawer-backdrop"></div>
       <div class="drawer-panel">
