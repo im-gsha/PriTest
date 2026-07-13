@@ -845,40 +845,30 @@ button {
   font-size: 0.85rem;
 }
 
-.battle-aggro-grid {
+.battle-toggle-grid {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-top: 0.4rem;
 }
 
-.battle-aggro-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.battle-aggro-index {
+.battle-toggle-square {
   flex: 0 0 auto;
-  width: 1.4em;
-  height: 1.4em;
-  line-height: 1.4em;
-  text-align: center;
-  border: 1px solid #999;
-  border-radius: 50%;
-  font-size: 0.7rem;
-  color: #888;
-}
-
-.battle-aggro-row input {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 0.25rem 0.4rem;
+  width: 2rem;
+  height: 2rem;
   border: 1px solid #bbb;
   border-radius: 6px;
   background: none;
   color: inherit;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.battle-toggle-square.active {
+  background: #2d6cdf;
+  border-color: #2d6cdf;
+  color: #fff;
+  font-weight: 700;
 }
 
 .battle-hp-grid {

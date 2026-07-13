@@ -478,12 +478,12 @@ BODY = """    <div class="night-header-row">
             <div class="battle-area">
               <h4 data-i18n="battle_front_area_label"></h4>
               <p class="threat-ref-body" data-i18n="battle_front_area_note"></p>
-              <div class="battle-aggro-grid" id="battle-front-grid"></div>
+              <div class="battle-toggle-grid" id="battle-front-grid"></div>
             </div>
             <div class="battle-area">
               <h4 data-i18n="battle_back_area_label"></h4>
               <p class="threat-ref-body" data-i18n="battle_back_area_note"></p>
-              <div class="battle-aggro-grid" id="battle-back-grid"></div>
+              <div class="battle-toggle-grid" id="battle-back-grid"></div>
             </div>
           </div>
         </div>

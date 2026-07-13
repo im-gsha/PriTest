@@ -188,11 +188,14 @@
     return obj;
   }
 
+  var ENEMY_HP_ROWS = 4;
+  var ENEMY_HP_COLS = 20;
+
   function defaultBattleState() {
     return {
-      frontNames: ["", "", "", "", "", ""],
-      backNames: ["", "", "", "", "", ""],
-      enemyHp: new Array(40).fill(false),
+      front: [false, false, false, false, false, false],
+      back: [false, false, false, false, false, false],
+      enemyHp: new Array(ENEMY_HP_ROWS * ENEMY_HP_COLS).fill(false),
       mobHpRows: [],
     };
   }
@@ -364,12 +367,13 @@
   function loadBattleState(raw) {
     var fallback = defaultBattleState();
     if (!raw || typeof raw !== "object") return fallback;
-    var frontNames = Array.isArray(raw.frontNames) ? raw.frontNames.slice(0, 6) : fallback.frontNames.slice();
-    while (frontNames.length < 6) frontNames.push("");
-    var backNames = Array.isArray(raw.backNames) ? raw.backNames.slice(0, 6) : fallback.backNames.slice();
-    while (backNames.length < 6) backNames.push("");
-    var enemyHp = Array.isArray(raw.enemyHp) ? raw.enemyHp.slice(0, 40).map(Boolean) : fallback.enemyHp.slice();
-    while (enemyHp.length < 40) enemyHp.push(false);
+    var front = Array.isArray(raw.front) ? raw.front.slice(0, 6).map(Boolean) : fallback.front.slice();
+    while (front.length < 6) front.push(false);
+    var back = Array.isArray(raw.back) ? raw.back.slice(0, 6).map(Boolean) : fallback.back.slice();
+    while (back.length < 6) back.push(false);
+    var hpTotal = ENEMY_HP_ROWS * ENEMY_HP_COLS;
+    var enemyHp = Array.isArray(raw.enemyHp) ? raw.enemyHp.slice(0, hpTotal).map(Boolean) : fallback.enemyHp.slice();
+    while (enemyHp.length < hpTotal) enemyHp.push(false);
     var mobHpRows = Array.isArray(raw.mobHpRows)
       ? raw.mobHpRows.map(function (row) {
           var r = Array.isArray(row) ? row.slice(0, 10).map(Boolean) : [];
@@ -377,7 +381,7 @@
           return r;
         })
       : [];
-    return { frontNames: frontNames, backNames: backNames, enemyHp: enemyHp, mobHpRows: mobHpRows };
+    return { front: front, back: back, enemyHp: enemyHp, mobHpRows: mobHpRows };
   }
 
   function loadTimeLossDay(raw) {
@@ -946,50 +950,47 @@
   }
 
   // --- 戦場シート ---
-  function buildBattleAreaGrid(containerId, namesArray) {
+  // 前衛／後衛エリア: 1〜6の目に対応する6個のマスをクリックでON/OFFトグルする
+  function buildBattleToggleGrid(containerId, valuesArray) {
     var container = document.getElementById(containerId);
     container.innerHTML = "";
-    for (var i = 0; i < namesArray.length; i++) {
+    for (var i = 0; i < 6; i++) {
       (function (idx) {
-        var row = document.createElement("label");
-        row.className = "battle-aggro-row";
-        var span = document.createElement("span");
-        span.className = "battle-aggro-index";
-        span.textContent = idx;
-        var input = document.createElement("input");
-        input.type = "text";
-        input.id = containerId + "-" + idx;
-        input.value = namesArray[idx] || "";
-        input.addEventListener("input", function (e) {
-          namesArray[idx] = e.target.value;
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.id = containerId + "-" + idx;
+        btn.className = "battle-toggle-square";
+        btn.textContent = idx + 1;
+        if (valuesArray[idx]) btn.classList.add("active");
+        btn.addEventListener("click", function () {
+          valuesArray[idx] = !valuesArray[idx];
+          btn.classList.toggle("active", valuesArray[idx]);
           saveState();
         });
-        row.appendChild(span);
-        row.appendChild(input);
-        container.appendChild(row);
+        container.appendChild(btn);
       })(i);
     }
   }
 
-  function renderBattleAreaValues(containerId, namesArray) {
-    namesArray.forEach(function (name, idx) {
-      var input = document.getElementById(containerId + "-" + idx);
-      if (input) input.value = name || "";
+  function renderBattleToggleValues(containerId, valuesArray) {
+    valuesArray.forEach(function (value, idx) {
+      var btn = document.getElementById(containerId + "-" + idx);
+      if (btn) btn.classList.toggle("active", !!value);
     });
   }
 
   function buildBattleAreas() {
-    buildBattleAreaGrid("battle-front-grid", state.battle.frontNames);
-    buildBattleAreaGrid("battle-back-grid", state.battle.backNames);
+    buildBattleToggleGrid("battle-front-grid", state.battle.front);
+    buildBattleToggleGrid("battle-back-grid", state.battle.back);
   }
 
   function buildEnemyHpGrid() {
     var container = document.getElementById("battle-enemy-hp-grid");
     container.innerHTML = "";
-    for (var row = 0; row < 4; row++) {
+    for (var row = 0; row < ENEMY_HP_ROWS; row++) {
       var rowDiv = document.createElement("div");
       rowDiv.className = "battle-hp-row";
-      for (var col = 0; col < 10; col++) {
+      for (var col = 0; col < ENEMY_HP_COLS; col++) {
         (function (idx) {
           var cb = document.createElement("input");
           cb.type = "checkbox";
@@ -999,14 +1000,14 @@
             saveState();
           });
           rowDiv.appendChild(cb);
-        })(row * 10 + col);
+        })(row * ENEMY_HP_COLS + col);
       }
       container.appendChild(rowDiv);
     }
   }
 
   function renderEnemyHpGrid() {
-    for (var i = 0; i < 40; i++) {
+    for (var i = 0; i < ENEMY_HP_ROWS * ENEMY_HP_COLS; i++) {
       var cb = document.getElementById("battle-enemy-hp-" + i);
       if (cb) cb.checked = !!state.battle.enemyHp[i];
     }
@@ -1069,8 +1070,8 @@
     if (!window.confirm(window.I18N.t("battle_clear_confirm"))) return;
     state.battle = defaultBattleState();
     saveState();
-    renderBattleAreaValues("battle-front-grid", state.battle.frontNames);
-    renderBattleAreaValues("battle-back-grid", state.battle.backNames);
+    renderBattleToggleValues("battle-front-grid", state.battle.front);
+    renderBattleToggleValues("battle-back-grid", state.battle.back);
     renderEnemyHpGrid();
     renderMobHpList();
   }
