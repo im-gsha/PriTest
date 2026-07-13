@@ -127,6 +127,24 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
           <div id="weapon-list"></div>
         </div>
 
+        <div class="weapon-db-field">
+          <h3 data-i18n="talisman_db_title"></h3>
+          <div class="weapon-search-box">
+            <input type="text" id="talisman-search-input">
+            <div class="weapon-search-results" id="talisman-search-results" hidden></div>
+          </div>
+          <div id="talisman-list"></div>
+        </div>
+
+        <div class="weapon-db-field">
+          <h3 data-i18n="consumable_db_title"></h3>
+          <div class="weapon-search-box">
+            <input type="text" id="consumable-search-input">
+            <div class="weapon-search-results" id="consumable-search-results" hidden></div>
+          </div>
+          <div id="consumable-list"></div>
+        </div>
+
         <div class="tag-field" data-field="skills">
           <h3 data-i18n="character_skills_label"></h3>
           <div class="tag-list" id="tag-list-skills"></div>
@@ -275,5 +293,13 @@ def build_characters_html() -> str:
         body=BODY,
         static_prefix="../static/",
         home_href="../index.html",
-        extra_scripts=("games.js", "character_types.js", "weapons.js", "character_drawer.js", "characters.js"),
+        extra_scripts=(
+            "games.js",
+            "character_types.js",
+            "weapons.js",
+            "talismans.js",
+            "consumables.js",
+            "character_drawer.js",
+            "characters.js",
+        ),
     )

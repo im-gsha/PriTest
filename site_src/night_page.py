@@ -115,6 +115,8 @@ BODY = """    <div class="night-header-row">
           <button type="button" class="rulebook-tab-btn active" data-tab="nightking" data-i18n="rulebook_tab_nightking"></button>
           <button type="button" class="rulebook-tab-btn" data-tab="miniking" data-i18n="rulebook_tab_miniking"></button>
           <button type="button" class="rulebook-tab-btn" data-tab="weapon" data-i18n="rulebook_tab_weapon"></button>
+          <button type="button" class="rulebook-tab-btn" data-tab="talisman" data-i18n="rulebook_tab_talisman"></button>
+          <button type="button" class="rulebook-tab-btn" data-tab="consumable" data-i18n="rulebook_tab_consumable"></button>
           <button type="button" class="rulebook-tab-btn" data-tab="board" data-i18n="rulebook_tab_board"></button>
           <button type="button" class="rulebook-tab-btn" data-tab="event" data-i18n="rulebook_tab_event"></button>
         </div>
@@ -127,6 +129,12 @@ BODY = """    <div class="night-header-row">
         <div class="rulebook-tab-panel" id="rulebook-panel-weapon" hidden>
           <div class="weapon-subtabs" id="weapon-subtabs"></div>
           <div id="weapon-subtab-panels"></div>
+        </div>
+        <div class="rulebook-tab-panel" id="rulebook-panel-talisman" hidden>
+          <div id="talisman-rulebook-list"></div>
+        </div>
+        <div class="rulebook-tab-panel" id="rulebook-panel-consumable" hidden>
+          <div id="consumable-rulebook-list"></div>
         </div>
         <div class="rulebook-tab-panel" id="rulebook-panel-board" hidden>
           <p class="threat-ref-body" data-i18n="rulebook_no_data"></p>
@@ -326,6 +334,24 @@ BODY = """    <div class="night-header-row">
             <div class="weapon-search-results" id="weapon-search-results" hidden></div>
           </div>
           <div id="weapon-list"></div>
+        </div>
+
+        <div class="weapon-db-field">
+          <h3 data-i18n="talisman_db_title"></h3>
+          <div class="weapon-search-box">
+            <input type="text" id="talisman-search-input">
+            <div class="weapon-search-results" id="talisman-search-results" hidden></div>
+          </div>
+          <div id="talisman-list"></div>
+        </div>
+
+        <div class="weapon-db-field">
+          <h3 data-i18n="consumable_db_title"></h3>
+          <div class="weapon-search-box">
+            <input type="text" id="consumable-search-input">
+            <div class="weapon-search-results" id="consumable-search-results" hidden></div>
+          </div>
+          <div id="consumable-list"></div>
         </div>
 
         <div class="tag-field" data-field="skills">
@@ -544,6 +570,8 @@ def build_night_html() -> str:
             "character_types.js",
             "weapons.js",
             "weapon_rulebook.js",
+            "talismans.js",
+            "consumables.js",
             "character_drawer.js",
             "night_bosses.js",
             "night_boss_rulebook.js",
