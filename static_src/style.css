@@ -1260,6 +1260,58 @@ button {
   margin: 1rem 0;
 }
 
+.weapon-db-field {
+  margin: 1rem 0;
+}
+
+.weapon-db-field h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+}
+
+.weapon-search-box {
+  position: relative;
+}
+
+.weapon-search-box input {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+}
+
+.weapon-search-results {
+  position: absolute;
+  z-index: 5;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  margin-top: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.weapon-search-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: inherit;
+}
+
+.weapon-search-item:hover {
+  background: #eef2fb;
+}
+
 .tag-field h3 {
   margin: 0 0 0.4rem;
   font-size: 1rem;
@@ -1396,5 +1448,12 @@ button {
   .boss-action-table th,
   .boss-action-table td {
     border-color: #444;
+  }
+  .weapon-search-results {
+    background: #1c1c1c;
+    border-color: #444;
+  }
+  .weapon-search-item:hover {
+    background: #1c2a42;
   }
 }
