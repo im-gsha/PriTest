@@ -23,8 +23,8 @@
         { pos: 2, suit: "S", rank: "4", name: { zh: "大野營地（火1）", ja: "大野営地（炎1）", en: "Main Camp (Fire 1)" } },
         { pos: 3, suit: "H", rank: "5", name: { zh: "遺跡（聖）", ja: "遺跡（聖）", en: "Ruins (Sacred)" } },
         { pos: 4, suit: "H", rank: "9", name: { zh: "封牢（無印）", ja: "封牢（無印）", en: "Sealed Prison (Plain)" } },
-        { pos: 5, suit: "S", rank: "J", name: { zh: "砦（隨機）", ja: "砦（ランダム）", en: "Fort (Random)" } },
-        { pos: 6, suit: "H", rank: "K", name: { zh: "教會（商人）", ja: "教会（商人）", en: "Church (Merchant)" } },
+        { pos: 5, suit: "C", rank: "J", name: { zh: "砦（隨機）", ja: "砦（ランダム）", en: "Fort (Random)" } },
+        { pos: 6, suit: "S", rank: "K", name: { zh: "教會（商人）", ja: "教会（商人）", en: "Church (Merchant)" } },
       ],
     },
   ];

@@ -317,6 +317,15 @@ BODY = """    <div class="night-header-row">
           </div>
         </div>
 
+        <div class="weapon-db-field">
+          <h3 data-i18n="weapon_db_title"></h3>
+          <div class="weapon-search-box">
+            <input type="text" id="weapon-search-input">
+            <div class="weapon-search-results" id="weapon-search-results" hidden></div>
+          </div>
+          <div id="weapon-list"></div>
+        </div>
+
         <div class="tag-field" data-field="skills">
           <h3 data-i18n="character_skills_label"></h3>
           <div class="tag-list" id="tag-list-skills"></div>
@@ -513,6 +522,7 @@ def build_night_html() -> str:
             "games.js",
             "scenarios.js",
             "character_types.js",
+            "weapons.js",
             "character_drawer.js",
             "night_bosses.js",
             "night_boss_rulebook.js",

@@ -4,6 +4,7 @@
   // 呼び出し側は init({ characters, save, onChange }) でこのモジュールに
   // 自分の characters 配列（参照）と永続化関数を渡す。
   var CharacterTypes = window.PriTestCharacterTypes;
+  var Weapons = window.PriTestWeapons;
   var TAG_FIELDS = ["notes", "status", "equipment", "weapons", "skills", "items", "talismans", "buildup"];
   var MAX_DICE_POOL = 20;
 
@@ -656,6 +657,156 @@
     });
   }
 
+  // --- 武器データベース検索＆選択（武器欄に既存の自由記述タグとは別枠で追加する） ---
+  function renderWeaponSkillEntry(container, ref) {
+    var body;
+    var name;
+    var kind = null;
+    if (ref.kind === "art") {
+      var art = Weapons.getSkill(ref.id);
+      name = art ? Weapons.localizedText(art.name) : ref.id;
+      body = art ? Weapons.localizedText(art.body) : "";
+      kind = art ? art.kind : null;
+    } else if (ref.kind === "innate") {
+      var innate = null;
+      Weapons.categories().forEach(function (cat) {
+        (cat.innateSkills || []).forEach(function (s) {
+          if (s.id === ref.id) innate = s;
+        });
+      });
+      name = innate ? Weapons.localizedText(innate.name) : ref.id;
+      body = innate ? Weapons.localizedText(innate.body) : "";
+      kind = innate ? innate.kind : null;
+    } else if (ref.kind === "status") {
+      name = window.I18N.t("weapon_status_skill_label", { status: Weapons.localizedText(ref.status) });
+      body = Weapons.localizedText(Weapons.statusSkillBody(ref.status));
+      kind = "Passive";
+    } else if (ref.kind === "element") {
+      name = window.I18N.t("weapon_element_skill_label", { element: Weapons.localizedText(ref.element) });
+      body = Weapons.localizedText(Weapons.elementSkillBody(ref.element));
+      kind = "Passive";
+    } else if (ref.kind === "bonus") {
+      name = Weapons.localizedText(ref.text);
+      body = "";
+    } else if (ref.kind === "random") {
+      name = window.I18N.t("weapon_random_skill_label");
+      body = "";
+    } else {
+      name = window.I18N.t("weapon_note_label");
+      body = Weapons.localizedText(ref.text);
+    }
+
+    var details = document.createElement("details");
+    details.className = "ability-entry";
+    var summary = document.createElement("summary");
+    summary.textContent = name + (kind ? "［" + kind + "］" : "");
+    details.appendChild(summary);
+    if (body) {
+      var p = document.createElement("p");
+      p.className = "threat-ref-body";
+      p.textContent = body;
+      details.appendChild(p);
+    }
+    container.appendChild(details);
+  }
+
+  function renderWeaponCard(container, weaponId, c) {
+    var weapon = Weapons.get(weaponId);
+    if (!weapon) return;
+    var category = Weapons.getCategory(weapon.category);
+
+    var card = document.createElement("div");
+    card.className = "relic-candidate-card";
+
+    var title = document.createElement("div");
+    title.className = "relic-candidate-name";
+    title.textContent =
+      Weapons.localizedText(weapon.name) +
+      "（" + (category ? Weapons.localizedText(category.name) : weapon.category) + "・" + weapon.rarity + "）";
+    card.appendChild(title);
+
+    if (category) {
+      var stats = document.createElement("p");
+      stats.className = "threat-ref-body";
+      stats.textContent = [
+        window.I18N.t("weapon_attack_cost_label") + window.I18N.t("colon_separator") + Weapons.localizedText(category.basicStats.attackCost),
+        window.I18N.t("weapon_power_label") + window.I18N.t("colon_separator") + category.basicStats.weaponPower,
+        window.I18N.t("weapon_power_mod_label") +
+          window.I18N.t("colon_separator") +
+          (weapon.powerModOverride ? Weapons.localizedText(weapon.powerModOverride) : Weapons.localizedText(category.basicStats.powerMod)),
+      ].join("\n");
+      card.appendChild(stats);
+    }
+
+    (weapon.skills || []).forEach(function (ref) {
+      renderWeaponSkillEntry(card, ref);
+    });
+
+    if (category && category.innateSkills && category.innateSkills.length) {
+      var innateTitle = document.createElement("p");
+      innateTitle.className = "boss-subheading";
+      innateTitle.textContent = window.I18N.t("weapon_innate_skills_label");
+      card.appendChild(innateTitle);
+      category.innateSkills.forEach(function (s) {
+        renderWeaponSkillEntry(card, { kind: "innate", id: s.id });
+      });
+    }
+
+    var removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.textContent = window.I18N.t("weapon_remove_button");
+    removeBtn.addEventListener("click", function () {
+      c.weaponIds.splice(c.weaponIds.indexOf(weaponId), 1);
+      saveFn();
+      renderWeaponList();
+    });
+    card.appendChild(removeBtn);
+
+    container.appendChild(card);
+  }
+
+  function renderWeaponList() {
+    var c = findCharacter(activeCharacterId);
+    var container = document.getElementById("weapon-list");
+    if (!container) return;
+    container.innerHTML = "";
+    if (!c) return;
+    (c.weaponIds || []).forEach(function (id) {
+      renderWeaponCard(container, id, c);
+    });
+  }
+
+  function renderWeaponSearchResults(query) {
+    var results = document.getElementById("weapon-search-results");
+    if (!results) return;
+    results.innerHTML = "";
+    var matches = Weapons.search(query);
+    if (matches.length === 0) {
+      results.hidden = true;
+      return;
+    }
+    results.hidden = false;
+    matches.slice(0, 8).forEach(function (w) {
+      var item = document.createElement("button");
+      item.type = "button";
+      item.className = "weapon-search-item";
+      item.textContent = Weapons.localizedText(w.name) + "（" + w.rarity + "）";
+      item.addEventListener("click", function () {
+        var c = findCharacter(activeCharacterId);
+        if (!c) return;
+        if (!c.weaponIds) c.weaponIds = [];
+        if (c.weaponIds.indexOf(w.id) === -1) c.weaponIds.push(w.id);
+        saveFn();
+        renderWeaponList();
+        var input = document.getElementById("weapon-search-input");
+        input.value = "";
+        results.innerHTML = "";
+        results.hidden = true;
+      });
+      results.appendChild(item);
+    });
+  }
+
   var characters = [];
   var activeCharacterId = null;
   var saveFn = function () {};
@@ -687,6 +838,7 @@
       dicePool: [],
       learnedRelicEffects: [],
       learnedAttachedEffects: [],
+      weaponIds: [],
     };
   }
 
@@ -937,6 +1089,14 @@
     renderRelicSection();
     renderLevelBonusMarkers(c);
     renderAttachedSection();
+    renderWeaponList();
+    var weaponSearchInput = document.getElementById("weapon-search-input");
+    if (weaponSearchInput) {
+      weaponSearchInput.value = "";
+      weaponSearchInput.placeholder = window.I18N.t("weapon_search_placeholder");
+    }
+    var weaponSearchResults = document.getElementById("weapon-search-results");
+    if (weaponSearchResults) weaponSearchResults.hidden = true;
 
     document.getElementById("character-drawer").classList.add("open");
   }
@@ -995,6 +1155,12 @@
       attachedShowAll = !attachedShowAll;
       renderAttachedAllList();
     });
+    var weaponSearchEl = document.getElementById("weapon-search-input");
+    if (weaponSearchEl) {
+      weaponSearchEl.addEventListener("input", function (e) {
+        renderWeaponSearchResults(e.target.value);
+      });
+    }
 
     document.querySelectorAll(".tag-add-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
