@@ -9,6 +9,8 @@
     { id: "gnoster", title: "Gnoster", subtitle: "Wisdom of Night", image: "gnoster.jpg" },
     { id: "caligo", title: "Caligo", subtitle: "Miasma of Night", image: "caligo.jpg" },
     { id: "libra", title: "Libra", subtitle: "Creature of Night", image: "libra.jpg" },
+    { id: "edele", title: "Edele", subtitle: "Baron of Night", image: "edele.jpg" },
+    { id: "stragedes", title: "Stragedes", subtitle: "Rebellion of Night", image: "stragedes.jpg" },
   ];
 
   function list() {

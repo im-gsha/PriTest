@@ -478,6 +478,99 @@
     img.hidden = false;
   }
 
+  // --- 夜の王 規則書（管理員閲覧用の参考資料。紀錄の下に常時表示） ---
+  function buildBossTable(columns, rows, T) {
+    var table = document.createElement("table");
+    table.className = "boss-action-table";
+    var thead = document.createElement("thead");
+    var headRow = document.createElement("tr");
+    columns.forEach(function (col) {
+      var th = document.createElement("th");
+      th.textContent = T(col);
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    var tbody = document.createElement("tbody");
+    rows.forEach(function (row) {
+      var tr = document.createElement("tr");
+      row.forEach(function (cell) {
+        var td = document.createElement("td");
+        td.textContent = T(cell);
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    var wrap = document.createElement("div");
+    wrap.className = "boss-table-scroll";
+    wrap.appendChild(table);
+    return wrap;
+  }
+
+  function renderBossRulebook() {
+    var container = document.getElementById("boss-rulebook-list");
+    var Rulebook = window.PriTestBossRulebook;
+    if (!container || !Rulebook) return;
+    container.innerHTML = "";
+    var T = CharacterTypes.localizedText;
+
+    Rulebook.list().forEach(function (boss) {
+      var details = document.createElement("details");
+      details.className = "ability-entry";
+      var summary = document.createElement("summary");
+      summary.textContent = T(boss.name);
+      details.appendChild(summary);
+
+      var statLines = document.createElement("p");
+      statLines.className = "threat-ref-body";
+      statLines.textContent = [
+        window.I18N.t("boss_level_label") + window.I18N.t("colon_separator") + boss.level,
+        window.I18N.t("boss_size_label") + window.I18N.t("colon_separator") + T(boss.size),
+        window.I18N.t("boss_hp_label") + window.I18N.t("colon_separator") + T(boss.hp),
+        T(boss.guard),
+        window.I18N.t("boss_weakness_label") + window.I18N.t("colon_separator") + T(boss.weakness),
+        window.I18N.t("boss_resistance_label") + window.I18N.t("colon_separator") + T(boss.resistance),
+      ].join("\n");
+      details.appendChild(statLines);
+
+      if (boss.specials && boss.specials.length) {
+        var specialsTitle = document.createElement("p");
+        specialsTitle.className = "boss-subheading";
+        specialsTitle.textContent = window.I18N.t("boss_specials_label");
+        details.appendChild(specialsTitle);
+        boss.specials.forEach(function (sp) {
+          var spEntry = document.createElement("details");
+          spEntry.className = "ability-entry";
+          var spSummary = document.createElement("summary");
+          spSummary.textContent = T(sp.name);
+          spEntry.appendChild(spSummary);
+          var spBody = document.createElement("p");
+          spBody.className = "threat-ref-body";
+          spBody.textContent = T(sp.body);
+          spEntry.appendChild(spBody);
+          details.appendChild(spEntry);
+        });
+      }
+
+      if (boss.additionalEffectTable) {
+        var aetTitle = document.createElement("p");
+        aetTitle.className = "boss-subheading";
+        aetTitle.textContent = window.I18N.t("boss_additional_effect_label");
+        details.appendChild(aetTitle);
+        details.appendChild(buildBossTable(boss.additionalEffectTable.columns, boss.additionalEffectTable.rows, T));
+      }
+
+      var actionsTitle = document.createElement("p");
+      actionsTitle.className = "boss-subheading";
+      actionsTitle.textContent = window.I18N.t("boss_actions_label");
+      details.appendChild(actionsTitle);
+      details.appendChild(buildBossTable(boss.actionColumns, boss.actions, T));
+
+      container.appendChild(details);
+    });
+  }
+
   // --- 夜の脅威シート（タイムロス／さまよう祝福／参考情報） ---
   function buildTimeLossRows(dayKey) {
     var container = document.getElementById("tl-" + dayKey + "-list");
@@ -1511,6 +1604,7 @@
     renderBoard();
     renderLog();
     renderLogToggleLabel();
+    renderBossRulebook();
 
     document.getElementById("btn-select-submit").addEventListener("click", submitSelection);
     document.getElementById("btn-select-cancel").addEventListener("click", closeSelectDrawer);
@@ -1581,6 +1675,7 @@
       renderLogToggleLabel();
       renderSelectScreen();
       renderBattleRefTexts();
+      renderBossRulebook();
     });
   });
 })();
