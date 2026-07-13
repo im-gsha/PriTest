@@ -648,6 +648,48 @@
     });
   }
 
+  // タリスマン（装飾品）一覧の参考資料タブ。武器と異なり単体でPassive効果を1つ持つだけ。
+  function renderTalismanRulebook() {
+    var container = document.getElementById("talisman-rulebook-list");
+    var Talismans = window.PriTestTalismans;
+    if (!container || !Talismans) return;
+    container.innerHTML = "";
+
+    Talismans.list().forEach(function (talisman) {
+      var details = document.createElement("details");
+      details.className = "ability-entry";
+      var summary = document.createElement("summary");
+      summary.textContent = Talismans.localizedText(talisman.name);
+      details.appendChild(summary);
+      var body = document.createElement("p");
+      body.className = "threat-ref-body";
+      body.textContent = Talismans.localizedText(talisman.body);
+      details.appendChild(body);
+      container.appendChild(details);
+    });
+  }
+
+  // 消耗品一覧の参考資料タブ。タリスマンと似た単純な構造（名称＋効果）。
+  function renderConsumableRulebook() {
+    var container = document.getElementById("consumable-rulebook-list");
+    var Consumables = window.PriTestConsumables;
+    if (!container || !Consumables) return;
+    container.innerHTML = "";
+
+    Consumables.list().forEach(function (item) {
+      var details = document.createElement("details");
+      details.className = "ability-entry";
+      var summary = document.createElement("summary");
+      summary.textContent = Consumables.localizedText(item.name);
+      details.appendChild(summary);
+      var body = document.createElement("p");
+      body.className = "threat-ref-body";
+      body.textContent = Consumables.localizedText(item.body);
+      details.appendChild(body);
+      container.appendChild(details);
+    });
+  }
+
   // 「得意武器：武器」時の抽選手順（レア度判定→大分類→小分類）の参考資料タブ
   function renderWeaponRulebook() {
     var container = document.getElementById("weapon-rulebook-list");
@@ -2053,6 +2095,8 @@
     renderLogToggleLabel();
     renderBossRulebook();
     renderWeaponRulebookAll();
+    renderTalismanRulebook();
+    renderConsumableRulebook();
 
     document.getElementById("btn-open-rulebook").addEventListener("click", handleOpenRulebook);
     document.getElementById("btn-rulebook-close").addEventListener("click", closeRulebookModal);
@@ -2134,6 +2178,8 @@
       renderBattleRefTexts();
       renderBossRulebook();
       renderWeaponRulebookAll();
+      renderTalismanRulebook();
+      renderConsumableRulebook();
     });
   });
 })();

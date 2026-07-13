@@ -5,6 +5,8 @@
   // 自分の characters 配列（参照）と永続化関数を渡す。
   var CharacterTypes = window.PriTestCharacterTypes;
   var Weapons = window.PriTestWeapons;
+  var Talismans = window.PriTestTalismans;
+  var Consumables = window.PriTestConsumables;
   var TAG_FIELDS = ["notes", "status", "equipment", "weapons", "skills", "items", "talismans", "buildup"];
   var MAX_DICE_POOL = 20;
 
@@ -932,6 +934,170 @@
     });
   }
 
+  // タリスマン（装飾品）：武器と異なり単体でPassive効果を1つ持つだけの単純な構造。
+  function renderTalismanCard(container, talismanId, c) {
+    var talisman = Talismans.get(talismanId);
+    if (!talisman) return;
+
+    var card = document.createElement("div");
+    card.className = "relic-candidate-card";
+
+    var title = document.createElement("div");
+    title.className = "relic-candidate-name";
+    title.textContent = Talismans.localizedText(talisman.name);
+    card.appendChild(title);
+
+    var body = document.createElement("p");
+    body.className = "threat-ref-body";
+    body.textContent = Talismans.localizedText(talisman.body);
+    card.appendChild(body);
+
+    var removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.textContent = window.I18N.t("weapon_remove_button");
+    removeBtn.addEventListener("click", function () {
+      c.talismanIds.splice(c.talismanIds.indexOf(talismanId), 1);
+      saveFn();
+      renderTalismanList();
+    });
+    card.appendChild(removeBtn);
+
+    container.appendChild(card);
+  }
+
+  function renderTalismanList() {
+    var c = findCharacter(activeCharacterId);
+    var container = document.getElementById("talisman-list");
+    if (!container) return;
+    container.innerHTML = "";
+    if (!c) return;
+    (c.talismanIds || []).forEach(function (id) {
+      renderTalismanCard(container, id, c);
+    });
+  }
+
+  function renderTalismanSearchResults(query) {
+    var results = document.getElementById("talisman-search-results");
+    if (!results) return;
+    results.innerHTML = "";
+    var matches = Talismans.search(query);
+    if (matches.length === 0) {
+      results.hidden = true;
+      return;
+    }
+    results.hidden = false;
+    matches.slice(0, 8).forEach(function (t) {
+      var item = document.createElement("button");
+      item.type = "button";
+      item.className = "weapon-search-item";
+      item.textContent = Talismans.localizedText(t.name);
+      item.addEventListener("click", function () {
+        var c = findCharacter(activeCharacterId);
+        if (!c) return;
+        if (!c.talismanIds) c.talismanIds = [];
+        if (c.talismanIds.indexOf(t.id) === -1) c.talismanIds.push(t.id);
+        saveFn();
+        renderTalismanList();
+        var input = document.getElementById("talisman-search-input");
+        input.value = "";
+        results.innerHTML = "";
+        results.hidden = true;
+      });
+      results.appendChild(item);
+    });
+  }
+
+  // 消耗品：タリスマンと似た単純な構造だが、持有數（所持数）を持つ点が異なる。
+  function renderConsumableCard(container, consumableId, c) {
+    var consumable = Consumables.get(consumableId);
+    if (!consumable) return;
+
+    var card = document.createElement("div");
+    card.className = "relic-candidate-card";
+
+    var title = document.createElement("div");
+    title.className = "relic-candidate-name";
+    title.textContent = Consumables.localizedText(consumable.name);
+    card.appendChild(title);
+
+    var body = document.createElement("p");
+    body.className = "threat-ref-body";
+    body.textContent = Consumables.localizedText(consumable.body);
+    card.appendChild(body);
+
+    var countRow = document.createElement("div");
+    countRow.className = "consumable-count-row";
+    var countLabel = document.createElement("span");
+    countLabel.textContent = window.I18N.t("consumable_count_label");
+    countRow.appendChild(countLabel);
+    var countInput = document.createElement("input");
+    countInput.type = "number";
+    countInput.min = "0";
+    countInput.value = String(c.consumableCounts[consumableId] || 0);
+    countInput.addEventListener("change", function () {
+      var n = parseInt(countInput.value, 10);
+      if (isNaN(n) || n < 0) n = 0;
+      c.consumableCounts[consumableId] = n;
+      saveFn();
+    });
+    countRow.appendChild(countInput);
+    card.appendChild(countRow);
+
+    var removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.textContent = window.I18N.t("weapon_remove_button");
+    removeBtn.addEventListener("click", function () {
+      delete c.consumableCounts[consumableId];
+      saveFn();
+      renderConsumableList();
+    });
+    card.appendChild(removeBtn);
+
+    container.appendChild(card);
+  }
+
+  function renderConsumableList() {
+    var c = findCharacter(activeCharacterId);
+    var container = document.getElementById("consumable-list");
+    if (!container) return;
+    container.innerHTML = "";
+    if (!c) return;
+    Object.keys(c.consumableCounts || {}).forEach(function (id) {
+      renderConsumableCard(container, id, c);
+    });
+  }
+
+  function renderConsumableSearchResults(query) {
+    var results = document.getElementById("consumable-search-results");
+    if (!results) return;
+    results.innerHTML = "";
+    var matches = Consumables.search(query);
+    if (matches.length === 0) {
+      results.hidden = true;
+      return;
+    }
+    results.hidden = false;
+    matches.slice(0, 8).forEach(function (i) {
+      var item = document.createElement("button");
+      item.type = "button";
+      item.className = "weapon-search-item";
+      item.textContent = Consumables.localizedText(i.name);
+      item.addEventListener("click", function () {
+        var c = findCharacter(activeCharacterId);
+        if (!c) return;
+        if (!c.consumableCounts) c.consumableCounts = {};
+        if (!c.consumableCounts[i.id]) c.consumableCounts[i.id] = 1;
+        saveFn();
+        renderConsumableList();
+        var input = document.getElementById("consumable-search-input");
+        input.value = "";
+        results.innerHTML = "";
+        results.hidden = true;
+      });
+      results.appendChild(item);
+    });
+  }
+
   var characters = [];
   var activeCharacterId = null;
   var activeSkillsCharacterId = null;
@@ -966,6 +1132,8 @@
       learnedAttachedEffects: [],
       weaponIds: [],
       weaponRandomSkills: {},
+      talismanIds: [],
+      consumableCounts: {},
     };
   }
 
@@ -1225,6 +1393,24 @@
     var weaponSearchResults = document.getElementById("weapon-search-results");
     if (weaponSearchResults) weaponSearchResults.hidden = true;
 
+    renderTalismanList();
+    var talismanSearchInput = document.getElementById("talisman-search-input");
+    if (talismanSearchInput) {
+      talismanSearchInput.value = "";
+      talismanSearchInput.placeholder = window.I18N.t("talisman_search_placeholder");
+    }
+    var talismanSearchResults = document.getElementById("talisman-search-results");
+    if (talismanSearchResults) talismanSearchResults.hidden = true;
+
+    renderConsumableList();
+    var consumableSearchInput = document.getElementById("consumable-search-input");
+    if (consumableSearchInput) {
+      consumableSearchInput.value = "";
+      consumableSearchInput.placeholder = window.I18N.t("consumable_search_placeholder");
+    }
+    var consumableSearchResults = document.getElementById("consumable-search-results");
+    if (consumableSearchResults) consumableSearchResults.hidden = true;
+
     document.getElementById("character-drawer").classList.add("open");
   }
 
@@ -1308,6 +1494,18 @@
     if (weaponSearchEl) {
       weaponSearchEl.addEventListener("input", function (e) {
         renderWeaponSearchResults(e.target.value);
+      });
+    }
+    var talismanSearchEl = document.getElementById("talisman-search-input");
+    if (talismanSearchEl) {
+      talismanSearchEl.addEventListener("input", function (e) {
+        renderTalismanSearchResults(e.target.value);
+      });
+    }
+    var consumableSearchEl = document.getElementById("consumable-search-input");
+    if (consumableSearchEl) {
+      consumableSearchEl.addEventListener("input", function (e) {
+        renderConsumableSearchResults(e.target.value);
       });
     }
 
