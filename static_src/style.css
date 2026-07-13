@@ -689,6 +689,34 @@ button {
   text-align: left;
 }
 
+.weapon-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.6rem 0;
+  border-bottom: 1px dashed #ccc;
+  padding-bottom: 0.5rem;
+}
+
+.weapon-subtab-btn {
+  border: 1px solid #bbb;
+  background: none;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.weapon-subtab-btn.active {
+  background: #6d4dcf;
+  border-color: #6d4dcf;
+  color: #fff;
+}
+
+.weapon-subtab-panel {
+  text-align: left;
+}
+
 .share-modal-box {
   max-width: 420px;
   width: 92vw;
@@ -1404,6 +1432,13 @@ button {
     border-color: #444;
   }
   .rulebook-tab-btn {
+    border-color: #555;
+    color: #eee;
+  }
+  .weapon-subtabs {
+    border-color: #444;
+  }
+  .weapon-subtab-btn {
     border-color: #555;
     color: #eee;
   }

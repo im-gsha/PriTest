@@ -125,7 +125,8 @@ BODY = """    <div class="night-header-row">
           <p class="threat-ref-body" data-i18n="rulebook_no_data"></p>
         </div>
         <div class="rulebook-tab-panel" id="rulebook-panel-weapon" hidden>
-          <div id="weapon-rulebook-list"></div>
+          <div class="weapon-subtabs" id="weapon-subtabs"></div>
+          <div id="weapon-subtab-panels"></div>
         </div>
         <div class="rulebook-tab-panel" id="rulebook-panel-board" hidden>
           <p class="threat-ref-body" data-i18n="rulebook_no_data"></p>

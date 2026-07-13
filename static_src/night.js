@@ -8,6 +8,7 @@
   var NEW_GAME_PASSWORD = "night";
   var RULEBOOK_PASSWORD = "nightnight";
   var RULEBOOK_SESSION_KEY = "pritest-rulebook-session";
+  var activeWeaponSubTab = "acquisition";
   var LEVEL_STEPS = [null, 0, 1, 2, 3, 4, 5]; // null = "全"（未指定）
 
   var Games = window.PriTestGames;
@@ -708,6 +709,277 @@
     rarityBlock.appendChild(rarityTitle);
     rarityBlock.appendChild(buildBossTable(rarityTable.columns, rarityTable.rows, T));
     container.appendChild(rarityBlock);
+
+    renderWeaponCategoryRollTables(container);
+  }
+
+  // カテゴリごとの種類決定表（レア度内での出目→武器名）。武器獲取タブの末尾に表示。
+  function renderWeaponCategoryRollTables(container) {
+    var Weapons = window.PriTestWeapons;
+    if (!Weapons) return;
+    var identity = function (v) {
+      return v;
+    };
+    var rarityOrder = { C: 1, U: 2, R: 3, L: 4 };
+    Weapons.categories().forEach(function (category) {
+      var weapons = Weapons.list()
+        .filter(function (w) {
+          return w.category === category.id;
+        })
+        .slice()
+        .sort(function (a, b) {
+          return (rarityOrder[a.rarity] || 9) - (rarityOrder[b.rarity] || 9);
+        });
+      var block = document.createElement("div");
+      block.className = "threat-ref-block";
+      var h = document.createElement("h4");
+      h.textContent = window.I18N.t("weapon_roll_table_title", { category: Weapons.localizedText(category.name) });
+      block.appendChild(h);
+      var columns = [
+        window.I18N.t("weapon_rarity_column_label"),
+        window.I18N.t("weapon_roll_column_label"),
+        window.I18N.t("weapon_name_column_label"),
+      ];
+      var rows = weapons.map(function (w) {
+        return [w.rarity, w.roll || "－", Weapons.localizedText(w.name)];
+      });
+      block.appendChild(buildBossTable(columns, rows, identity));
+      container.appendChild(block);
+    });
+  }
+
+  // 武器データ（weapons.js）の装備品スキル参照（art/innate/status/element/bonus/random/note）を
+  // 読み取り専用の <details> エントリとして描画する。character_drawer.js の同名処理と役割は同じだが、
+  // ランダム戦技をここでは検索割り当てせず「未決定」表示に留める（規則書は参照専用のため）。
+  function renderWeaponSkillRefEntry(container, ref) {
+    var Weapons = window.PriTestWeapons;
+    var WL = Weapons.localizedText;
+    var body = "";
+    var name = "";
+    var kind = null;
+    if (ref.kind === "art") {
+      var art = Weapons.getSkill(ref.id);
+      name = art ? WL(art.name) : ref.id;
+      body = art ? WL(art.body) : "";
+      kind = art ? art.kind : null;
+    } else if (ref.kind === "innate") {
+      var innate = null;
+      Weapons.categories().forEach(function (cat) {
+        (cat.innateSkills || []).forEach(function (s) {
+          if (s.id === ref.id) innate = s;
+        });
+      });
+      name = innate ? WL(innate.name) : ref.id;
+      body = innate ? WL(innate.body) : "";
+      kind = innate ? innate.kind : null;
+    } else if (ref.kind === "status") {
+      name = window.I18N.t("weapon_status_skill_label", { status: WL(ref.status) });
+      body = WL(Weapons.statusSkillBody(ref.status));
+      kind = "Passive";
+    } else if (ref.kind === "element") {
+      name = window.I18N.t("weapon_element_skill_label", { element: WL(ref.element) });
+      body = WL(Weapons.elementSkillBody(ref.element));
+      kind = "Passive";
+    } else if (ref.kind === "bonus") {
+      name = WL(ref.text);
+    } else if (ref.kind === "random") {
+      name = window.I18N.t("weapon_random_skill_label");
+    } else {
+      name = window.I18N.t("weapon_note_label");
+      body = WL(ref.text);
+    }
+
+    var details = document.createElement("details");
+    details.className = "ability-entry";
+    var summary = document.createElement("summary");
+    summary.textContent = name + (kind ? "［" + kind + "］" : "");
+    details.appendChild(summary);
+    if (body) {
+      var p = document.createElement("p");
+      p.className = "threat-ref-body";
+      p.textContent = body;
+      details.appendChild(p);
+    }
+    container.appendChild(details);
+  }
+
+  // カテゴリ別サブタブの中身：カテゴリの基礎データ＋固有戦技一覧（参照用）＋所属武器ごとの装備品スキル。
+  // 各武器に表示するのは weapon.skills（＝表の装備品スキル欄）に載っているものだけ。
+  function renderWeaponCategoryList(categoryId) {
+    var container = document.getElementById("weapon-category-" + categoryId + "-list");
+    var Weapons = window.PriTestWeapons;
+    if (!container || !Weapons) return;
+    container.innerHTML = "";
+    var WL = Weapons.localizedText;
+    var category = Weapons.getCategory(categoryId);
+    if (!category) return;
+
+    var statsBlock = document.createElement("div");
+    statsBlock.className = "threat-ref-block";
+    var statsP = document.createElement("p");
+    statsP.className = "threat-ref-body";
+    if (category.isShield) {
+      statsP.textContent = [
+        window.I18N.t("weapon_guard_cost_label") + window.I18N.t("colon_separator") + WL(category.basicStats.guardCost),
+        window.I18N.t("weapon_guard_hp_label") +
+          window.I18N.t("colon_separator") +
+          "C/U " +
+          category.basicStats.guardHpCU +
+          "　R/L " +
+          category.basicStats.guardHpRL,
+        window.I18N.t("weapon_power_mod_label") + window.I18N.t("colon_separator") + WL(category.basicStats.powerMod),
+      ].join("\n");
+    } else {
+      statsP.textContent = [
+        window.I18N.t("weapon_attack_cost_label") + window.I18N.t("colon_separator") + WL(category.basicStats.attackCost),
+        window.I18N.t("weapon_power_label") + window.I18N.t("colon_separator") + category.basicStats.weaponPower,
+        window.I18N.t("weapon_power_mod_label") + window.I18N.t("colon_separator") + WL(category.basicStats.powerMod),
+      ].join("\n");
+    }
+    statsBlock.appendChild(statsP);
+    container.appendChild(statsBlock);
+
+    if (category.twoHitBonus && category.twoHitBonus.length) {
+      var twoHitTitle = document.createElement("p");
+      twoHitTitle.className = "boss-subheading";
+      twoHitTitle.textContent = window.I18N.t("weapon_two_hit_bonus_label");
+      container.appendChild(twoHitTitle);
+      category.twoHitBonus.forEach(function (bonus) {
+        var bonusP = document.createElement("p");
+        bonusP.className = "threat-ref-body";
+        bonusP.textContent = WL(bonus.name) + window.I18N.t("colon_separator") + WL(bonus.body);
+        container.appendChild(bonusP);
+      });
+    }
+
+    if (category.innateSkills && category.innateSkills.length) {
+      var innateTitle = document.createElement("p");
+      innateTitle.className = "boss-subheading";
+      innateTitle.textContent = window.I18N.t("weapon_innate_skills_label");
+      container.appendChild(innateTitle);
+      category.innateSkills.forEach(function (s) {
+        renderWeaponSkillRefEntry(container, { kind: "innate", id: s.id });
+      });
+    }
+
+    var listTitle = document.createElement("p");
+    listTitle.className = "boss-subheading";
+    listTitle.textContent = window.I18N.t("weapon_category_weapon_list_label");
+    container.appendChild(listTitle);
+
+    var rarityOrder = { C: 1, U: 2, R: 3, L: 4 };
+    var weapons = Weapons.list()
+      .filter(function (w) {
+        return w.category === categoryId;
+      })
+      .slice()
+      .sort(function (a, b) {
+        return (rarityOrder[a.rarity] || 9) - (rarityOrder[b.rarity] || 9);
+      });
+
+    weapons.forEach(function (weapon) {
+      var card = document.createElement("div");
+      card.className = "relic-candidate-card";
+      var title = document.createElement("div");
+      title.className = "relic-candidate-name";
+      title.textContent =
+        WL(weapon.name) +
+        "（" +
+        window.I18N.t("weapon_rarity_column_label") +
+        window.I18N.t("colon_separator") +
+        weapon.rarity +
+        "・" +
+        window.I18N.t("weapon_roll_column_label") +
+        window.I18N.t("colon_separator") +
+        (weapon.roll || "－") +
+        "）";
+      card.appendChild(title);
+      if (category.isShield) {
+        if (weapon.attachedEffect && weapon.attachedEffect.length) {
+          var attachedTitle = document.createElement("p");
+          attachedTitle.className = "boss-subheading";
+          attachedTitle.textContent = window.I18N.t("weapon_attached_effect_label");
+          card.appendChild(attachedTitle);
+          weapon.attachedEffect.forEach(function (ref) {
+            renderWeaponSkillRefEntry(card, ref);
+          });
+        }
+        if (weapon.reverseArt && weapon.reverseArt.length) {
+          var reverseTitle = document.createElement("p");
+          reverseTitle.className = "boss-subheading";
+          reverseTitle.textContent = window.I18N.t("weapon_reverse_art_label");
+          card.appendChild(reverseTitle);
+          weapon.reverseArt.forEach(function (ref) {
+            renderWeaponSkillRefEntry(card, ref);
+          });
+        }
+      } else {
+        (weapon.skills || []).forEach(function (ref) {
+          renderWeaponSkillRefEntry(card, ref);
+        });
+      }
+      container.appendChild(card);
+    });
+  }
+
+  // 武器タブのサブタブ（武器獲取／カテゴリ別）を動的に構築する。カテゴリは weapons.js に追加され次第、
+  // 自動でサブタブとして増えていく。
+  function setupWeaponSubTabs() {
+    var tabsContainer = document.getElementById("weapon-subtabs");
+    var panelsContainer = document.getElementById("weapon-subtab-panels");
+    var Weapons = window.PriTestWeapons;
+    if (!tabsContainer || !panelsContainer || !Weapons) return;
+    tabsContainer.innerHTML = "";
+    panelsContainer.innerHTML = "";
+
+    var tabs = [{ id: "acquisition", label: window.I18N.t("weapon_subtab_acquisition_label") }].concat(
+      Weapons.categories().map(function (cat) {
+        return { id: cat.id, label: Weapons.localizedText(cat.name) };
+      })
+    );
+
+    tabs.forEach(function (tab) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "weapon-subtab-btn" + (tab.id === activeWeaponSubTab ? " active" : "");
+      btn.setAttribute("data-subtab", tab.id);
+      btn.textContent = tab.label;
+      btn.addEventListener("click", function () {
+        switchWeaponSubTab(tab.id);
+      });
+      tabsContainer.appendChild(btn);
+
+      var panel = document.createElement("div");
+      panel.className = "weapon-subtab-panel";
+      panel.id = "weapon-subpanel-" + tab.id;
+      panel.hidden = tab.id !== activeWeaponSubTab;
+      var inner = document.createElement("div");
+      inner.id = tab.id === "acquisition" ? "weapon-rulebook-list" : "weapon-category-" + tab.id + "-list";
+      panel.appendChild(inner);
+      panelsContainer.appendChild(panel);
+    });
+  }
+
+  function switchWeaponSubTab(id) {
+    activeWeaponSubTab = id;
+    document.querySelectorAll(".weapon-subtab-btn").forEach(function (btn) {
+      btn.classList.toggle("active", btn.getAttribute("data-subtab") === id);
+    });
+    document.querySelectorAll(".weapon-subtab-panel").forEach(function (panel) {
+      panel.hidden = panel.id !== "weapon-subpanel-" + id;
+    });
+  }
+
+  // 武器タブ全体（サブタブ構築＋武器獲取＋カテゴリ別一覧）をまとめて描画する。
+  function renderWeaponRulebookAll() {
+    setupWeaponSubTabs();
+    renderWeaponRulebook();
+    var Weapons = window.PriTestWeapons;
+    if (Weapons) {
+      Weapons.categories().forEach(function (cat) {
+        renderWeaponCategoryList(cat.id);
+      });
+    }
   }
 
   // 規則書モーダル: 管理員パスワード（"nightnight"、通常のadmin認証とは別）＋タブ切替
@@ -1780,7 +2052,7 @@
     renderLog();
     renderLogToggleLabel();
     renderBossRulebook();
-    renderWeaponRulebook();
+    renderWeaponRulebookAll();
 
     document.getElementById("btn-open-rulebook").addEventListener("click", handleOpenRulebook);
     document.getElementById("btn-rulebook-close").addEventListener("click", closeRulebookModal);
@@ -1861,7 +2133,7 @@
       renderSelectScreen();
       renderBattleRefTexts();
       renderBossRulebook();
-      renderWeaponRulebook();
+      renderWeaponRulebookAll();
     });
   });
 })();
