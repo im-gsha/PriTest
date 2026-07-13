@@ -125,7 +125,7 @@ BODY = """    <div class="night-header-row">
           <p class="threat-ref-body" data-i18n="rulebook_no_data"></p>
         </div>
         <div class="rulebook-tab-panel" id="rulebook-panel-weapon" hidden>
-          <p class="threat-ref-body" data-i18n="rulebook_no_data"></p>
+          <div id="weapon-rulebook-list"></div>
         </div>
         <div class="rulebook-tab-panel" id="rulebook-panel-board" hidden>
           <p class="threat-ref-body" data-i18n="rulebook_no_data"></p>
@@ -524,6 +524,7 @@ def build_night_html() -> str:
             "scenarios.js",
             "character_types.js",
             "weapons.js",
+            "weapon_rulebook.js",
             "character_drawer.js",
             "night_bosses.js",
             "night_boss_rulebook.js",
