@@ -640,6 +640,69 @@
     });
   }
 
+  // 「得意武器：武器」時の抽選手順（レア度判定→大分類→小分類）の参考資料タブ
+  function renderWeaponRulebook() {
+    var container = document.getElementById("weapon-rulebook-list");
+    var WR = window.PriTestWeaponRulebook;
+    if (!container || !WR) return;
+    container.innerHTML = "";
+    var T = CharacterTypes.localizedText;
+
+    WR.procedure().forEach(function (step) {
+      var block = document.createElement("div");
+      block.className = "threat-ref-block";
+      var h = document.createElement("h4");
+      h.textContent = T(step.title);
+      block.appendChild(h);
+      var p = document.createElement("p");
+      p.className = "threat-ref-body";
+      p.textContent = T(step.body);
+      block.appendChild(p);
+      container.appendChild(block);
+    });
+
+    var majorTable = WR.majorTable();
+    var majorBlock = document.createElement("div");
+    majorBlock.className = "threat-ref-block";
+    var majorTitle = document.createElement("h4");
+    majorTitle.textContent = T(majorTable.title);
+    majorBlock.appendChild(majorTitle);
+    majorBlock.appendChild(buildBossTable(majorTable.columns, majorTable.rows, T));
+    container.appendChild(majorBlock);
+
+    WR.minorTables().forEach(function (tbl) {
+      var block = document.createElement("div");
+      block.className = "threat-ref-block";
+      var h = document.createElement("h4");
+      h.textContent = T(tbl.title);
+      block.appendChild(h);
+      block.appendChild(buildBossTable(tbl.columns, tbl.rows, T));
+      container.appendChild(block);
+    });
+
+    [WR.acquisitionNote(), WR.rarityNote()].forEach(function (note) {
+      var block = document.createElement("div");
+      block.className = "threat-ref-block";
+      var h = document.createElement("h4");
+      h.textContent = T(note.title);
+      block.appendChild(h);
+      var p = document.createElement("p");
+      p.className = "threat-ref-body";
+      p.textContent = T(note.body);
+      block.appendChild(p);
+      container.appendChild(block);
+    });
+
+    var rarityTable = WR.rarityTable();
+    var rarityBlock = document.createElement("div");
+    rarityBlock.className = "threat-ref-block";
+    var rarityTitle = document.createElement("h4");
+    rarityTitle.textContent = T(rarityTable.title);
+    rarityBlock.appendChild(rarityTitle);
+    rarityBlock.appendChild(buildBossTable(rarityTable.columns, rarityTable.rows, T));
+    container.appendChild(rarityBlock);
+  }
+
   // 規則書モーダル: 管理員パスワード（"nightnight"、通常のadmin認証とは別）＋タブ切替
   function isRulebookAuthenticated() {
     return sessionStorage.getItem(RULEBOOK_SESSION_KEY) === "1";
@@ -1713,6 +1776,7 @@
     renderLog();
     renderLogToggleLabel();
     renderBossRulebook();
+    renderWeaponRulebook();
 
     document.getElementById("btn-open-rulebook").addEventListener("click", handleOpenRulebook);
     document.getElementById("btn-rulebook-close").addEventListener("click", closeRulebookModal);
@@ -1793,6 +1857,7 @@
       renderSelectScreen();
       renderBattleRefTexts();
       renderBossRulebook();
+      renderWeaponRulebook();
     });
   });
 })();
