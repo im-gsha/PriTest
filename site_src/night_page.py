@@ -114,6 +114,7 @@ BODY = """    <div class="night-header-row">
         <div class="rulebook-tabs" id="rulebook-tabs">
           <button type="button" class="rulebook-tab-btn active" data-tab="nightking" data-i18n="rulebook_tab_nightking"></button>
           <button type="button" class="rulebook-tab-btn" data-tab="miniking" data-i18n="rulebook_tab_miniking"></button>
+          <button type="button" class="rulebook-tab-btn" data-tab="enemy" data-i18n="rulebook_tab_enemy"></button>
           <button type="button" class="rulebook-tab-btn" data-tab="weapon" data-i18n="rulebook_tab_weapon"></button>
           <button type="button" class="rulebook-tab-btn" data-tab="talisman" data-i18n="rulebook_tab_talisman"></button>
           <button type="button" class="rulebook-tab-btn" data-tab="consumable" data-i18n="rulebook_tab_consumable"></button>
@@ -125,6 +126,13 @@ BODY = """    <div class="night-header-row">
         </div>
         <div class="rulebook-tab-panel" id="rulebook-panel-miniking" hidden>
           <p class="threat-ref-body" data-i18n="rulebook_no_data"></p>
+        </div>
+        <div class="rulebook-tab-panel" id="rulebook-panel-enemy" hidden>
+          <div class="weapon-search-box">
+            <input type="text" id="enemy-rulebook-search-input">
+          </div>
+          <div class="weapon-subtabs" id="enemy-family-subtabs"></div>
+          <div id="enemy-rulebook-list"></div>
         </div>
         <div class="rulebook-tab-panel" id="rulebook-panel-weapon" hidden>
           <div class="weapon-subtabs" id="weapon-subtabs"></div>
@@ -500,6 +508,15 @@ BODY = """    <div class="night-header-row">
         <h2 data-i18n="battle_sheet_title"></h2>
 
         <div class="threat-ref-block">
+          <h3 data-i18n="battle_enemy_lookup_title"></h3>
+          <div class="weapon-search-box">
+            <input type="text" id="battle-enemy-search-input">
+            <div class="weapon-search-results" id="battle-enemy-search-results" hidden></div>
+          </div>
+          <div id="battle-enemy-lookup-result"></div>
+        </div>
+
+        <div class="threat-ref-block">
           <h3 data-i18n="battle_areas_title"></h3>
           <div class="battle-areas">
             <div class="battle-area">
@@ -575,6 +592,7 @@ def build_night_html() -> str:
             "character_drawer.js",
             "night_bosses.js",
             "night_boss_rulebook.js",
+            "enemies.js",
             "night.js",
         ),
     )

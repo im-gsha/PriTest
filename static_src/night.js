@@ -690,6 +690,129 @@
     });
   }
 
+  // エネミー（通常討伐対象）一覧の参考資料タブ。系統別サブタブ＋名前検索。
+  var activeEnemyFamily = "all";
+
+  function setupEnemyFamilyTabs() {
+    var tabsContainer = document.getElementById("enemy-family-subtabs");
+    var Enemies = window.PriTestEnemies;
+    if (!tabsContainer || !Enemies) return;
+    tabsContainer.innerHTML = "";
+
+    var tabs = [{ id: "all", label: window.I18N.t("enemy_family_all_label") }].concat(
+      Enemies.listFamilies().map(function (fam) {
+        return { id: fam.id, label: Enemies.localizedText(fam.name) };
+      })
+    );
+
+    tabs.forEach(function (tab) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "weapon-subtab-btn" + (tab.id === activeEnemyFamily ? " active" : "");
+      btn.setAttribute("data-subtab", tab.id);
+      btn.textContent = tab.label;
+      btn.addEventListener("click", function () {
+        activeEnemyFamily = tab.id;
+        setupEnemyFamilyTabs();
+        renderEnemyRulebookList();
+      });
+      tabsContainer.appendChild(btn);
+    });
+  }
+
+  function buildEnemyActionTable(enemy) {
+    var Enemies = window.PriTestEnemies;
+    var T = Enemies.localizedText;
+    var columns = [
+      { ja: "出目", zh: "點數" },
+      { ja: "アクション名", zh: "招式名稱" },
+      { ja: "乱戦ダメージ修正", zh: "亂戰傷害修正" },
+    ];
+    var rows = (enemy.actions || []).map(function (a) {
+      return [{ ja: a.roll, zh: a.roll }, a.name, { ja: a.mod || "—", zh: a.mod || "—" }];
+    });
+    return buildBossTable(columns, rows, T);
+  }
+
+  function renderEnemyRulebookList() {
+    var container = document.getElementById("enemy-rulebook-list");
+    var Enemies = window.PriTestEnemies;
+    if (!container || !Enemies) return;
+    var T = Enemies.localizedText;
+    container.innerHTML = "";
+
+    var query = (document.getElementById("enemy-rulebook-search-input") || {}).value || "";
+    var q = query.trim().toLowerCase();
+
+    Enemies.listFamilies().forEach(function (fam) {
+      if (activeEnemyFamily !== "all" && activeEnemyFamily !== fam.id) return;
+      var famEnemies = fam.enemies.filter(function (e) {
+        if (!q) return true;
+        var n = e.name;
+        return (n.ja && n.ja.toLowerCase().indexOf(q) !== -1) || (n.zh && n.zh.toLowerCase().indexOf(q) !== -1);
+      });
+      if (!famEnemies.length) return;
+
+      var famHeading = document.createElement("p");
+      famHeading.className = "boss-subheading";
+      famHeading.textContent = T(fam.name);
+      container.appendChild(famHeading);
+
+      if (fam.note) {
+        var noteP = document.createElement("p");
+        noteP.className = "threat-ref-body";
+        noteP.textContent = T(fam.note);
+        container.appendChild(noteP);
+      }
+
+      famEnemies.forEach(function (enemy) {
+        var details = document.createElement("details");
+        details.className = "ability-entry";
+        var summary = document.createElement("summary");
+        summary.textContent = T(enemy.name);
+        details.appendChild(summary);
+
+        var statLines = document.createElement("p");
+        statLines.className = "threat-ref-body";
+        var lines = [window.I18N.t("enemy_size_label") + window.I18N.t("colon_separator") + (enemy.size || "-")];
+        if (enemy.resistance) {
+          lines.push(window.I18N.t("enemy_resistance_label") + window.I18N.t("colon_separator") + T(enemy.resistance));
+        }
+        statLines.textContent = lines.join("\n");
+        details.appendChild(statLines);
+
+        var actionsTitle = document.createElement("p");
+        actionsTitle.className = "boss-subheading";
+        actionsTitle.textContent = window.I18N.t("boss_actions_label");
+        details.appendChild(actionsTitle);
+        details.appendChild(buildEnemyActionTable(enemy));
+
+        if (enemy.special) {
+          var spTitle = document.createElement("p");
+          spTitle.className = "boss-subheading";
+          spTitle.textContent = window.I18N.t("boss_specials_label");
+          details.appendChild(spTitle);
+          var spBody = document.createElement("p");
+          spBody.className = "threat-ref-body";
+          spBody.textContent = T(enemy.special);
+          details.appendChild(spBody);
+        }
+
+        container.appendChild(details);
+      });
+    });
+  }
+
+  function renderEnemyRulebookAll() {
+    setupEnemyFamilyTabs();
+    renderEnemyRulebookList();
+    var searchInput = document.getElementById("enemy-rulebook-search-input");
+    if (searchInput && !searchInput.dataset.wired) {
+      searchInput.dataset.wired = "1";
+      searchInput.addEventListener("input", renderEnemyRulebookList);
+    }
+  }
+
   // 「得意武器：武器」時の抽選手順（レア度判定→大分類→小分類）の参考資料タブ
   function renderWeaponRulebook() {
     var container = document.getElementById("weapon-rulebook-list");
@@ -1419,6 +1542,93 @@
     document.getElementById("battle-drawer").classList.remove("open");
   }
 
+  // 戦闘盤の簡易エネミー検索。規則書タブと異なり、等級・HP量・系別のみを表示する（耐性・アクション・特殊能力は非表示）。
+  function renderBattleEnemySearchResults() {
+    var input = document.getElementById("battle-enemy-search-input");
+    var results = document.getElementById("battle-enemy-search-results");
+    var Enemies = window.PriTestEnemies;
+    if (!input || !results || !Enemies) return;
+    var q = input.value.trim();
+    results.innerHTML = "";
+    if (!q) {
+      results.hidden = true;
+      return;
+    }
+    var matches = Enemies.search(q);
+    if (!matches.length) {
+      results.hidden = true;
+      return;
+    }
+    matches.slice(0, 20).forEach(function (row) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "weapon-search-item";
+      btn.textContent = Enemies.localizedText(row.enemy.name) + "（" + Enemies.localizedText(row.familyName) + "）";
+      btn.addEventListener("click", function () {
+        input.value = "";
+        results.hidden = true;
+        renderBattleEnemyLookupResult(row);
+      });
+      results.appendChild(btn);
+    });
+    results.hidden = false;
+  }
+
+  function renderBattleEnemyLookupResult(row) {
+    var container = document.getElementById("battle-enemy-lookup-result");
+    var Enemies = window.PriTestEnemies;
+    if (!container || !Enemies) return;
+    container.innerHTML = "";
+    var T = Enemies.localizedText;
+
+    var title = document.createElement("p");
+    title.className = "boss-subheading";
+    title.textContent = T(row.enemy.name);
+    container.appendChild(title);
+
+    var familyLine = document.createElement("p");
+    familyLine.className = "threat-ref-body";
+    familyLine.textContent = window.I18N.t("enemy_family_label") + window.I18N.t("colon_separator") + T(row.familyName);
+    container.appendChild(familyLine);
+
+    var table = document.createElement("table");
+    table.className = "boss-action-table";
+    var thead = document.createElement("thead");
+    var headRow = document.createElement("tr");
+    [window.I18N.t("enemy_level_label"), window.I18N.t("enemy_hp_label")].forEach(function (label) {
+      var th = document.createElement("th");
+      th.textContent = label;
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    var tbody = document.createElement("tbody");
+    var hasHp = false;
+    (row.familyBase || []).forEach(function (lv) {
+      if (lv.hp) hasHp = true;
+      var tr = document.createElement("tr");
+      var tdLevel = document.createElement("td");
+      tdLevel.textContent = lv.level;
+      tr.appendChild(tdLevel);
+      var tdHp = document.createElement("td");
+      tdHp.textContent = lv.hp || "—";
+      tr.appendChild(tdHp);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    var wrap = document.createElement("div");
+    wrap.className = "boss-table-scroll";
+    wrap.appendChild(table);
+    container.appendChild(wrap);
+
+    if (!hasHp) {
+      var note = document.createElement("p");
+      note.className = "threat-ref-body";
+      note.textContent = window.I18N.t("enemy_hp_unavailable_note");
+      container.appendChild(note);
+    }
+  }
+
   function renderFieldLevels() {
     var levels = fieldLevelsForDay();
     levels.forEach(function (n, i) {
@@ -2097,6 +2307,7 @@
     renderWeaponRulebookAll();
     renderTalismanRulebook();
     renderConsumableRulebook();
+    renderEnemyRulebookAll();
 
     document.getElementById("btn-open-rulebook").addEventListener("click", handleOpenRulebook);
     document.getElementById("btn-rulebook-close").addEventListener("click", closeRulebookModal);
@@ -2135,6 +2346,7 @@
     document.getElementById("btn-battle-info").addEventListener("click", openBattleDrawer);
     document.getElementById("btn-battle-drawer-close").addEventListener("click", closeBattleDrawer);
     document.getElementById("battle-drawer-backdrop").addEventListener("click", closeBattleDrawer);
+    document.getElementById("battle-enemy-search-input").addEventListener("input", renderBattleEnemySearchResults);
     document.getElementById("btn-battle-add-mob-row").addEventListener("click", handleAddMobRow);
     document.getElementById("btn-battle-clear").addEventListener("click", handleBattleClear);
     document.getElementById("btn-dice-pool-add").addEventListener("click", handleAddDice);
@@ -2180,6 +2392,7 @@
       renderWeaponRulebookAll();
       renderTalismanRulebook();
       renderConsumableRulebook();
+      renderEnemyRulebookAll();
     });
   });
 })();
