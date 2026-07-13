@@ -810,7 +810,19 @@
       "（" + (category ? Weapons.localizedText(category.name) : weapon.category) + "・" + weapon.rarity + "）";
     card.appendChild(title);
 
-    if (category) {
+    if (category && category.isShield) {
+      var shieldHp = weapon.rarity === "R" || weapon.rarity === "L" ? category.basicStats.guardHpRL : category.basicStats.guardHpCU;
+      var shieldStats = document.createElement("p");
+      shieldStats.className = "threat-ref-body";
+      shieldStats.textContent = [
+        window.I18N.t("weapon_guard_cost_label") + window.I18N.t("colon_separator") + Weapons.localizedText(category.basicStats.guardCost),
+        window.I18N.t("weapon_guard_hp_label") + window.I18N.t("colon_separator") + shieldHp,
+        window.I18N.t("weapon_power_mod_label") +
+          window.I18N.t("colon_separator") +
+          (weapon.powerModOverride ? Weapons.localizedText(weapon.powerModOverride) : Weapons.localizedText(category.basicStats.powerMod)),
+      ].join("\n");
+      card.appendChild(shieldStats);
+    } else if (category) {
       var stats = document.createElement("p");
       stats.className = "threat-ref-body";
       stats.textContent = [
@@ -836,17 +848,31 @@
       });
     }
 
-    (weapon.skills || []).forEach(function (ref) {
-      renderWeaponSkillEntry(card, ref, weaponId, c);
-    });
-
-    if (category && category.innateSkills && category.innateSkills.length) {
-      var innateTitle = document.createElement("p");
-      innateTitle.className = "boss-subheading";
-      innateTitle.textContent = window.I18N.t("weapon_innate_skills_label");
-      card.appendChild(innateTitle);
-      category.innateSkills.forEach(function (s) {
-        renderWeaponSkillEntry(card, { kind: "innate", id: s.id });
+    if (category && category.isShield) {
+      // 盾は「付随効果」と「逆手の戦技（ガード時戦技）」の2種類のスキル欄を持つ。武器の単一skills欄とは構造が異なる。
+      if (weapon.attachedEffect && weapon.attachedEffect.length) {
+        var attachedTitle = document.createElement("p");
+        attachedTitle.className = "boss-subheading";
+        attachedTitle.textContent = window.I18N.t("weapon_attached_effect_label");
+        card.appendChild(attachedTitle);
+        weapon.attachedEffect.forEach(function (ref) {
+          renderWeaponSkillEntry(card, ref, weaponId, c);
+        });
+      }
+      if (weapon.reverseArt && weapon.reverseArt.length) {
+        var reverseTitle = document.createElement("p");
+        reverseTitle.className = "boss-subheading";
+        reverseTitle.textContent = window.I18N.t("weapon_reverse_art_label");
+        card.appendChild(reverseTitle);
+        weapon.reverseArt.forEach(function (ref) {
+          renderWeaponSkillEntry(card, ref, weaponId, c);
+        });
+      }
+    } else {
+      // 装備品スキル欄（weapon.skills）に載っているものだけがこの武器の戦技・固有技能。
+      // カテゴリの固有戦技一覧を無条件に全部表示することはしない。
+      (weapon.skills || []).forEach(function (ref) {
+        renderWeaponSkillEntry(card, ref, weaponId, c);
       });
     }
 
