@@ -908,6 +908,7 @@
 
   var characters = [];
   var activeCharacterId = null;
+  var activeSkillsCharacterId = null;
   var saveFn = function () {};
   var onChangeFn = function () {};
 
@@ -1207,6 +1208,23 @@
     onChangeFn();
   }
 
+  // 角色画像クリックで左からスライドインする、可発動技能／被動能力だけの閲覧専用パネル
+  function openSkillsDrawer(id) {
+    var c = findCharacter(id);
+    if (!c) return;
+    activeSkillsCharacterId = id;
+    var type = c.typeId ? CharacterTypes.get(c.typeId) : null;
+    document.getElementById("skills-drawer-name").textContent =
+      c.name + (type ? "（" + CharacterTypes.localizedName(type.name) + "）" : "");
+    renderAbilitySections(c, type, document.getElementById("skills-drawer-active"), document.getElementById("skills-drawer-passive"));
+    document.getElementById("skills-drawer").classList.add("open");
+  }
+
+  function closeSkillsDrawer() {
+    document.getElementById("skills-drawer").classList.remove("open");
+    activeSkillsCharacterId = null;
+  }
+
   function bindFieldSave(elId, apply) {
     var el = document.getElementById(elId);
     if (!el) return;
@@ -1238,6 +1256,11 @@
     document.getElementById("btn-character-close").addEventListener("click", closeDrawer);
     document.getElementById("character-drawer-backdrop").addEventListener("click", closeDrawer);
     document.getElementById("btn-delete-character").addEventListener("click", handleDeleteCharacter);
+    document.getElementById("character-portrait").addEventListener("click", function () {
+      if (activeCharacterId) openSkillsDrawer(activeCharacterId);
+    });
+    document.getElementById("btn-skills-drawer-close").addEventListener("click", closeSkillsDrawer);
+    document.getElementById("skills-drawer-backdrop").addEventListener("click", closeSkillsDrawer);
     document.getElementById("btn-char-dice-add").addEventListener("click", function () {
       var c = findCharacter(activeCharacterId);
       if (!c || c.dicePool.length >= MAX_DICE_POOL) return;
@@ -1324,6 +1347,7 @@
 
     window.addEventListener("i18n:change", function () {
       if (activeCharacterId) openDrawer(activeCharacterId);
+      if (activeSkillsCharacterId) openSkillsDrawer(activeSkillsCharacterId);
     });
   }
 
@@ -1338,6 +1362,8 @@
     init: init,
     open: openDrawer,
     close: closeDrawer,
+    openSkills: openSkillsDrawer,
+    closeSkills: closeSkillsDrawer,
     newCharacter: newCharacter,
     ensureDefaults: ensureDefaults,
     renderAbilitySections: renderAbilitySections,
