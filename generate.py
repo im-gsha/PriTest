@@ -12,6 +12,7 @@ import shutil
 from pathlib import Path
 
 from site_src.admin_page import build_admin_html
+from site_src.admin_scenarios_page import build_admin_scenarios_html
 from site_src.characters_page import build_characters_html
 from site_src.i18n_data import STRINGS
 from site_src.index_page import build_index_html
@@ -36,6 +37,7 @@ def build_static_assets() -> None:
         "qrcode.js",
         "night.js",
         "admin.js",
+        "admin_scenarios.js",
         "characters.js",
     ):
         shutil.copy(STATIC_SRC_DIR / name, static_dist / name)
@@ -61,6 +63,10 @@ def build_pages() -> None:
     admin_dir = DIST_DIR / "admin"
     admin_dir.mkdir(parents=True, exist_ok=True)
     (admin_dir / "index.html").write_text(build_admin_html(), encoding="utf-8")
+
+    admin_scenarios_dir = admin_dir / "scenarios"
+    admin_scenarios_dir.mkdir(parents=True, exist_ok=True)
+    (admin_scenarios_dir / "index.html").write_text(build_admin_scenarios_html(), encoding="utf-8")
 
     characters_dir = DIST_DIR / "characters"
     characters_dir.mkdir(parents=True, exist_ok=True)

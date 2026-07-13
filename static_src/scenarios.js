@@ -29,8 +29,78 @@
     },
   ];
 
+  // --- 管理員が自由編輯できる自訂副本（localStorage 保存、ビルド時の固定データとは別枠） ---
+  var CUSTOM_KEY = "pritest-custom-scenarios";
+  var SLOT_COUNT = 9;
+
+  function loadCustomScenarios() {
+    var raw = localStorage.getItem(CUSTOM_KEY);
+    if (!raw) return [];
+    try {
+      var data = JSON.parse(raw);
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveCustomScenarios(scenarios) {
+    localStorage.setItem(CUSTOM_KEY, JSON.stringify(scenarios));
+  }
+
+  function emptyCard() {
+    return { suit: "S", rank: "A", name: { zh: "", ja: "" } };
+  }
+
+  function newScenario() {
+    return {
+      id: "custom" + Date.now() + Math.floor(Math.random() * 1000),
+      custom: true,
+      name: { zh: "", ja: "" },
+      start: { suit: "S", rank: "A" },
+      end: { suit: "S", rank: "A" },
+      day1: Array.from({ length: SLOT_COUNT }, emptyCard),
+      day2: Array.from({ length: 6 }, emptyCard),
+    };
+  }
+
+  function createScenario() {
+    var customs = loadCustomScenarios();
+    var s = newScenario();
+    customs.push(s);
+    saveCustomScenarios(customs);
+    return s;
+  }
+
+  function updateScenario(id, patch) {
+    var customs = loadCustomScenarios();
+    var s = customs.filter(function (c) {
+      return c.id === id;
+    })[0];
+    if (!s) return null;
+    Object.keys(patch).forEach(function (key) {
+      s[key] = patch[key];
+    });
+    saveCustomScenarios(customs);
+    return s;
+  }
+
+  function deleteScenario(id) {
+    saveCustomScenarios(
+      loadCustomScenarios().filter(function (c) {
+        return c.id !== id;
+      })
+    );
+  }
+
+  function isCustom(id) {
+    return !SCENARIOS.some(function (s) {
+      return s.id === id;
+    });
+  }
+
   function list() {
-    return SCENARIOS;
+    return SCENARIOS.concat(loadCustomScenarios());
   }
 
   function localizedName(nameObj) {
@@ -40,7 +110,7 @@
 
   function get(id) {
     return (
-      SCENARIOS.filter(function (s) {
+      list().filter(function (s) {
         return s.id === id;
       })[0] || null
     );
@@ -63,5 +133,10 @@
     get: get,
     findCardEffect: findCardEffect,
     localizedName: localizedName,
+    createScenario: createScenario,
+    updateScenario: updateScenario,
+    deleteScenario: deleteScenario,
+    isCustom: isCustom,
+    SLOT_COUNT: SLOT_COUNT,
   };
 })();

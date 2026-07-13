@@ -19,6 +19,7 @@ BODY = """    <a class="back-link" href="../index.html" data-i18n="back_home"></
     </div>
     <div class="actions">
       <button id="btn-add-game" type="button" class="primary-btn" data-i18n="add_game_button"></button>
+      <a id="link-scenario-editor" href="scenarios/index.html" data-i18n="scenario_editor_link"></a>
     </div>
 
     <ul id="game-list" class="game-list"></ul>

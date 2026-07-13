@@ -652,6 +652,34 @@ button {
   overflow-y: auto;
 }
 
+.rulebook-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.6rem;
+}
+
+.rulebook-tab-btn {
+  border: 1px solid #bbb;
+  background: none;
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.rulebook-tab-btn.active {
+  background: #2d6cdf;
+  border-color: #2d6cdf;
+  color: #fff;
+}
+
+.rulebook-tab-panel {
+  text-align: left;
+}
+
 .share-modal-box {
   max-width: 420px;
   width: 92vw;
@@ -1085,6 +1113,41 @@ button {
   color: #888;
 }
 
+.scenario-card-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.5rem 0 1.25rem;
+}
+
+.scenario-card-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.scenario-card-index {
+  flex: 0 0 auto;
+  width: 1.4rem;
+  font-size: 0.8rem;
+  color: #888;
+  text-align: right;
+}
+
+.scenario-card-row select {
+  flex: 0 0 auto;
+}
+
+.scenario-card-row input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+}
+
 .game-boss-row {
   font-size: 0.8rem;
   color: #888;
@@ -1277,6 +1340,13 @@ button {
   }
   .modal-box {
     background: #222;
+    color: #eee;
+  }
+  .rulebook-tabs {
+    border-color: #444;
+  }
+  .rulebook-tab-btn {
+    border-color: #555;
     color: #eee;
   }
   .info-bubble {
