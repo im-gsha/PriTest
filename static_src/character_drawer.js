@@ -658,7 +658,95 @@
   }
 
   // --- 武器データベース検索＆選択（武器欄に既存の自由記述タグとは別枠で追加する） ---
-  function renderWeaponSkillEntry(container, ref) {
+  // ※ランダム戦技: 決定表が未確認のため、既知の戦技一覧から検索して手動で割り当てる
+  function renderRandomSkillPicker(container, weaponId, c) {
+    var resolvedId = c.weaponRandomSkills && c.weaponRandomSkills[weaponId];
+    if (resolvedId) {
+      var resolved = Weapons.getSkill(resolvedId);
+      var details = document.createElement("details");
+      details.className = "ability-entry";
+      var summary = document.createElement("summary");
+      summary.textContent =
+        window.I18N.t("weapon_random_skill_label") +
+        "　→　" +
+        (resolved ? Weapons.localizedText(resolved.name) + (resolved.kind ? "［" + resolved.kind + "］" : "") : resolvedId);
+      details.appendChild(summary);
+      if (resolved && resolved.body) {
+        var p = document.createElement("p");
+        p.className = "threat-ref-body";
+        p.textContent = Weapons.localizedText(resolved.body);
+        details.appendChild(p);
+      }
+      var clearBtn = document.createElement("button");
+      clearBtn.type = "button";
+      clearBtn.textContent = window.I18N.t("weapon_random_skill_clear_button");
+      clearBtn.addEventListener("click", function () {
+        delete c.weaponRandomSkills[weaponId];
+        saveFn();
+        renderWeaponList();
+      });
+      details.appendChild(clearBtn);
+      container.appendChild(details);
+      return;
+    }
+
+    var wrap = document.createElement("div");
+    wrap.className = "weapon-random-picker";
+    var label = document.createElement("p");
+    label.className = "threat-ref-body";
+    label.textContent = window.I18N.t("weapon_random_skill_label");
+    wrap.appendChild(label);
+
+    var searchBox = document.createElement("div");
+    searchBox.className = "weapon-search-box";
+    var input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = window.I18N.t("weapon_random_skill_search_placeholder");
+    var results = document.createElement("div");
+    results.className = "weapon-search-results";
+    results.hidden = true;
+
+    input.addEventListener("input", function () {
+      var q = input.value.trim().toLowerCase();
+      results.innerHTML = "";
+      if (!q) {
+        results.hidden = true;
+        return;
+      }
+      var matches = Weapons.allSkills().filter(function (entry) {
+        return Weapons.localizedText(entry.name).toLowerCase().indexOf(q) !== -1;
+      });
+      if (matches.length === 0) {
+        results.hidden = true;
+        return;
+      }
+      results.hidden = false;
+      matches.slice(0, 8).forEach(function (entry) {
+        var item = document.createElement("button");
+        item.type = "button";
+        item.className = "weapon-search-item";
+        item.textContent = Weapons.localizedText(entry.name);
+        item.addEventListener("click", function () {
+          if (!c.weaponRandomSkills) c.weaponRandomSkills = {};
+          c.weaponRandomSkills[weaponId] = entry.id;
+          saveFn();
+          renderWeaponList();
+        });
+        results.appendChild(item);
+      });
+    });
+
+    searchBox.appendChild(input);
+    searchBox.appendChild(results);
+    wrap.appendChild(searchBox);
+    container.appendChild(wrap);
+  }
+
+  function renderWeaponSkillEntry(container, ref, weaponId, c) {
+    if (ref.kind === "random") {
+      renderRandomSkillPicker(container, weaponId, c);
+      return;
+    }
     var body;
     var name;
     var kind = null;
@@ -687,9 +775,6 @@
       kind = "Passive";
     } else if (ref.kind === "bonus") {
       name = Weapons.localizedText(ref.text);
-      body = "";
-    } else if (ref.kind === "random") {
-      name = window.I18N.t("weapon_random_skill_label");
       body = "";
     } else {
       name = window.I18N.t("weapon_note_label");
@@ -738,8 +823,21 @@
       card.appendChild(stats);
     }
 
+    if (category && category.twoHitBonus && category.twoHitBonus.length) {
+      var twoHitTitle = document.createElement("p");
+      twoHitTitle.className = "boss-subheading";
+      twoHitTitle.textContent = window.I18N.t("weapon_two_hit_bonus_label");
+      card.appendChild(twoHitTitle);
+      category.twoHitBonus.forEach(function (bonus) {
+        var bonusP = document.createElement("p");
+        bonusP.className = "threat-ref-body";
+        bonusP.textContent = Weapons.localizedText(bonus.name) + window.I18N.t("colon_separator") + Weapons.localizedText(bonus.body);
+        card.appendChild(bonusP);
+      });
+    }
+
     (weapon.skills || []).forEach(function (ref) {
-      renderWeaponSkillEntry(card, ref);
+      renderWeaponSkillEntry(card, ref, weaponId, c);
     });
 
     if (category && category.innateSkills && category.innateSkills.length) {
@@ -757,6 +855,7 @@
     removeBtn.textContent = window.I18N.t("weapon_remove_button");
     removeBtn.addEventListener("click", function () {
       c.weaponIds.splice(c.weaponIds.indexOf(weaponId), 1);
+      if (c.weaponRandomSkills) delete c.weaponRandomSkills[weaponId];
       saveFn();
       renderWeaponList();
     });
@@ -839,6 +938,7 @@
       learnedRelicEffects: [],
       learnedAttachedEffects: [],
       weaponIds: [],
+      weaponRandomSkills: {},
     };
   }
 

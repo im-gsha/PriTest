@@ -266,8 +266,8 @@
     return isSwappedDay() ? [5, 4, 3] : [0, 1, 2];
   }
 
-  function saveState() {
-    var data = {
+  function buildSaveData() {
+    return {
       slots: state.slots,
       cardLevels: state.cardLevels,
       eventChips: state.eventChips,
@@ -290,7 +290,72 @@
       battle: state.battle,
       dicePool: state.dicePool,
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSaveData()));
+  }
+
+  // --- 「次の夜」への移行を1回分だけ取り消せる（押し間違い対策） ---
+  var UNDO_KEY = "pritest-night-undo-" + gameId;
+  var MAX_DAY = 3;
+
+  function saveUndoSnapshot() {
+    localStorage.setItem(UNDO_KEY, JSON.stringify(buildSaveData()));
+  }
+
+  function loadUndoSnapshot() {
+    var raw = localStorage.getItem(UNDO_KEY);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function clearUndoSnapshot() {
+    localStorage.removeItem(UNDO_KEY);
+  }
+
+  function applySnapshot(snap) {
+    state.slots = snap.slots;
+    state.cardLevels = snap.cardLevels;
+    state.eventChips = snap.eventChips;
+    state.boardStarted = snap.boardStarted;
+    state.log = snap.log;
+    state.focusedIndex = snap.focusedIndex;
+    state.dayNumber = snap.dayNumber;
+    state.startSuit = snap.startSuit;
+    state.endSuit = snap.endSuit;
+    state.startChecks = snap.startChecks;
+    state.endChecks = snap.endChecks;
+    state.startDefeated = snap.startDefeated;
+    state.startDefeatedDay = snap.startDefeatedDay;
+    state.timeLoss = snap.timeLoss;
+    state.wanderingBlessing = snap.wanderingBlessing;
+    state.rollEffects = snap.rollEffects;
+    state.smithingStone = snap.smithingStone;
+    state.stoneswordKey = snap.stoneswordKey;
+    state.grace = snap.grace;
+    state.battle = snap.battle;
+    state.dicePool = snap.dicePool;
+  }
+
+  function handleUndoNight() {
+    var snap = loadUndoSnapshot();
+    if (!snap) return;
+    if (!window.confirm(window.I18N.t("undo_night_confirm"))) return;
+    applySnapshot(snap);
+    clearUndoSnapshot();
+    saveState();
+    renderBoard();
+  }
+
+  function renderUndoButton() {
+    var btn = document.getElementById("btn-undo-night");
+    if (!btn) return;
+    btn.disabled = !loadUndoSnapshot();
   }
 
   function loadBattleState(raw) {
@@ -421,6 +486,7 @@
     state.battle = defaultBattleState();
     state.dicePool = [];
     localStorage.removeItem(STORAGE_KEY);
+    clearUndoSnapshot();
   }
 
   function addLog(key, params) {
@@ -463,6 +529,7 @@
     renderThreatSheet();
     renderCharacterRoster();
     renderNight3BossImage();
+    renderUndoButton();
   }
 
   // 第三天（最終夜）到達時のみ、管理員が設定した夜の王画像を盤面右側に表示する
@@ -1144,7 +1211,9 @@
           };
     } else {
       btn.textContent = window.I18N.t("next_night_button");
-      if (scenario) {
+      if (state.dayNumber >= MAX_DAY) {
+        btn.disabled = true;
+      } else if (scenario) {
         btn.disabled = false;
         btn.onclick = openKeepCardsDrawer;
       } else {
@@ -1261,6 +1330,9 @@
       alert(window.I18N.t("error_select_at_least_one"));
       return;
     }
+    var wasContinue = state.selectMode === "continue";
+    if (wasContinue) saveUndoSnapshot();
+
     var codes = Array.from(state.selection);
     var cardsLabel = codes
       .map(function (c) {
@@ -1289,7 +1361,6 @@
     });
     state.eventChips = rollEventChips();
 
-    var wasContinue = state.selectMode === "continue";
     var logKey = wasContinue ? "log_continue_submit" : "log_select_submit";
     state.boardStarted = true;
     if (wasContinue) advanceToNextNight();
@@ -1388,6 +1459,7 @@
 
   function submitKeepCards() {
     if (keepSelection.size !== 3) return;
+    saveUndoSnapshot();
     for (var i = 0; i < SLOT_COUNT; i++) {
       if (!keepSelection.has(i)) {
         state.slots[i] = null;
@@ -1657,6 +1729,7 @@
     document.getElementById("btn-keep-cancel").addEventListener("click", closeKeepCardsDrawer);
     document.getElementById("keep-drawer-backdrop").addEventListener("click", closeKeepCardsDrawer);
     document.getElementById("btn-new-game").addEventListener("click", handleNewGame);
+    document.getElementById("btn-undo-night").addEventListener("click", handleUndoNight);
     document.getElementById("btn-log-toggle").addEventListener("click", function () {
       document.getElementById("log-list").classList.toggle("collapsed");
       renderLogToggleLabel();

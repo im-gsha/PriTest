@@ -1269,6 +1269,13 @@ button {
   font-size: 1rem;
 }
 
+.weapon-random-picker {
+  margin: 0.5rem 0;
+  border: 1px dashed #bbb;
+  border-radius: 6px;
+  padding: 0.5rem;
+}
+
 .weapon-search-box {
   position: relative;
 }
