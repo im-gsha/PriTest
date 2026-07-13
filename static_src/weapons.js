@@ -207,6 +207,14 @@
     return SKILLS[id] || null;
   }
 
+  // 登録済み戦技の全件（{id, ...skill}[]）。ランダム戦技の手動割り当て検索に使う。
+  function allSkills() {
+    return Object.keys(SKILLS).map(function (id) {
+      var s = SKILLS[id];
+      return { id: id, name: s.name, kind: s.kind, body: s.body };
+    });
+  }
+
   function categories() {
     return CATEGORIES;
   }
@@ -225,6 +233,7 @@
     get: get,
     getCategory: getCategory,
     getSkill: getSkill,
+    allSkills: allSkills,
     categories: categories,
     search: search,
     localizedText: T,

@@ -28,6 +28,7 @@ BODY = """    <div class="night-header-row">
         </div>
       </div>
       <div class="night-header-actions">
+        <button id="btn-undo-night" type="button" data-i18n="undo_night_button"></button>
         <button id="btn-primary-action" type="button" class="primary-btn"></button>
         <button id="btn-new-game" type="button" class="danger-btn" data-i18n="new_game_button"></button>
       </div>
