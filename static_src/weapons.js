@@ -46,6 +46,18 @@
     {
       id: "dagger",
       name: C("短剣", "短劍"),
+      note: C(
+        "レア度「L」を引いた場合、この表には専用のL枠武器が存在しない。R表で再抽選し、R⑥に黒名刃が出た場合はそのまま黒名刃を獲得する。",
+        "抽到稀有度「L」時，此表無專屬L等級武器。改於R表重新抽選，若抽中R⑥的黑名刃，則直接獲得黑名刃。"
+      ),
+      randomSkillTable: [
+        { roll: "1", id: "art_quickstep" },
+        { roll: "2", id: "art_poison_moth" },
+        { roll: "3", id: "art_blood_blade" },
+        { roll: "4", id: "art_frost_step" },
+        { roll: "5", id: "art_flame_strike" },
+        { roll: "6", id: "art_assassin_method" },
+      ],
       basicStats: {
         attackCost: C("1Hit：①／2Hit：①①", "1Hit：①／2Hit：①①"),
         weaponPower: 5,
@@ -82,8 +94,8 @@
           name: C("パリィ", "格擋"),
           kind: "Defense",
           body: C(
-            "コスト：ゾロ（2個）　対象：自身　隊列：前衛・後衛どちらでも使用可能　効果：「ガード」の代わりに使用可能。効果を完全に無効化し、追加効果も無効化する。エンドフェイズまでにスタミナダイスを1個追加する。",
-            "消耗：豹子（2個）　對象：自身　編隊：前衛・後衛皆可使用　效果：可代替「防禦」使用。完全無效化該次傷害，追加效果也一併無效化。直到結束階段為止，追加1個體力骰。"
+            "コスト：ゾロ（2個）　対象：自身　隊列：前衛・後衛どちらでも使用可能　効果：「ガード」の代わりに使用可能。効果を完全に無効化し、追加効果も無効化する。次のターン開始時にスタミナダイスを1個追加する。",
+            "消耗：豹子（2個）　對象：自身　編隊：前衛・後衛皆可使用　效果：可代替「防禦」使用。完全無效化該次傷害，追加效果也一併無效化。下一回合開始，追加1個體力骰。"
           ),
         },
         {
@@ -91,8 +103,8 @@
           name: C("魔ダガーステップ", "魔匕首步"),
           kind: "Action",
           body: C(
-            "コスト：②／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：0＋戦技威力",
-            "消耗：②／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：0＋戰技威力"
+            "コスト：②／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：0＋戦技威力　効果：対象に【総合ダメージ：威力】と「魔：2D」を与える。ターン終了まで、この装備品は属性「魔」を帯びる。",
+            "消耗：②／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：0＋戰技威力　效果：對敵人造成【總合傷害：威力】與「魔：2D」。到回合結束為止武器附帶屬性（魔）。"
           ),
         },
       ],
@@ -100,6 +112,14 @@
     {
       id: "straightsword",
       name: C("直剣", "直劍"),
+      randomSkillTable: [
+        { roll: "1", id: "art_stance" },
+        { roll: "2", id: "art_boulder_stance" },
+        { roll: "3", id: "art_double_slash" },
+        { roll: "4", id: "art_storm_blade" },
+        { roll: "5", id: "art_carian_greatsword" },
+        { roll: "6", id: "art_lightning_slash" },
+      ],
       basicStats: {
         attackCost: C("1Hit：③／2Hit：③③", "1Hit：③／2Hit：③③"),
         weaponPower: 15,
@@ -129,31 +149,41 @@
           name: C("持ち替えコストなし", "無需替換消耗"),
           kind: "Passive",
           body: C(
-            "他の装備品へ持ち替えを行う際、この装備品への持ち替えに持ち替えコストのダイスを必要としない。",
-            "替換為其他裝備品時，替換為此裝備不需要消耗替換所需的骰子。"
+            "1ターンに1度だけ、「この装備品への装備変更」または「別の装備品への装備変更」を行うとき、ダイスコストを必要としない。",
+            "1回合限1次，進行「變更為此裝備品」或「變更為別的裝備品」時，不需要消耗骰子。"
           ),
         },
         {
           id: "straightsword_dual_wield",
-          name: C("二本差し", "二刀"),
-          kind: "Action",
+          name: C("二本差し", "二本差"),
+          kind: "Passive",
           body: C(
-            "コスト：①①／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：55＋戦技威力",
-            "消耗：①①／FP■　對象：敵人　編隊：前衛時可使用　威力：55＋戰技威力"
+            "他の武器（刀・杖・聖印）を装備状態にしておらず、この装備品を装備状態なら、この装備品のダメージを「1Hit：＋5／2Hit：＋10」する。",
+            "未裝備其他武器（刀・杖・聖印）且裝備狀態為此裝備品時，此裝備品的傷害「1Hit：＋5／2Hit：＋10」。"
           ),
         },
         {
           id: "straightsword_night_and_flame",
           name: C("夜と炎の加護", "夜與焰之加護"),
           kind: "Passive",
-          body: UNCONFIRMED,
+          body: C(
+            "この装備品で効果「魔力の光線」を使用したアクション後、エンドフェイズまで、この装備品にスキル「属性｜魔」を追加する。この装備品で効果「炎の雑払い」を使用したアクション後、エンドフェイズまで、この装備品にスキル「属性｜炎」を追加する。",
+            "此裝備品使用效果「魔力的光線」的動作後，直到結束階段為止，此裝備品追加技能「屬性｜魔」。此裝備品使用效果「炎的雜清」的動作後，直到結束階段為止，此裝備品追加技能「屬性｜炎」。"
+          ),
         },
       ],
     },
     {
-      // 写真の回転・情報密度が高く、短剣／直剣より判読の確信度は低い。装備品スキル欄の細部は要再確認。
       id: "greatsword",
       name: C("大剣", "大劍"),
+      randomSkillTable: [
+        { roll: "1", id: "art_lunge" },
+        { roll: "2", id: "art_lion_slash" },
+        { roll: "3", id: "art_gravitas" },
+        { roll: "4", id: "art_red_lion_flame" },
+        { roll: "5", id: "art_great_carian" },
+        { roll: "6", id: "art_lightning_strike" },
+      ],
       basicStats: {
         attackCost: C("1Hit：⑤／2Hit：⑤⑤", "1Hit：⑤／2Hit：⑤⑤"),
         weaponPower: 25,
@@ -174,21 +204,73 @@
           name: C("両手持ちダメージ＋", "雙手持傷害＋"),
           kind: "Passive",
           body: C(
-            "他の武器（盾・杖・聖印状態のものを含む）を装備していないとき、この装備品でのアタックのダメージを「＋5」する。",
-            "未裝備其他武器（含盾・杖・聖印狀態）時，此裝備攻擊造成的傷害「＋5」。"
+            "他の武器（盾・杖・聖印状態のものを含む）を装備状態にしておらず、この装備品が装備状態なら、この装備品でのアタックのダメージを「1Hit：＋5／2Hit：＋10」する。",
+            "未裝備其他武器（含盾・杖・聖印狀態）且此裝備品為裝備狀態時，此裝備品攻擊造成的傷害「1Hit：＋5／2Hit：＋10」。"
           ),
         },
         { id: "greatsword_armor_break", name: C("鎧砕きの加護", "破鎧之加護"), kind: "Passive", body: UNCONFIRMED },
         { id: "greatsword_after_pierce", name: C("貫通後の加護", "貫穿後之加護"), kind: "Passive", body: UNCONFIRMED },
         { id: "greatsword_dragon_lineage", name: C("龍胤の加護", "龍胤之加護"), kind: "Passive", body: UNCONFIRMED },
-        { id: "greatsword_great_grace", name: C("大いなる加護", "偉大之加護"), kind: "Passive", body: UNCONFIRMED },
+        {
+          id: "greatsword_great_grace",
+          name: C("大いなる加護", "偉大之加護"),
+          kind: "Passive",
+          body: C(
+            "この装備品で遺物効果「タメ攻撃」を行うとき、対象に【総合ダメージ：威力】を追加する。",
+            "此裝備品進行遺物效果「蓄力攻擊」時，對敵人追加【總合傷害：威力】。"
+          ),
+        },
+        {
+          id: "greatsword_marais_grace",
+          name: C("マレー家の加護", "馬雷家的加護"),
+          kind: "Passive",
+          body: C(
+            "エネミーを撃破したとき、この装備品が装備状態なら、この装備品のダメージを「1Hit：＋5／2Hit：＋10」する。その日の終了まで、この効果は累積しない。",
+            "擊破敵人時，若此裝備品為裝備狀態，此裝備品的傷害「1Hit：＋5／2Hit：＋10」。直到當天結束為止，此效果不會累積。"
+          ),
+        },
+        {
+          id: "greatsword_blasphemous_grace",
+          name: C("冒涜の加護", "冒瀆的加護"),
+          kind: "Passive",
+          body: C(
+            "エネミーを撃破したとき、この装備品が装備状態なら自身に「HP回復：□」を適用する。モブにHP損害を与えた場合は、さらに追加で「HP回復：□」を適用する。",
+            "擊破敵人時，若此裝備品為裝備狀態，自身獲得「HP回復：□」。若對雜兵造成HP損害，額外再獲得「HP回復：□」。"
+          ),
+        },
+        {
+          id: "greatsword_golden_order_grace",
+          name: C("黄金律の加護", "黃金律的加護"),
+          kind: "Passive",
+          body: C(
+            "この装備品でアタックした後、この装備品を装備状態にしている自身の「状態異常蓄積値」が0になる。",
+            "此裝備品進行攻擊後，此裝備品裝備狀態的自身「異常狀態蓄積值」歸零。"
+          ),
+        },
+        {
+          id: "greatsword_dark_moon_grace",
+          name: C("暗月の加護", "闇月的加護"),
+          kind: "Passive",
+          body: C(
+            "この装備品を装備状態にしている自身から、エネミーへの属性蓄積の上限値「魔」を「－1」する（属性損害が発生しやすくなる）。",
+            "此裝備品裝備狀態的自身，對敵人的屬性蓄積上限值「魔」「－1」（更容易發生屬性損害）。"
+          ),
+        },
       ],
     },
     {
       id: "colossal",
       name: C("特大剣", "特大劍"),
+      randomSkillTable: [
+        { roll: "1", id: "art_lunge" },
+        { roll: "2", id: "art_lion_slash" },
+        { roll: "3", id: "art_gravitas" },
+        { roll: "4", id: "art_red_lion_flame" },
+        { roll: "5", id: "art_great_carian" },
+        { roll: "6", id: "art_lightning_strike" },
+      ],
       basicStats: {
-        attackCost: C("1Hit：⑤／2Hit：⑤⑤", "1Hit：⑤／2Hit：⑤⑤"),
+        attackCost: C("1Hit：⑥／2Hit：⑥⑥", "1Hit：⑥／2Hit：⑥⑥"),
         weaponPower: 30,
         powerMod: C("筋力", "力量"),
       },
@@ -219,8 +301,8 @@
           name: C("星呼び", "呼星"),
           kind: "Action",
           body: C(
-            "コスト：ソロ（3個）／FP■■■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：25",
-            "消耗：ソロ（3個）／FP■■■　對象：敵人・雜兵　編隊：前衛時可使用　威力：25"
+            "コスト：ゾロ（3個）／FP■■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：25＋戦技威力　効果：モブに「HP損害：■」、エネミーに【総合ダメージ：威力】と「魔：3」を与える。",
+            "消耗：豹子（3個）／FP■■　對象：敵人・雜兵　編隊：前衛時可使用　威力：25＋戰技威力　效果：對雜兵造成「HP損害：■」，對敵人造成【總合傷害：威力】與「魔：3」。"
           ),
         },
         {
@@ -228,8 +310,71 @@
           name: C("運命の死", "命運之死"),
           kind: "Action",
           body: C(
-            "コスト：ソロ（2個）／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：55",
-            "消耗：ソロ（2個）／FP■　對象：敵人　編隊：前衛時可使用　威力：55"
+            "コスト：ゾロ（2個）／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：55＋戦技威力　効果：対象に【総合ダメージ：威力＋▲】と「聖：1D」を与える。",
+            "消耗：豹子（2個）／FP■　對象：敵人　編隊：前衛時可使用　威力：55＋戰技威力　效果：對敵人造成【總合傷害：威力＋▲】與「聖：1D」。"
+          ),
+        },
+        {
+          id: "colossal_wolf_charge",
+          name: C("狼の襲撃", "狼之襲擊"),
+          kind: "Action",
+          body: C(
+            "コスト：ゾロ（2個）／FP■■　対象：エネミー　隊列：後衛のとき使用可能　威力：5＋戦技威力　効果：対象に【総合ダメージ：威力＋▲】と「凍傷：3」を与える。",
+            "消耗：豹子（2個）／FP■■　對象：敵人　編隊：後衛時可使用　威力：5＋戰技威力　效果：對敵人造成【總合傷害：威力＋▲】與「凍傷：3」。"
+          ),
+        },
+        {
+          id: "colossal_queen_black_flame",
+          name: C("女王の黒炎", "女王的黑炎"),
+          kind: "Action",
+          body: C(
+            "コスト：連番（2個）／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：20＋戦技威力　効果：対象に【総合ダメージ：威力＋▲】と「炎：3」を与える。このアクション後、自身は前衛エリアに移動する。",
+            "消耗：連號（2個）／FP■　對象：敵人　編隊：前衛時可使用　威力：20＋戰技威力　效果：對敵人造成【總合傷害：威力＋▲】與「炎：3」。此動作後，自身移動至前衛區域。"
+          ),
+        },
+        {
+          id: "colossal_collapse_wave",
+          name: C("崩壊波", "崩壞波"),
+          kind: "Action",
+          body: C(
+            "コスト：FP■　対象：自身　隊列：前衛・後衛どちらでも使用可能　効果：対象を「最大HP：＋□□」する。エンドフェイズまで、対象に耐力ダイスを1個追加する。このアクション後、対象を「最大HP：＋□□」する（現在HPは回復しない）。このスキルの効果は重複しない。",
+            "消耗：FP■　對象：自身　編隊：前衛・後衛皆可使用　效果：對象「最大HP：＋□□」。直到結束階段為止，為對象追加1個耐力骰。此動作後，對象「最大HP：＋□□」（現在HP不回復）。此技能的效果不會重複。"
+          ),
+        },
+        {
+          id: "colossal_vengeance_grace",
+          name: C("復讐の加護", "復讐的加護"),
+          kind: "Passive",
+          body: C(
+            "エネミーを撃破したとき、この装備品が装備状態なら「武器威力：＋1」する。この効果は累積する。",
+            "擊破敵人時，若此裝備品為裝備狀態，「武器威力：＋1」。此效果會累積。"
+          ),
+        },
+        {
+          id: "colossal_collapse_grace",
+          name: C("崩壊の加護", "崩壞的加護"),
+          kind: "Passive",
+          body: C(
+            "他の武器（盾・杖・聖印状態のものを含む）を装備状態にしておらず、この装備品が装備状態なら、この装備品でのアタックのダメージを「1Hit：＋5／2Hit：＋10」する。",
+            "未裝備其他武器（含盾・杖・聖印狀態）且此裝備品為裝備狀態時，此裝備品攻擊造成的傷害「1Hit：＋5／2Hit：＋10」。"
+          ),
+        },
+        {
+          id: "colossal_starcrusher_grace",
+          name: C("星砕きの加護", "碎星的加護"),
+          kind: "Passive",
+          body: C(
+            "この装備品が装備状態のとき、アクションフェイズ開始時、対象の出目に「◎／◎◎」が含まれている場合、即座にエネミーに「HP損害：■」を与える。",
+            "此裝備品為裝備狀態時，行動階段開始時，若對象的出目包含「◎／◎◎」，立即對敵人造成「HP損害：■」。"
+          ),
+        },
+        {
+          id: "colossal_fate_of_death_grace",
+          name: C("運命の死の加護", "命運之死的加護"),
+          kind: "Passive",
+          body: C(
+            "この装備品が装備状態のとき、シナリオ開始直後のスタミナダイスの出目に「■□□」が含まれている場合、即座にエネミーに「HP損害：■」を与える。",
+            "此裝備品為裝備狀態時，副本開始直後的耐力骰出目若包含「■□□」，立即對敵人造成「HP損害：■」。"
           ),
         },
       ],
@@ -1264,140 +1409,329 @@
     art_blood_blade: {
       name: C("血の刃", "血刃"),
       kind: "Action",
-      body: C("コスト：④／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：5＋戦技威力", "消耗：④／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：5＋戰技威力"),
+      body: C(
+        "コスト：④／HP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：15＋戦技威力　効果：対象に【総合ダメージ：威力】と「出血：2」を与える。",
+        "消耗：④／HP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：15＋戰技威力　效果：對敵人造成【總合傷害：威力】與「出血：2」。"
+      ),
     },
     art_frost_step: {
       name: C("霜踏み", "霜踏"),
       kind: "Action",
-      body: C("コスト：①／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：15＋戦技威力", "消耗：①／FP■　對象：敵人　編隊：前衛時可使用　威力：15＋戰技威力"),
+      body: C(
+        "コスト：①①／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：15＋戦技威力　効果：ザコにHP損害■、対象に【総合ダメージ：威力】と「凍傷：2」を与える。",
+        "消耗：①①／FP■　對象：敵人　編隊：前衛時可使用　威力：15＋戰技威力　效果：對雜魚HP損害■、對敵人造成【總合傷害：威力】與「凍傷：2」。"
+      ),
     },
     art_flame_strike: {
       name: C("炎撃", "炎擊"),
       kind: "Action",
-      body: C("コスト：③／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：50＋戦技威力", "消耗：③／FP■　對象：敵人　編隊：前衛時可使用　威力：50＋戰技威力"),
+      body: C(
+        "コスト：①③／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：15＋戦技威力　効果：対象に【総合ダメージ：威力】と「炎：2」を与える。ターン終了まで、この装備品は属性「炎」を帯びる。",
+        "消耗：①③／FP■　對象：敵人　編隊：前衛時可使用　威力：15＋戰技威力　效果：對敵人造成【總合傷害：威力】與「炎：2」。本回合結束前此裝備品帶有屬性炎。"
+      ),
     },
     art_assassin_method: {
       name: C("暗殺の作法", "暗殺之法"),
       kind: "Action",
       body: C(
-        "コスト：①①／FP■　対象：エネミー　隊列：前衛のとき使用可能　効果：対象を、後衛、エンドフェイズまで「敵視：0」に変更する。",
-        "消耗：①①／FP■　對象：敵人　編隊：前衛時可使用　效果：將對象變更為後衛，直到結束階段為止「敵視：0」。"
+        "コスト：①／HP■　対象：自身　隊列：前衛・後衛どちらでも使用可能　効果：自身「敵視：0」。",
+        "消耗：①／hP■　對象：自身　編隊：前衛・後衛皆可使用　效果：自身敵視:0。"
       ),
     },
-    // 脇差の第2戦技名は写真からは確定できず、暫定的に「クイックステップ」のまま保持。要再確認。
-    art_quickstep: { name: C("クイックステップ", "疾風步"), kind: null, body: UNCONFIRMED },
+    art_poison_moth: {
+      name: C("毒蛾は二度舞う", "毒蛾二度舞"),
+      kind: "Action",
+      body: C(
+        "コスト：①①／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：5＋戦技威力　効果：対象に【総合ダメージ：威力】と「猛毒：4」を与える。",
+        "消耗：①①／FP■　對象：敵人　編隊：前衛可使用　威力：5＋戰技威力　效果：對敵人造成【總合傷害：威力】與「猛毒：4」。"
+      ),
+    },
+    art_quickstep: {
+      name: C("クイックステップ", "疾風步"),
+      kind: "Action",
+      body: C(
+        "コスト：①／FP■　対象：自身　隊列：前衛・後衛どちらでも使用可能　効果：対象の耐力ダイスを1個増やす。",
+        "消耗：①／FP■　對象：自身　編隊：前衛・後衛皆可使用　效果：對象增加一個耐力骰。"
+      ),
+    },
     art_consecutive_thrust: {
       name: C("連続突き", "連續突刺"),
       kind: "Action",
       body: C(
-        "コスト：②（2個）　対象：連続　隊列：前衛のとき使用可能　威力：40＋戦技威力",
-        "消耗：②（2個）　對象：連續　編隊：前衛時可使用　威力：40＋戰技威力"
+        "コスト：②（2個）　対象：連続　隊列：前衛のとき使用可能　威力：40＋戦技威力　効果：この武器が属性または状態異常を帯びている場合、エネミーへの蓄積値を「＋3」する。",
+        "消耗：②（2個）　對象：連續　編隊：前衛時可使用　威力：40＋戰技威力　效果:此武器帶有屬性或狀態異常的話,對敵人蓄積值+3。"
       ),
     },
     art_reduvia_blood_blade: {
       name: C("レドゥビアの血刃", "雷度維亞的血刃"),
       kind: "Action",
       body: C(
-        "コスト：③個／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：20　効果：対象に【総合ダメージ：威力】と「出血：2」を与える。",
-        "消耗：③個／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：20　效果：對敵人造成【總合傷害：威力】與「出血：2」。"
+        "コスト：③／HP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：10＋戦技威力　効果：対象に【総合ダメージ：威力】と「出血：2」を与える。",
+        "消耗：③／HP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：10+戰技威力　效果：對敵人造成【總合傷害：威力】與「出血：2」。"
+      ),
+    },
+    art_glintstone_shard: {
+      name: C("輝石彗粒", "輝石彗粒"),
+      kind: "Action",
+      body: C(
+        "コスト：③／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：25＋戦技威力　効果：対象に【総合ダメージ：威力】と「魔：2」を与える。",
+        "消耗：③／FP1　對象：敵人　編隊：前後衛可發動　威力：２５＋戰技威力　效果：對象總和傷害與 魔：２賦予。"
+      ),
+    },
+    art_golden_blade: {
+      name: C("黄金の刃", "黃金之刃"),
+      kind: "Action",
+      body: C(
+        "コスト：③／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：20＋戦技威力　効果：対象に【総合ダメージ：威力】と「聖：3」を与える。",
+        "消耗：③／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：20+戰技威力　效果：對敵人造成【總合傷害：威力】與「聖：3」。"
       ),
     },
     art_death_blade: {
       name: C("死の刃", "死之刃"),
       kind: "Action",
       body: C(
-        "コスト：④個　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：0＋戦技威力　効果：対象に【総合ダメージ：威力＋▲】と「聖：2」を与える。",
-        "消耗：④個　對象：敵人　編隊：前衛・後衛皆可使用　威力：0＋戰技威力　效果：對敵人造成【總合傷害：威力＋▲】與「聖：2」。"
+        "コスト：④／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：0＋戦技威力　効果：対象に【総合ダメージ：威力＋▲】と「聖：2」を与える。",
+        "消耗：④／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：0＋戰技威力　效果：對敵人造成【總合傷害：威力＋▲】與「聖：2」。"
       ),
     },
-    // 直剣｜ランダム戦技決定表（1D）：1なら構え、2〜6なら岩石構え。
     art_stance: {
       name: C("構え", "架式"),
       kind: "Action",
       body: C(
-        "コスト：①③／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：45＋戦技威力",
-        "消耗：①③／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：45＋戰技威力"
+        "コスト：①③／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：45＋戦技威力　効果：対象に【総合ダメージ：威力＋▲】を与える。",
+        "消耗：①③／FP■　對象：敵人　編隊：前衛時可使用　威力：45＋戰技威力　效果：對敵人造成【總合傷害：威力＋▲】。"
       ),
     },
     art_boulder_stance: {
-      name: C("岩石構え", "岩石架式"),
+      name: C("岩石剣", "岩石劍"),
       kind: "Action",
       body: C(
-        "コスト：①／FP■　対象：自身　隊列：前衛・後衛どちらでも使用可能　効果：対象に【総合ダメージ：威力】を与える。この装備品で2Hitのアタックを行ったとき、そのダメージに「＋▲」する。",
-        "消耗：①／FP■　對象：自身　編隊：前衛・後衛皆可使用　效果：對敵人造成【總合傷害：威力】。此裝備進行2Hit攻擊時，該傷害「＋▲」。"
+        "コスト：①／FP■　対象：自身　隊列：前衛・後衛どちらでも使用可能　効果：エンドフェイズまで、この装備品で2Hitのアタックを行ったとき、そのダメージに「＋▲」する。",
+        "消耗：①／FP■　對象：自身　編隊：前衛・後衛皆可使用　效果：直到結束階段為止，此裝備進行2Hit攻擊時，該傷害「＋▲」。"
+      ),
+    },
+    art_double_slash: {
+      name: C("二連斬り", "二連斬"),
+      kind: "Action",
+      body: C(
+        "コスト：①①／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：55＋戦技威力　効果：対象に【総合ダメージ：威力】を与える。状態異常｜X（154頁）がある場合、2Hit分の効果を発揮する。",
+        "消耗：①①／FP■　對象：敵人　編隊：前衛時可使用　威力：55＋戰技威力　效果：對敵人造成【總合傷害：威力】。若持有狀態異常｜X（154頁），發揮2Hit份的效果。"
+      ),
+    },
+    art_storm_blade: {
+      name: C("嵐の刃", "嵐之刃"),
+      kind: "Action",
+      body: C(
+        "コスト：①①／FP■　対象：エネミー　隊列：後衛のとき使用可能　威力：65＋戦技威力　効果：対象に【総合ダメージ：威力】を与える。武器にスキル「属性／状態異常｜X（154頁）」がある場合、2Hit分の効果を発揮する。",
+        "消耗：①①／FP■　對象：敵人　編隊：後衛時可使用　威力：65＋戰技威力　效果：對敵人造成【總合傷害：威力】。若武器持有技能「屬性／狀態異常｜X（154頁）」，發揮2Hit份的效果。"
+      ),
+    },
+    art_carian_greatsword: {
+      name: C("カーリアの大剣", "卡利亞大劍"),
+      kind: "Action",
+      body: C(
+        "コスト：ゾロ（2個）／FP■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：30＋戦技威力　効果：モブに「HP損害：■」を与え、エネミーに【総合ダメージ：威力】を与える。",
+        "消耗：豹子（2個）／FP■　對象：敵人・雜兵　編隊：前衛時可使用　威力：30＋戰技威力　效果：對雜兵造成「HP損害：■」，並對敵人造成【總合傷害：威力】。"
+      ),
+    },
+    art_lightning_slash: {
+      name: C("雷撃斬", "雷擊斬"),
+      kind: "Action",
+      body: C(
+        "コスト：①③／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：50＋戦技威力　効果：対象に【総合ダメージ：威力】と「雷：2」を与える。このアクション後、エンドフェイズまで、この装備品にスキル「属性｜雷（154頁）」を追加する。",
+        "消耗：①③／FP■　對象：敵人　編隊：前衛時可使用　威力：50＋戰技威力　效果：對敵人造成【總合傷害：威力】與「雷：2」。此動作後，直到結束階段為止，此裝備追加技能「屬性｜雷（154頁）」。"
       ),
     },
     art_eohid_sword_dance: {
       name: C("エオヒドの剣舞", "艾奧希德的劍舞"),
       kind: "Action",
       body: C(
-        "コスト：③個／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：15＋戦技威力",
-        "消耗：③個／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：15＋戰技威力"
+        "コスト：③（3個）／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：55＋戦技威力　効果：対象に【総合ダメージ：威力＋◆】を与える。",
+        "消耗：③（3個）／FP■　對象：敵人　編隊：前衛時可使用　威力：55＋戰技威力　效果：對敵人造成【總合傷害：威力＋◆】。"
       ),
     },
     art_unyielding_blade: {
       name: C("防ぎ得ぬ刃", "無法防禦之刃"),
       kind: "Action",
       body: C(
-        "コスト：①③／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：15＋戦技威力",
-        "消耗：①③／FP■　對象：敵人　編隊：前衛時可使用　威力：15＋戰技威力"
+        "コスト：①①（2個）／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：15＋戦技威力　効果：対象に【総合ダメージ：威力＋◆】を与える。",
+        "消耗：①①（2個）／FP■　對象：敵人　編隊：前衛時可使用　威力：15＋戰技威力　效果：對敵人造成【總合傷害：威力＋◆】。"
       ),
     },
-    // 大剣／特大剣｜ランダム戦技決定表（1D）のうち出目1。
+    art_golden_sword_technique: {
+      name: C("黄金の剣技", "黃金劍技"),
+      kind: "Action",
+      body: C(
+        "コスト：③③③／FP■　対象：自身　隊列：前衛・後衛どちらでも使用可能　効果：この装備品にエンドフェイズまでスキル「四連撃」を追加する。四連撃｜コスト：③③③　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　効果：この装備品はエンドフェイズまで、エネミーに「1Hitダメージの4倍」と「聖：5」を与える。",
+        "消耗：③③③／FP■　對象：自身　編隊：前衛・後衛皆可使用　效果：此裝備品到結束階段為止追加技能「四連擊」。四連擊｜消耗：③③③　對象：敵人　編隊：前衛・後衛皆可使用　效果：此裝備品到結束階段為止，對敵人造成「1Hit傷害的4倍」與「聖：5」。"
+      ),
+    },
+    art_mourning_tombstone: {
+      name: C("弔いの墓標", "弔唁墓標"),
+      kind: "Action",
+      body: C(
+        "コスト：FP■　対象：自身と任意のPC1人　隊列：前衛・後衛どちらでも使用可能　効果：自身と任意の装備状態の武器1つに、エンドフェイズまで、スキル「属性｜聖（154頁）」を追加する。",
+        "消耗：FP■　對象：自身與任意1名PC　編隊：前衛・後衛皆可使用　效果：對自身與任意裝備狀態的武器1個，直到結束階段為止，追加技能「屬性｜聖（154頁）」。"
+      ),
+    },
+    art_sleeping_mist: {
+      name: C("眠りの霧", "眠霧"),
+      kind: "Action",
+      body: C(
+        "コスト：③／FP■　対象：エネミー　隊列：前衛のとき使用可能　効果：対象に「睡眠：2」を与える。ターン終了まで、この装備品は属性「睡眠」を帯びる。",
+        "消耗：③／FP■　對象：敵人　編隊：前衛可使用　效果：對敵人造成「睡眠：2」。回合結束前武器附帶屬性｜睡眠。"
+      ),
+    },
+    art_night_and_flame_stance: {
+      name: C("夜と炎の構え", "夜與焰之構"),
+      kind: "Action",
+      body: C(
+        "コスト：FP■　対象：自身　隊列：前衛・後衛どちらでも使用可能　効果：この装備品はフェイズ終了までに、効果「魔力の光線」と効果「炎の雑払い」を使用可能になる。",
+        "消耗：FP■　對象：自身　編隊：前衛・後衛皆可使用　效果：直到本階段結束為止，此裝備品可使用效果「魔力的光線」與效果「炎的雜清」。"
+      ),
+    },
+    art_magic_ray: {
+      name: C("魔力の光線", "魔力的光線"),
+      kind: "Action",
+      body: C(
+        "コスト：①①（2個）／FP■　対象：エネミー・モブ　隊列：後衛のとき使用可能　威力：90＋戦技威力　効果：対象に【総合ダメージ：威力】を与える。モブに「HP損害：■」を与え、エネミーに「魔：1D」を与える。",
+        "消耗：①①（2個）／FP■　對象：敵人・雜兵　編隊：後衛時可使用　威力：90＋戰技威力　效果：對敵人造成【總合傷害：威力】。對雜兵造成「HP損害：■」，並對敵人造成「魔：1D」。"
+      ),
+    },
+    art_flame_sweep: {
+      name: C("炎の雑払い", "炎的雜清"),
+      kind: "Action",
+      body: C(
+        "コスト：①③／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：30＋戦技威力　効果：対象に【総合ダメージ：威力】と「炎：1D」を与える。",
+        "消耗：①③／FP■　對象：敵人　編隊：前衛時可使用　威力：30＋戰技威力　效果：對敵人造成【總合傷害：威力】與「炎：1D」。"
+      ),
+    },
     art_lunge: {
       name: C("踏み込み", "踏入"),
       kind: "Action",
       body: C(
-        "コスト：①①／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：55＋戦技威力",
-        "消耗：①①／FP■　對象：敵人　編隊：前衛時可使用　威力：55＋戰技威力"
+        "コスト：①⑤／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：55＋戦技威力　効果：戦技の使用者は、任意で効果「斬り上げ」と効果「回転薙ぎ」のどちらかを発揮できる。｜斬り上げ：対象に【総合ダメージ：威力＋▲】を与える。｜回転薙ぎ：対象にモブを追加。モブに「HP損害：■」、エネミーに【総合ダメージ：10＋威力】を与える。",
+        "消耗：①⑤／FP■　對象：敵人　編隊：前衛時可使用　威力：55＋戰技威力　效果：戰技的使用者可任意發揮效果「斬上」與效果「回轉薙」的其中一種。｜斬上：對象【總合傷害：威力＋▲】。｜回轉薙：對象追加雜兵。給予雜兵「HP損害：■」，給予敵人【總合傷害：10＋威力】。"
+      ),
+    },
+    art_lion_slash: {
+      name: C("獅子斬り", "獅子斬"),
+      kind: "Action",
+      body: C(
+        "コスト：ゾロ（2個）／FP■　対象：エネミー　隊列：後衛のとき使用可能　威力：20＋戦技威力",
+        "消耗：豹子（2個）／FP■　對象：敵人　編隊：後衛時可使用　威力：20＋戰技威力"
+      ),
+    },
+    art_gravitas: {
+      name: C("グラビタス", "重力斬"),
+      kind: "Action",
+      body: C(
+        "コスト：①①／FP■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：30＋戦技威力　効果：モブに「HP損害：■」を与え、自身は前衛エリアに移動する。このアクション後、エネミーに【総合ダメージ：威力】と「魔：2」を与える。",
+        "消耗：①①／FP■　對象：敵人・雜兵　編隊：前衛時可使用　威力：30＋戰技威力　效果：對雜兵造成「HP損害：■」，自身移動至前衛區域。此動作後，對敵人造成【總合傷害：威力】與「魔：2」。"
+      ),
+    },
+    art_red_lion_flame: {
+      name: C("赤獅子の炎", "赤獅子之炎"),
+      kind: "Action",
+      body: C(
+        "コスト：①①／FP■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：30＋戦技威力　効果：モブに「HP損害：■」、エネミーに【総合ダメージ：威力】と「炎：2」を与える。",
+        "消耗：①①／FP■　對象：敵人・雜兵　編隊：前衛時可使用　威力：30＋戰技威力　效果：對雜兵造成「HP損害：■」，對敵人造成【總合傷害：威力】與「炎：2」。"
+      ),
+    },
+    art_great_carian: {
+      name: C("グレート・カーリア", "偉大卡利亞"),
+      kind: "Action",
+      body: C(
+        "コスト：ゾロ（2個）／FP■■■　対象：エネミー・モブ　隊列：前衛・後衛どちらでも使用可能　威力：30＋戦技威力　効果：モブに「HP損害：■」、エネミーに【総合ダメージ：威力】と「魔：4」を与える。",
+        "消耗：豹子（2個）／FP■■■　對象：敵人・雜兵　編隊：前衛・後衛皆可使用　威力：30＋戰技威力　效果：對雜兵造成「HP損害：■」，對敵人造成【總合傷害：威力】與「魔：4」。"
+      ),
+    },
+    art_lightning_strike: {
+      name: C("落雷", "落雷"),
+      kind: "Action",
+      body: C(
+        "コスト：①①／FP■　対象：エネミー・モブ　隊列：後衛のとき使用可能　威力：30＋戦技威力　効果：モブに「HP損害：■」、エネミーに【総合ダメージ：威力】と「雷：2」を与える。",
+        "消耗：①①／FP■　對象：敵人・雜兵　編隊：後衛時可使用　威力：30＋戰技威力　效果：對雜兵造成「HP損害：■」，對敵人造成【總合傷害：威力】與「雷：2」。"
       ),
     },
     art_white_daylight_pull_wave: {
-      name: C("白日の引力波", "白日引力波"),
+      name: C("白王の引力波", "白王之引力波"),
       kind: "Action",
       body: C(
-        "コスト：①②／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：20",
-        "消耗：①②／FP■　對象：敵人　編隊：前衛時可使用　威力：20"
+        "コスト：①①／FP■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：5＋戦技威力　効果：モブに「HP損害：■」、エネミーに【総合ダメージ：威力】を与える。",
+        "消耗：①①／FP■　對象：敵人・雜兵　編隊：前衛時可使用　威力：5＋戰技威力　效果：對雜兵造成「HP損害：■」，對敵人造成【總合傷害：威力】。"
+      ),
+    },
+    art_death_wax_slash: {
+      name: C("死蝋斬り", "死蠟斬"),
+      kind: "Action",
+      body: C(
+        "コスト：②②／FP■　対象：エネミー　隊列：後衛のとき使用可能　威力：70＋戦技威力",
+        "消耗：②②／FP■　對象：敵人　編隊：後衛時可使用　威力：70＋戰技威力"
+      ),
+    },
+    art_miyr_scream: {
+      name: C("ミエロスの絶叫", "米埃洛斯的絕叫"),
+      kind: "Action",
+      body: C(
+        "コスト：①／FP■　対象：エネミー　隊列：前衛のとき使用可能　効果：対象に【総合ダメージ：威力】を与える。このアクション終了まで、対象を「HP価値：－10」する。このアクション終了後、ターン終了まで、この装備品での2Hitアタックの際、総合ダメージを「＋5」する。",
+        "消耗：①／FP■　對象：敵人　編隊：前衛時可使用　效果：對敵人造成【總合傷害：威力】。直到此動作結束為止，對象「HP價值：－10」。此動作結束後，直到回合結束為止，此裝備品進行2Hit攻擊時，總合傷害「＋5」。"
+      ),
+    },
+    art_ordovis_vortex: {
+      name: C("オルドビスの渦", "奧多維斯之渦"),
+      kind: "Action",
+      body: C(
+        "コスト：②②／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：20＋戦技威力",
+        "消耗：②②／FP■　對象：敵人　編隊：前衛時可使用　威力：20＋戰技威力"
+      ),
+    },
+    art_frost_flame_ignition: {
+      name: C("霊炎発火", "靈炎發火"),
+      kind: "Action",
+      body: C(
+        "コスト：ゾロ（2個）／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：15＋戦技威力",
+        "消耗：豹子（2個）／FP■　對象：敵人　編隊：前衛時可使用　威力：15＋戰技威力"
       ),
     },
     art_ruin_spirit_flame: {
       name: C("滅びの霊炎", "滅亡靈炎"),
       kind: "Action",
       body: C(
-        "コスト：FP■　対象：自身　隊列：前衛・後衛どちらでも使用可能　威力：15",
-        "消耗：FP■　對象：自身　編隊：前衛・後衛皆可使用　威力：15"
+        "コスト：FP■　対象：自身　隊列：前衛・後衛どちらでも使用可能　威力：15＋戦技威力　効果：対象に【総合ダメージ：威力】と「凍傷：1D」を与える。",
+        "消耗：FP■　對象：自身　編隊：前衛・後衛皆可使用　威力：15＋戰技威力　效果：對敵人造成【總合傷害：威力】與「凍傷：1D」。"
       ),
     },
     art_plunder_flame: {
       name: C("略奪の炎", "掠奪之炎"),
       kind: "Action",
       body: C(
-        "コスト：ゾロ／FP■■■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：35",
-        "消耗：豹子／FP■■■　對象：敵人・雜兵　編隊：前衛時可使用　威力：35"
+        "コスト：ゾロ（2個）／FP■■■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：35＋戦技威力　効果：モブに「HP損害：■」を与える。自身に「HP回復：□」を適用し、さらに追加で「HP回復：□」を適用する。このアクション後、エンドフェイズまでに、この装備品にスキル「属性｜魔（154頁）」を追加する。",
+        "消耗：豹子（2個）／FP■■■　對象：敵人・雜兵　編隊：前衛時可使用　威力：35＋戰技威力　效果：對雜兵造成「HP損害：■」。自身獲得「HP回復：□」，並額外再獲得「HP回復：□」。此動作後，直到結束階段為止，此裝備品追加技能「屬性｜魔（154頁）」。"
       ),
     },
     art_golden_order_hoist: {
       name: C("黄金律掲揚", "黃金律掲揚"),
       kind: "Action",
       body: C(
-        "コスト：①①（2個）／FP■■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：10",
-        "消耗：①①（2個）／FP■■　對象：敵人・雜兵　編隊：前衛時可使用　威力：10"
+        "コスト：①①／FP■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：10＋戦技威力　効果：モブに「HP損害：■」を与える。",
+        "消耗：①①／FP■　對象：敵人・雜兵　編隊：前衛時可使用　威力：10＋戰技威力　效果：對雜兵造成「HP損害：■」。"
       ),
     },
     art_moonlight_blade: {
       name: C("月光剣", "月光劍"),
       kind: "Action",
       body: C(
-        "コスト：ゾロ（2個）／FP■　対象：エネミー　隊列：後衛のとき使用可能　威力：10",
-        "消耗：豹子（2個）／FP■　對象：敵人　編隊：後衛時可使用　威力：10"
+        "コスト：ゾロ（2個）／FP■　対象：エネミー・モブ　隊列：後衛のとき使用可能　威力：10＋戦技威力　効果：モブに「HP損害：■」、エネミーに【総合ダメージ：威力】と「聖：2」を与える。",
+        "消耗：豹子（2個）／FP■　對象：敵人・雜兵　編隊：後衛時可使用　威力：10＋戰技威力　效果：對雜兵造成「HP損害：■」，對敵人造成【總合傷害：威力】與「聖：2」。"
       ),
     },
     art_golden_wave: {
       name: C("黄金波", "黃金波"),
       kind: "Action",
       body: C(
-        "コスト：①①①／FP■■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：35",
-        "消耗：①①①／FP■■　對象：敵人・雜兵　編隊：前衛時可使用　威力：35"
+        "コスト：①①①／FP■■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：35＋戦技威力　効果：モブに「HP損害：■」、エネミーに【総合ダメージ：威力】と「聖：1D」を与える。",
+        "消耗：①①①／FP■■　對象：敵人・雜兵　編隊：前衛時可使用　威力：35＋戰技威力　效果：對雜兵造成「HP損害：■」，對敵人造成【總合傷害：威力】與「聖：1D」。"
       ),
     },
     // 刺剣｜ランダム戦技決定表：※ランダム戦技の武器はここから該当する戦技を検索して割り当てる。
@@ -2247,55 +2581,75 @@
   // roll：種類決定表（同カテゴリ・同レアリティ内で該当武器を決める出目）。写真の目分判読による暫定値のため、
   // 実物の規則書と食い違う場合は要修正。
   var WEAPONS = [
-    { id: "dagger_lady", category: "dagger", name: C("レディの短剣", "淑女的短劍"), rarity: "C", roll: "1", skills: [{ kind: "art", id: "art_blood_blade" }] },
-    { id: "dagger_targe", category: "dagger", name: C("タガー", "匕首"), rarity: "C", roll: "2", skills: [{ kind: "random" }] },
-    { id: "dagger_parrying", category: "dagger", name: C("パリングタガー", "格擋短劍"), rarity: "C", roll: "3", skills: [{ kind: "innate", id: "dagger_parry" }] },
-    { id: "dagger_large_knife", category: "dagger", name: C("大型ナイフ", "大型小刀"), rarity: "C", roll: "4", skills: [{ kind: "status", status: C("出血", "出血") }] },
-    { id: "dagger_mercy", category: "dagger", name: C("慈悲の短刀", "慈悲短刀"), rarity: "C", roll: "5", skills: [{ kind: "art", id: "art_frost_step" }] },
+    {
+      id: "dagger_lady",
+      category: "dagger",
+      name: C("魔力の短剣", "魔力的短劍"),
+      rarity: "C",
+      roll: "1〜2",
+      skills: [{ kind: "innate", id: "dagger_step" }],
+    },
+    { id: "dagger_parrying", category: "dagger", name: C("パリングタガー", "格擋短劍"), rarity: "C", roll: "3〜4", skills: [{ kind: "innate", id: "dagger_parry" }] },
+    { id: "dagger_large_knife", category: "dagger", name: C("大型ナイフ", "大型小刀"), rarity: "C", roll: "5〜6", skills: [{ kind: "status", status: C("出血", "出血") }] },
+    { id: "dagger_mercy", category: "dagger", name: C("慈悲の短刀", "慈悲短刀"), rarity: "U", roll: "1", skills: [{ kind: "innate", id: "dagger_crit_up" }] },
     {
       id: "dagger_brass",
       category: "dagger",
       name: C("黄銅の短剣", "黃銅短劍"),
-      rarity: "C",
-      roll: "6",
-      skills: [{ kind: "status", status: C("出血", "出血") }, { kind: "art", id: "art_frost_step" }],
+      rarity: "U",
+      roll: "2",
+      powerModOverride: C("信仰", "信仰"),
+      skills: [{ kind: "random" }],
     },
     {
       id: "dagger_wakizashi",
       category: "dagger",
       name: C("脇差", "脇差"),
       rarity: "U",
-      roll: "1",
-      powerModOverride: C("信仰", "信仰"),
-      skills: [{ kind: "innate", id: "dagger_crit_up" }, { kind: "art", id: "art_quickstep" }],
+      roll: "3",
+      skills: [{ kind: "status", status: C("出血", "出血") }],
     },
-    { id: "dagger_sickle", category: "dagger", name: C("祝祭の手鎌", "祭典鐮刀"), rarity: "U", roll: "2", skills: [{ kind: "random" }] },
-    { id: "dagger_strange_knife", category: "dagger", name: C("奇晶ナイフ", "奇晶小刀"), rarity: "U", roll: "3", skills: [{ kind: "status", status: C("出血", "出血") }] },
+    { id: "dagger_sickle", category: "dagger", name: C("祝祭の手鎌", "祭典鐮刀"), rarity: "U", roll: "4", skills: [{ kind: "random" }] },
+    { id: "dagger_strange_knife", category: "dagger", name: C("奇晶ナイフ", "奇晶小刀"), rarity: "U", roll: "5", skills: [{ kind: "element", element: C("魔", "魔") }] },
     {
       id: "dagger_crystal_needle",
       category: "dagger",
       name: C("結晶の針", "結晶之針"),
       rarity: "U",
-      roll: "4",
+      roll: "6",
       powerModOverride: C("知力", "知力"),
       skills: [{ kind: "element", element: C("魔", "魔") }],
     },
-    { id: "dagger_insect_needle", category: "dagger", name: C("蟲の針", "蟲之針"), rarity: "U", roll: "5", skills: [{ kind: "status", status: C("腐敗", "腐敗") }] },
-    { id: "dagger_cinquedea", category: "dagger", name: C("チンクエディア", "闊劍匕首"), rarity: "U", roll: "6", skills: [{ kind: "art", id: "art_consecutive_thrust" }] },
+    {
+      id: "dagger_insect_needle",
+      category: "dagger",
+      name: C("蟲の針", "蟲之針"),
+      rarity: "R",
+      roll: "1",
+      skills: [{ kind: "status", status: C("腐敗", "腐敗") }, { kind: "art", id: "art_consecutive_thrust" }],
+    },
+    {
+      id: "dagger_cinquedea",
+      category: "dagger",
+      name: C("チンクエディア", "闊劍匕首"),
+      rarity: "R",
+      roll: "2",
+      skills: [{ kind: "bonus", text: C("戦技ダメージ＋5", "戰技傷害＋5") }, { kind: "random" }],
+    },
     {
       id: "dagger_glintstone_kris",
       category: "dagger",
       name: C("輝石のクリス", "輝石短劍"),
       rarity: "R",
-      roll: "1〜2",
-      skills: [{ kind: "bonus", text: C("戦技ダメージ＋5", "戰技傷害＋5") }, { kind: "random" }],
+      roll: "3",
+      skills: [{ kind: "element", element: C("魔", "魔") }, { kind: "art", id: "art_glintstone_shard" }],
     },
     {
       id: "dagger_reduvia",
       category: "dagger",
       name: C("レドゥビア", "雷度維亞"),
       rarity: "R",
-      roll: "3〜4",
+      roll: "4",
       skills: [{ kind: "status", status: C("出血", "出血") }, { kind: "art", id: "art_reduvia_blood_blade" }],
     },
     {
@@ -2303,53 +2657,48 @@
       category: "dagger",
       name: C("使命の刃", "使命之刃"),
       rarity: "R",
-      roll: "5〜6",
-      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "art", id: "art_death_blade" }],
+      roll: "5",
+      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "art", id: "art_golden_blade" }],
     },
     {
       id: "dagger_black_named",
       category: "dagger",
       name: C("黒名刃", "黑名刃"),
-      rarity: "L",
-      roll: "－",
-      skills: [{ kind: "note", text: C("この表には存在しない。R表で再抽選する。", "此稀有度不存在此武器，改於R表重新抽選。") }],
+      rarity: "R",
+      roll: "6",
+      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "art", id: "art_death_blade" }],
     },
 
-    // ▼直剣（straightsword）：写真判読による暫定データ。C/U/R/Lの一部武器名・装備品スキルは要再確認（UNCONFIRMED参照）。
+    // ▼直剣（straightsword）
     { id: "straightsword_short_sword", category: "straightsword", name: C("ショートソード", "短劍"), rarity: "C", roll: "1", skills: [{ kind: "random" }] },
-    { id: "straightsword_long_sword", category: "straightsword", name: C("ロングソード", "長劍"), rarity: "C", roll: "2", skills: [{ kind: "art", id: "art_stance" }] },
-    { id: "straightsword_broadsword", category: "straightsword", name: C("ブロードソード", "闊劍"), rarity: "C", roll: "3", skills: [{ kind: "random" }] },
-    { id: "straightsword_worn", category: "straightsword", name: C("古びた直剣", "老舊直劍"), rarity: "C", roll: "4", skills: [{ kind: "random" }] },
+    { id: "straightsword_long_sword", category: "straightsword", name: C("ロングソード", "長劍"), rarity: "C", roll: "2〜3", skills: [{ kind: "art", id: "art_stance" }] },
+    { id: "straightsword_broadsword", category: "straightsword", name: C("ブロードソード", "闊劍"), rarity: "C", roll: "4", skills: [{ kind: "random" }] },
+    { id: "straightsword_worn", category: "straightsword", name: C("古びた直剣", "老舊直劍"), rarity: "C", roll: "5", skills: [{ kind: "random" }] },
+    { id: "straightsword_noble_rapier", category: "straightsword", name: C("貴人の細剣", "貴人的細劍"), rarity: "C", roll: "6", skills: [{ kind: "random" }] },
+    { id: "straightsword_lordsworn", category: "straightsword", name: C("君主軍の直剣", "君主軍的直劍"), rarity: "U", roll: "1", skills: [{ kind: "random" }] },
     {
-      id: "straightsword_noble_rapier",
+      id: "straightsword_cane_sword",
       category: "straightsword",
-      name: C("貴人の細剣", "貴人的細劍"),
-      rarity: "C",
-      roll: "5",
+      name: C("杖剣", "杖劍"),
+      rarity: "U",
+      roll: "2",
       skills: [{ kind: "innate", id: "straightsword_no_swap_cost" }],
-    },
-    {
-      id: "straightsword_lordsworn",
-      category: "straightsword",
-      name: C("君主軍の直剣", "君主軍的直劍"),
-      rarity: "C",
-      roll: "6",
-      skills: [{ kind: "innate", id: "straightsword_2hit_bonus" }],
     },
     {
       id: "straightsword_warhawk_talon",
       category: "straightsword",
       name: C("戦鷲の爪剣", "戰鷹之爪劍"),
       rarity: "U",
-      roll: "1",
-      skills: [{ kind: "element", element: C("聖", "聖") }],
+      roll: "3",
+      skills: [{ kind: "innate", id: "straightsword_2hit_bonus" }],
     },
     {
       id: "straightsword_lazuli_glintstone",
       category: "straightsword",
       name: C("ラズリの輝石剣", "琉璃輝石劍"),
       rarity: "U",
-      roll: "2",
+      roll: "4",
+      powerModOverride: C("知力", "知力"),
       skills: [{ kind: "element", element: C("魔", "魔") }],
     },
     {
@@ -2357,63 +2706,69 @@
       category: "straightsword",
       name: C("カーリアの騎士剣", "卡利亞騎士劍"),
       rarity: "U",
-      roll: "3",
-      skills: [{ kind: "element", element: C("魔", "魔") }, { kind: "note", text: UNCONFIRMED }],
+      roll: "5",
+      skills: [{ kind: "element", element: C("魔", "魔") }],
     },
     {
       id: "straightsword_crystallized_knights",
       category: "straightsword",
       name: C("腐敗した騎士剣", "腐敗騎士劍"),
       rarity: "U",
-      roll: "4",
+      roll: "6",
+      powerModOverride: C("知力", "知力"),
       skills: [{ kind: "status", status: C("腐敗", "腐敗") }],
     },
     {
       id: "straightsword_miquella_knights",
       category: "straightsword",
       name: C("ミケラの騎士剣", "米凱拉的騎士劍"),
-      rarity: "U",
-      roll: "5",
-      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "note", text: UNCONFIRMED }],
+      rarity: "R",
+      roll: "1",
+      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "random" }],
     },
     {
       id: "straightsword_parade",
       category: "straightsword",
       name: C("儀仗の直剣", "儀仗直劍"),
-      rarity: "U",
-      roll: "6",
-      skills: [{ kind: "innate", id: "straightsword_dual_wield" }, { kind: "note", text: UNCONFIRMED }],
+      rarity: "R",
+      roll: "2",
+      skills: [{ kind: "innate", id: "straightsword_dual_wield" }, { kind: "art", id: "art_golden_sword_technique" }],
     },
     {
       id: "straightsword_gravestone",
       category: "straightsword",
       name: C("黄金の墓標", "黃金的墓標"),
       rarity: "R",
-      roll: "1〜2",
-      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "note", text: UNCONFIRMED }],
+      roll: "3",
+      skills: [
+        { kind: "element", element: C("聖", "聖") },
+        { kind: "art", id: "art_mourning_tombstone" },
+        { kind: "note", text: C("特効：死に生きる者（154頁）", "特效：死而生者（154頁）") },
+      ],
     },
     {
       id: "straightsword_trina",
       category: "straightsword",
       name: C("トリーナの剣", "特里娜之劍"),
       rarity: "R",
-      roll: "3〜4",
-      skills: [{ kind: "element", element: C("魔", "魔") }, { kind: "note", text: UNCONFIRMED }],
+      roll: "4",
+      skills: [{ kind: "element", element: C("魔", "魔") }, { kind: "art", id: "art_sleeping_mist" }],
     },
     {
       id: "straightsword_eohid",
       category: "straightsword",
-      name: C("エオヒドの剣舞", "艾奧希德的劍舞"),
+      name: C("エオヒドの宝剣", "艾奧希德的寶劍"),
       rarity: "R",
-      roll: "5〜6",
-      skills: [{ kind: "art", id: "art_eohid_sword_dance" }],
+      roll: "5",
+      powerModOverride: C("神秘", "神秘"),
+      skills: [{ kind: "element", element: C("魔", "魔") }, { kind: "art", id: "art_eohid_sword_dance" }],
     },
     {
       id: "straightsword_secret_letters",
       category: "straightsword",
       name: C("秘文字の剣", "祕文字之劍"),
-      rarity: "L",
-      roll: "1〜3",
+      rarity: "R",
+      roll: "6",
       powerModOverride: C("信仰", "信仰"),
       skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "art", id: "art_unyielding_blade" }],
     },
@@ -2422,171 +2777,203 @@
       category: "straightsword",
       name: C("夜と炎の剣", "夜與焰之劍"),
       rarity: "L",
-      roll: "4〜6",
-      skills: [{ kind: "element", element: C("炎", "火") }, { kind: "innate", id: "straightsword_night_and_flame" }],
+      roll: "1〜6",
+      skills: [
+        { kind: "element", element: C("炎", "火") },
+        { kind: "innate", id: "straightsword_night_and_flame" },
+        { kind: "art", id: "art_night_and_flame_stance" },
+      ],
     },
 
-    // ▼大剣（greatsword）／特大剣（colossal）：写真の回転・情報密度が高く判読の確信度が低いカテゴリ。
-    // 出目の決定方式自体は他カテゴリと同じ（★でレア度→そのレア度内で1Dを振って武器を決定）。
-    // ただし大剣C帯はアイコンギャラリー上7種確認できており（種類決定表は6種のみ判読）、レア度内の
-    // 正確な出目対応はクレイモアのみ「?」とし他は暫定で1〜6を割り当てている。装備品スキルも多くを
-    // 「note」＋未確認とした。
-    { id: "greatsword_pursuer", category: "greatsword", name: C("追跡者の大剣", "追跡者的大劍"), rarity: "C", roll: "1", skills: [{ kind: "art", id: "art_lunge" }] },
-    { id: "greatsword_bastard_sword", category: "greatsword", name: C("バスタードソード", "混血劍"), rarity: "C", roll: "2", skills: [{ kind: "random" }] },
-    { id: "greatsword_iron", category: "greatsword", name: C("鉄の大剣", "鐵之大劍"), rarity: "C", roll: "3", skills: [{ kind: "random" }] },
-    { id: "greatsword_lordsworn", category: "greatsword", name: C("君主軍の大剣", "君主軍的大劍"), rarity: "C", roll: "4", skills: [{ kind: "random" }] },
-    { id: "greatsword_knight", category: "greatsword", name: C("騎士大剣", "騎士大劍"), rarity: "C", roll: "5", skills: [{ kind: "random" }] },
-    { id: "greatsword_exiled", category: "greatsword", name: C("失地騎士の大剣", "失地騎士的大劍"), rarity: "C", roll: "6", skills: [{ kind: "random" }] },
-    { id: "greatsword_claymore", category: "greatsword", name: C("クレイモア", "克雷莫爾"), rarity: "C", roll: "?", skills: [{ kind: "random" }] },
-    { id: "greatsword_flamberge", category: "greatsword", name: C("フランベルジュ", "焰形劍"), rarity: "U", roll: "1", skills: [{ kind: "random" }] },
+    // ▼大剣（greatsword）
+    {
+      id: "greatsword_pursuer",
+      category: "greatsword",
+      name: C("追跡者の大剣", "追跡者的大劍"),
+      rarity: "C",
+      roll: "－（初始）",
+      skills: [{ kind: "art", id: "art_lunge" }],
+    },
+    { id: "greatsword_bastard_sword", category: "greatsword", name: C("バスタードソード", "混血劍"), rarity: "C", roll: "1〜2", skills: [{ kind: "random" }] },
+    { id: "greatsword_iron", category: "greatsword", name: C("鉄の大剣", "鐵之大劍"), rarity: "C", roll: "3〜4", skills: [{ kind: "random" }] },
+    { id: "greatsword_lordsworn", category: "greatsword", name: C("君主軍の大剣", "君主軍的大劍"), rarity: "C", roll: "5〜6", skills: [{ kind: "random" }] },
+    { id: "greatsword_claymore", category: "greatsword", name: C("クレイモア", "克雷莫爾"), rarity: "U", roll: "1", skills: [{ kind: "random" }] },
+    { id: "greatsword_knight", category: "greatsword", name: C("騎士大剣", "騎士大劍"), rarity: "U", roll: "2", skills: [{ kind: "note", text: UNCONFIRMED }] },
+    { id: "greatsword_exiled", category: "greatsword", name: C("失地騎士の大剣", "失地騎士的大劍"), rarity: "U", roll: "3", skills: [{ kind: "random" }] },
+    { id: "greatsword_flamberge", category: "greatsword", name: C("フランベルジュ", "焰形劍"), rarity: "U", roll: "4", skills: [{ kind: "random" }] },
     {
       id: "greatsword_twin_unbound",
       category: "greatsword",
       name: C("分かたれぬ双児の剣", "不可分之雙子劍"),
       rarity: "U",
-      roll: "2",
-      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "note", text: UNCONFIRMED }],
+      roll: "5",
+      skills: [{ kind: "status", status: C("出血", "出血") }],
     },
-    {
-      id: "greatsword_gargoyle",
-      category: "greatsword",
-      name: C("ガーゴイルの大剣", "石像鬼的大劍"),
-      rarity: "U",
-      roll: "3",
-      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "note", text: UNCONFIRMED }],
-    },
+    { id: "greatsword_gargoyle", category: "greatsword", name: C("ガーゴイルの大剣", "石像鬼的大劍"), rarity: "U", roll: "6", skills: [{ kind: "random" }] },
     {
       id: "greatsword_gargoyle_black",
       category: "greatsword",
       name: C("ガーゴイルの黒剣", "石像鬼的黑劍"),
-      rarity: "U",
-      roll: "4",
-      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "note", text: UNCONFIRMED }],
+      rarity: "R",
+      roll: "1",
+      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "art", id: "art_death_wax_slash" }],
     },
     {
       id: "greatsword_miyr",
       category: "greatsword",
       name: C("ミエロスの剣", "米埃洛斯之劍"),
-      rarity: "U",
-      roll: "5",
-      skills: [{ kind: "status", status: C("出血", "出血") }, { kind: "art", id: "art_white_daylight_pull_wave" }],
+      rarity: "R",
+      roll: "2",
+      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "art", id: "art_miyr_scream" }],
     },
     {
       id: "greatsword_ordovis",
       category: "greatsword",
       name: C("オルドビスの大剣", "奧多維斯的大劍"),
-      rarity: "U",
-      roll: "6",
-      skills: [{ kind: "element", element: C("魔", "魔") }, { kind: "note", text: UNCONFIRMED }],
+      rarity: "R",
+      roll: "3",
+      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "art", id: "art_ordovis_vortex" }],
     },
     {
       id: "greatsword_white_king",
       category: "greatsword",
       name: C("白王の剣", "白王之劍"),
       rarity: "R",
-      roll: "1",
-      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "note", text: UNCONFIRMED }],
+      roll: "4",
+      skills: [
+        { kind: "element", element: C("魔", "魔") },
+        { kind: "art", id: "art_white_daylight_pull_wave" },
+        { kind: "note", text: C("特効：星の眷属（155頁）", "特效：星之眷屬（155頁）") },
+      ],
     },
     {
       id: "greatsword_death_rake",
       category: "greatsword",
       name: C("死かき棒", "死之撥棒"),
       rarity: "R",
-      roll: "2",
-      skills: [{ kind: "element", element: C("魔", "魔") }, { kind: "art", id: "art_ruin_spirit_flame" }],
+      roll: "5",
+      skills: [{ kind: "status", status: C("凍傷", "凍傷") }, { kind: "art", id: "art_frost_flame_ignition" }],
     },
     {
       id: "greatsword_helphen",
       category: "greatsword",
       name: C("ヘルフェンの尖塔", "赫爾芬的尖塔"),
       rarity: "R",
-      roll: "3",
+      roll: "6",
       powerModOverride: C("神秘", "神秘"),
-      skills: [{ kind: "status", status: C("黄金律", "黃金律") }, { kind: "note", text: UNCONFIRMED }],
-    },
-    {
-      id: "greatsword_blasphemous",
-      category: "greatsword",
-      name: C("冒涜の聖剣", "冒瀆的聖劍"),
-      rarity: "R",
-      roll: "4",
-      skills: [{ kind: "note", text: UNCONFIRMED }],
+      skills: [{ kind: "element", element: C("魔", "魔") }, { kind: "art", id: "art_ruin_spirit_flame" }],
     },
     {
       id: "greatsword_marais_executioner",
       category: "greatsword",
       name: C("マレー家の執行剣", "馬雷家的處刑劍"),
-      rarity: "R",
-      roll: "5",
-      skills: [{ kind: "art", id: "art_plunder_flame" }],
+      rarity: "L",
+      roll: "1",
+      skills: [
+        { kind: "element", element: C("魔", "魔") },
+        { kind: "art", id: "art_eohid_sword_dance" },
+        { kind: "innate", id: "greatsword_marais_grace" },
+      ],
+    },
+    {
+      id: "greatsword_blasphemous",
+      category: "greatsword",
+      name: C("冒涜の聖剣", "冒瀆的聖劍"),
+      rarity: "L",
+      roll: "2",
+      skills: [
+        { kind: "element", element: C("炎", "火") },
+        { kind: "art", id: "art_plunder_flame" },
+        { kind: "innate", id: "greatsword_blasphemous_grace" },
+      ],
     },
     {
       id: "greatsword_golden_order",
       category: "greatsword",
       name: C("黄金律の大剣", "黃金律的大劍"),
-      rarity: "R",
-      roll: "6",
-      skills: [{ kind: "art", id: "art_golden_order_hoist" }],
+      rarity: "L",
+      roll: "3",
+      skills: [
+        { kind: "element", element: C("聖", "聖") },
+        { kind: "element", element: C("魔", "魔") },
+        { kind: "status", status: C("黄金律", "黃金律") },
+        { kind: "art", id: "art_golden_order_hoist" },
+        { kind: "innate", id: "greatsword_golden_order_grace" },
+      ],
     },
     {
       id: "greatsword_dark_moon",
       category: "greatsword",
       name: C("暗月の大剣", "闇月大劍"),
       rarity: "L",
-      roll: "1〜3",
-      skills: [{ kind: "status", status: C("黄金律", "黃金律") }, { kind: "art", id: "art_moonlight_blade" }],
+      roll: "4",
+      skills: [
+        { kind: "element", element: C("聖", "聖") },
+        { kind: "status", status: C("凍傷", "凍傷") },
+        { kind: "art", id: "art_moonlight_blade" },
+        { kind: "innate", id: "greatsword_dark_moon_grace" },
+      ],
     },
     {
       id: "greatsword_marika_relic",
       category: "greatsword",
       name: C("神の遺剣", "神之遺劍"),
       rarity: "L",
-      roll: "4〜6",
-      skills: [{ kind: "art", id: "art_golden_wave" }],
+      roll: "5",
+      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "element", element: C("魔", "魔") }, { kind: "art", id: "art_golden_wave" }],
+    },
+    {
+      id: "greatsword_l_reroll",
+      category: "greatsword",
+      name: C("（Lで出目⑥）", "（L出目⑥）"),
+      rarity: "L",
+      roll: "6",
+      skills: [{ kind: "note", text: C("Lで再抽選する。", "重新抽選L稀有度。") }],
     },
 
-    { id: "colossal_zweihander", category: "colossal", name: C("ツヴァイヘンダー", "雙手巨劍"), rarity: "C", roll: "－", skills: [{ kind: "random" }] },
-    { id: "colossal_greatsword", category: "colossal", name: C("グレートソード", "大劍"), rarity: "U", roll: "1〜2", skills: [{ kind: "random" }] },
-    { id: "colossal_thunder_hound", category: "colossal", name: C("雷犬の大剣", "雷犬的大劍"), rarity: "U", roll: "3〜4", skills: [{ kind: "random" }] },
+    { id: "colossal_zweihander", category: "colossal", name: C("ツヴァイヘンダー", "雙手巨劍"), rarity: "C", roll: "1〜3", skills: [{ kind: "random" }] },
+    { id: "colossal_greatsword", category: "colossal", name: C("グレートソード", "大劍"), rarity: "C", roll: "4〜6", skills: [{ kind: "random" }] },
+    { id: "colossal_thunder_hound", category: "colossal", name: C("雷犬の大剣", "雷犬的大劍"), rarity: "U", roll: "1〜2", skills: [{ kind: "random" }] },
+    { id: "colossal_troll_golden", category: "colossal", name: C("トロルの黄金剣", "巨魔的黃金劍"), rarity: "U", roll: "3〜4", skills: [{ kind: "random" }] },
     {
-      id: "colossal_troll_golden",
+      id: "colossal_troll_knight",
       category: "colossal",
-      name: C("トロルの黄金剣", "巨魔的黃金劍"),
+      name: C("トロルの騎士剣", "巨魔的騎士劍"),
       rarity: "U",
       roll: "5〜6",
       skills: [{ kind: "element", element: C("炎", "火") }, { kind: "note", text: UNCONFIRMED }],
     },
     {
-      id: "colossal_troll_knight",
+      id: "colossal_royal_greatsword",
       category: "colossal",
-      name: C("トロルの騎士剣", "巨魔的騎士劍"),
+      name: C("王家のグレートソード", "王家的大劍"),
       rarity: "R",
-      roll: "1〜2",
-      skills: [{ kind: "element", element: C("炎", "火") }, { kind: "note", text: UNCONFIRMED }],
+      roll: "1〜3",
+      skills: [{ kind: "note", text: UNCONFIRMED }],
     },
     {
       id: "colossal_godslayer",
       category: "colossal",
       name: C("神狩りの剣", "狩神之劍"),
       rarity: "R",
-      roll: "3〜4",
+      roll: "4〜6",
       skills: [{ kind: "note", text: UNCONFIRMED }],
     },
     {
       id: "colossal_flensing",
       category: "colossal",
       name: C("剥ぎ取りの大剣", "剝取的大劍"),
-      rarity: "R",
-      roll: "5〜6",
-      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "note", text: UNCONFIRMED }],
+      rarity: "L",
+      roll: "1",
+      skills: [{ kind: "element", element: C("聖", "聖") }, { kind: "innate", id: "colossal_vengeance_grace" }],
     },
     {
       id: "colossal_ruins",
       category: "colossal",
       name: C("遺跡の大剣", "遺跡的大劍"),
       rarity: "L",
-      roll: "1〜2",
-      skills: [{ kind: "element", element: C("魔", "魔") }, { kind: "note", text: UNCONFIRMED }],
+      roll: "2",
+      skills: [{ kind: "element", element: C("魔", "魔") }, { kind: "innate", id: "colossal_collapse_grace" }],
     },
     {
       id: "colossal_starcrusher",
@@ -2594,7 +2981,7 @@
       name: C("星砕きの大剣", "碎星的大劍"),
       rarity: "L",
       roll: "3",
-      skills: [{ kind: "note", text: UNCONFIRMED }],
+      skills: [{ kind: "innate", id: "colossal_starcrusher_grace" }],
     },
     {
       id: "colossal_marikes_black",
@@ -2602,15 +2989,15 @@
       name: C("マリケスの黒き剣", "馬利卡斯的黑劍"),
       rarity: "L",
       roll: "4",
-      skills: [{ kind: "note", text: C("この表には存在しない可能性あり（※再抽選する、と読める記載）。要再確認。", "此稀有度可能不存在此武器（原文似為「重新抽選」）。待確認。") }],
+      skills: [{ kind: "innate", id: "colossal_fate_of_death_grace" }],
     },
     {
-      id: "colossal_royal_greatsword",
+      id: "colossal_l_reroll",
       category: "colossal",
-      name: C("王家のグレートソード", "王家的大劍"),
+      name: C("（Lで出目⑤〜⑥）", "（L出目⑤〜⑥）"),
       rarity: "L",
       roll: "5〜6",
-      skills: [{ kind: "note", text: UNCONFIRMED }],
+      skills: [{ kind: "note", text: C("Lで再抽選する。", "重新抽選L稀有度。") }],
     },
 
     // ▼刺剣（rapier）／重刺剣（heavy_rapier）

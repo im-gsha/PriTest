@@ -997,6 +997,19 @@ button {
   margin-bottom: 0.3rem;
 }
 
+.weapon-note-input {
+  width: 100%;
+  min-height: 2.4rem;
+  resize: vertical;
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  box-sizing: border-box;
+}
+
 .consumable-count-row {
   display: flex;
   align-items: center;

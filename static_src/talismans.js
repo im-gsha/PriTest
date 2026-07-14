@@ -442,41 +442,102 @@
     });
   }
 
-  // タリスマン獲得決定表（200-202頁）。「1D」で表A／表Bを決め、各表内をさらに
-  // グループ（グループを決める出目）→グループ内アイテム（アイテムを決める出目）の
-  // 2段階で振って1個決定する、いわゆる d66 形式のランダム決定表。
-  // 最終グループ（メダリオン・恩寵系6種）はA表・B表で共通。
+  // タリスマン獲得決定表（200-202頁）。1D6で表A（①②③）／表B（④⑤⑥）を決め、
+  // 各表内をさらにグループ（1D6、6グループ均等）→グループ内アイテム（1D6、
+  // アイテム数が6未満のグループは出目が重複する）の2段階で振って1個を決定する
+  // d66形式のランダム決定表。最終グループ（メダリオン・恩寵系6種）はA表・B表で共通。
+  function R(roll, id) {
+    return { roll: roll, id: id };
+  }
+
   var ACQUISITION_SHARED_GROUP = [
-    "talisman_crimson_amber_medallion",
-    "talisman_blue_amber_medallion",
-    "talisman_green_amber_medallion",
-    "talisman_crimson_seed_medallion",
-    "talisman_green_turtle",
-    "talisman_erdtree_favor",
+    R("1", "talisman_crimson_amber_medallion"),
+    R("2", "talisman_blue_amber_medallion"),
+    R("3", "talisman_green_amber_medallion"),
+    R("4", "talisman_crimson_seed_medallion"),
+    R("5", "talisman_green_turtle"),
+    R("6", "talisman_erdtree_favor"),
   ];
 
   var ACQUISITION_GROUPS_A = [
-    ["talisman_sturdy_horn_charm", "talisman_immune_horn_charm", "talisman_sane_horn_charm", "talisman_dappled_horn_charm", "talisman_prince_of_death_pouch"],
     [
-      "talisman_dragoncrest_thunder",
-      "talisman_dragoncrest_flame",
-      "talisman_dragoncrest_magic",
-      "talisman_dragoncrest_holy",
-      "talisman_dragoncrest_pearl",
-      "talisman_dragon_shield_crest",
+      R("1", "talisman_sturdy_horn_charm"),
+      R("2", "talisman_immune_horn_charm"),
+      R("3", "talisman_sane_horn_charm"),
+      R("4-5", "talisman_dappled_horn_charm"),
+      R("6", "talisman_prince_of_death_pouch"),
     ],
-    ["talisman_millicents_gauntlet", "talisman_twin_blade", "talisman_winged_sword", "talisman_god_skin_swaddle", "talisman_curved_sword", "talisman_greathammer"],
-    ["talisman_scorpion_magic", "talisman_scorpion_flame", "talisman_scorpion_thunder", "talisman_scorpion_sacred"],
-    ["talisman_warrior_jar_shard", "talisman_sorcerer_orb", "talisman_believer_cloth", "talisman_longbow", "talisman_hardbow", "talisman_companion_jar"],
+    [
+      R("1", "talisman_dragoncrest_thunder"),
+      R("2", "talisman_dragoncrest_flame"),
+      R("3", "talisman_dragoncrest_magic"),
+      R("4", "talisman_dragoncrest_holy"),
+      R("5", "talisman_dragoncrest_pearl"),
+      R("6", "talisman_dragon_shield_crest"),
+    ],
+    [
+      R("1", "talisman_millicents_gauntlet"),
+      R("2", "talisman_twin_blade"),
+      R("3", "talisman_winged_sword"),
+      R("4", "talisman_god_skin_swaddle"),
+      R("5", "talisman_curved_sword"),
+      R("6", "talisman_greathammer"),
+    ],
+    [
+      R("1-2", "talisman_scorpion_magic"),
+      R("3", "talisman_scorpion_flame"),
+      R("4", "talisman_scorpion_thunder"),
+      R("5-6", "talisman_scorpion_sacred"),
+    ],
+    [
+      R("1", "talisman_warrior_jar_shard"),
+      R("2", "talisman_sorcerer_orb"),
+      R("3", "talisman_believer_cloth"),
+      R("4", "talisman_longbow"),
+      R("5", "talisman_hardbow"),
+      R("6", "talisman_companion_jar"),
+    ],
     ACQUISITION_SHARED_GROUP,
   ];
 
   var ACQUISITION_GROUPS_B = [
-    ["talisman_carian_filigree", "talisman_primal_glintstone_blade", "talisman_old_lords_talisman", "talisman_radagons_soreseal", "talisman_pillage_cameo", "talisman_spirit_horn"],
-    ["talisman_claw", "talisman_axe", "talisman_roar_medallion", "talisman_godfreys_icon", "talisman_perfumers"],
-    ["talisman_blood_lord_joy", "talisman_rot_joy", "talisman_greed", "talisman_great_goat", "talisman_great_shield", "talisman_arsenal_charm"],
-    ["talisman_shield_scorpion_charm", "talisman_sword_scorpion_charm", "talisman_crimson_seven_edge", "talisman_indigo_seven_edge"],
-    ["talisman_dew_tear", "talisman_blue_dancer_blade", "talisman_green_dancer_blade", "talisman_short_dancer_blade", "talisman_gold_scarab", "talisman_silver_scarab"],
+    [
+      R("1", "talisman_carian_filigree"),
+      R("2", "talisman_primal_glintstone_blade"),
+      R("3", "talisman_old_lords_talisman"),
+      R("4", "talisman_radagons_soreseal"),
+      R("5", "talisman_pillage_cameo"),
+      R("6", "talisman_spirit_horn"),
+    ],
+    [
+      R("1-2", "talisman_claw"),
+      R("3", "talisman_axe"),
+      R("4", "talisman_roar_medallion"),
+      R("5", "talisman_godfreys_icon"),
+      R("6", "talisman_perfumers"),
+    ],
+    [
+      R("1", "talisman_blood_lord_joy"),
+      R("2", "talisman_rot_joy"),
+      R("3", "talisman_greed"),
+      R("4", "talisman_great_goat"),
+      R("5", "talisman_great_shield"),
+      R("6", "talisman_arsenal_charm"),
+    ],
+    [
+      R("1", "talisman_shield_scorpion_charm"),
+      R("2", "talisman_sword_scorpion_charm"),
+      R("3-4", "talisman_crimson_seven_edge"),
+      R("5-6", "talisman_indigo_seven_edge"),
+    ],
+    [
+      R("1", "talisman_dew_tear"),
+      R("2", "talisman_blue_dancer_blade"),
+      R("3", "talisman_green_dancer_blade"),
+      R("4", "talisman_short_dancer_blade"),
+      R("5", "talisman_gold_scarab"),
+      R("6", "talisman_silver_scarab"),
+    ],
     ACQUISITION_SHARED_GROUP,
   ];
 
