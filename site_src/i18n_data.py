@@ -321,6 +321,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "enemy_hp_label": "HP量",
         "enemy_hp_unavailable_note": "此系統的詳細HP數值請參照規則書230-238頁的基礎資料表。",
         "battle_enemy_lookup_title": "敵人簡易查詢",
+        "talisman_acquisition_note": "【部分內容判讀信心較低，僅供參考，正確數值請對照原書200-202頁】先擲1顆骰子決定使用「決定表A」或「決定表B」，再於對應表內擲骰決定組別、然後於組內擲骰決定具體裝飾品。",
+        "talisman_acquisition_table_a_label": "裝飾品（A）決定表",
+        "talisman_acquisition_table_b_label": "裝飾品（B）決定表",
+        "talisman_acquisition_group_label": "第 {n} 組",
     },
     "ja": {
         "site_name": "PriTest",
@@ -635,6 +639,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "enemy_hp_label": "HP量",
         "enemy_hp_unavailable_note": "この系統の詳細なHP数値は規則書230-238頁の基礎データ表を参照してください。",
         "battle_enemy_lookup_title": "エネミー簡易検索",
+        "talisman_acquisition_note": "【一部の内容は判読信頼度が低いため参考程度とし、正確な数値は原書200〜202頁を参照】まず1個のダイスで「決定表A」か「決定表B」かを決め、対応する表内でさらにダイスを振ってグループを決定し、グループ内でもう一度ダイスを振って具体的なタリスマンを決定する。",
+        "talisman_acquisition_table_a_label": "タリスマン（A）決定表",
+        "talisman_acquisition_table_b_label": "タリスマン（B）決定表",
+        "talisman_acquisition_group_label": "グループ {n}",
     },
     "en": {
         "site_name": "PriTest",
@@ -949,5 +957,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "enemy_hp_label": "HP",
         "enemy_hp_unavailable_note": "Exact HP values for this family are not modeled here — see the rulebook's level table on pages 230-238.",
         "battle_enemy_lookup_title": "Quick Enemy Lookup",
+        "talisman_acquisition_note": "[Some entries have lower transcription confidence — for reference only, verify exact values against rulebook pages 200-202] Roll 1 die to pick Table A or Table B, then roll within that table to pick a group, then roll again within the group to pick the specific talisman.",
+        "talisman_acquisition_table_a_label": "Talisman Table A",
+        "talisman_acquisition_table_b_label": "Talisman Table B",
+        "talisman_acquisition_group_label": "Group {n}",
     },
 }

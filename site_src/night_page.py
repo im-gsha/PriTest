@@ -139,6 +139,7 @@ BODY = """    <div class="night-header-row">
           <div id="weapon-subtab-panels"></div>
         </div>
         <div class="rulebook-tab-panel" id="rulebook-panel-talisman" hidden>
+          <div id="talisman-acquisition-table"></div>
           <div id="talisman-rulebook-list"></div>
         </div>
         <div class="rulebook-tab-panel" id="rulebook-panel-consumable" hidden>
