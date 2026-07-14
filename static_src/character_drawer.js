@@ -878,12 +878,28 @@
       });
     }
 
+    var noteLabel = document.createElement("p");
+    noteLabel.className = "boss-subheading";
+    noteLabel.textContent = window.I18N.t("weapon_note_label");
+    card.appendChild(noteLabel);
+    var noteInput = document.createElement("textarea");
+    noteInput.className = "weapon-note-input";
+    noteInput.placeholder = window.I18N.t("weapon_note_placeholder");
+    noteInput.value = (c.weaponNotes && c.weaponNotes[weaponId]) || "";
+    noteInput.addEventListener("change", function () {
+      if (!c.weaponNotes) c.weaponNotes = {};
+      c.weaponNotes[weaponId] = noteInput.value;
+      saveFn();
+    });
+    card.appendChild(noteInput);
+
     var removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.textContent = window.I18N.t("weapon_remove_button");
     removeBtn.addEventListener("click", function () {
       c.weaponIds.splice(c.weaponIds.indexOf(weaponId), 1);
       if (c.weaponRandomSkills) delete c.weaponRandomSkills[weaponId];
+      if (c.weaponNotes) delete c.weaponNotes[weaponId];
       saveFn();
       renderWeaponList();
     });
@@ -1132,6 +1148,7 @@
       learnedAttachedEffects: [],
       weaponIds: [],
       weaponRandomSkills: {},
+      weaponNotes: {},
       talismanIds: [],
       consumableCounts: {},
     };

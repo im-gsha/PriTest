@@ -675,17 +675,17 @@
       heading.textContent = table.label;
       container.appendChild(heading);
 
-      table.groups.forEach(function (ids, groupIndex) {
+      table.groups.forEach(function (rows, groupIndex) {
         var groupBlock = document.createElement("details");
         groupBlock.className = "ability-entry";
         var summary = document.createElement("summary");
         summary.textContent = window.I18N.t("talisman_acquisition_group_label", { n: groupIndex + 1 });
         groupBlock.appendChild(summary);
-        var itemList = document.createElement("ol");
-        ids.forEach(function (id) {
-          var talisman = Talismans.get(id);
+        var itemList = document.createElement("ul");
+        rows.forEach(function (row) {
+          var talisman = Talismans.get(row.id);
           var li = document.createElement("li");
-          li.textContent = talisman ? Talismans.localizedText(talisman.name) : id;
+          li.textContent = "[" + row.roll + "] " + (talisman ? Talismans.localizedText(talisman.name) : row.id);
           itemList.appendChild(li);
         });
         groupBlock.appendChild(itemList);
@@ -995,6 +995,7 @@
       name = WL(ref.text);
     } else if (ref.kind === "random") {
       name = window.I18N.t("weapon_random_skill_label");
+      if (ref.note) body = WL(ref.note);
     } else {
       name = window.I18N.t("weapon_note_label");
       body = WL(ref.text);
@@ -1050,6 +1051,13 @@
     statsBlock.appendChild(statsP);
     container.appendChild(statsBlock);
 
+    if (category.note) {
+      var noteP = document.createElement("p");
+      noteP.className = "threat-ref-body";
+      noteP.textContent = WL(category.note);
+      container.appendChild(noteP);
+    }
+
     if (category.twoHitBonus && category.twoHitBonus.length) {
       var twoHitTitle = document.createElement("p");
       twoHitTitle.className = "boss-subheading";
@@ -1070,6 +1078,28 @@
       container.appendChild(innateTitle);
       category.innateSkills.forEach(function (s) {
         renderWeaponSkillRefEntry(container, { kind: "innate", id: s.id });
+      });
+    }
+
+    if (category.randomSkillTable && category.randomSkillTable.length) {
+      var randomTitle = document.createElement("p");
+      randomTitle.className = "boss-subheading";
+      randomTitle.textContent = window.I18N.t("weapon_random_skill_table_label");
+      container.appendChild(randomTitle);
+      category.randomSkillTable.forEach(function (row) {
+        var art = Weapons.getSkill(row.id);
+        var details = document.createElement("details");
+        details.className = "ability-entry";
+        var summary = document.createElement("summary");
+        summary.textContent = "[" + row.roll + "] " + (art ? WL(art.name) : row.id) + (art && art.kind ? "［" + art.kind + "］" : "");
+        details.appendChild(summary);
+        if (art) {
+          var p = document.createElement("p");
+          p.className = "threat-ref-body";
+          p.textContent = WL(art.body);
+          details.appendChild(p);
+        }
+        container.appendChild(details);
       });
     }
 
