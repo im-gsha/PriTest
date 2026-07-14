@@ -155,6 +155,17 @@ button {
   cursor: not-allowed;
 }
 
+.mini-card.locked {
+  border-color: #d99a00;
+  box-shadow: inset 0 0 0 1px #d99a00;
+  cursor: not-allowed;
+}
+
+.mini-card.locked.selected {
+  background: #d99a00;
+  border-color: #d99a00;
+}
+
 /* 花色ごとの色分け（黒/赤の二色だけだと紛らわしいため4色に分ける） */
 .suit-black { color: #222; }
 .suit-red { color: #c0392b; }
