@@ -2,6 +2,7 @@
   var Games = window.PriTestGames;
   var Scenarios = window.PriTestScenarios;
   var NightBosses = window.PriTestNightBosses;
+  var BossRulebook = window.PriTestBossRulebook;
 
   function requireAdmin() {
     var ok = Games.checkAdminPassword(window.I18N.t("admin_password_prompt"));
@@ -75,7 +76,12 @@
       NightBosses.list().forEach(function (b) {
         var opt = document.createElement("option");
         opt.value = b.id;
-        opt.textContent = b.title + " - " + b.subtitle;
+        var label = b.title + " - " + b.subtitle;
+        var localized = BossRulebook ? BossRulebook.get(b.id) : null;
+        if (localized && localized.name) {
+          label += "（" + localized.name.zh + " / " + localized.name.ja + "）";
+        }
+        opt.textContent = label;
         bossSelect.appendChild(opt);
       });
       bossSelect.value = game.night3BossId || "";

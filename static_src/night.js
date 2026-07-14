@@ -652,6 +652,48 @@
     });
   }
 
+  // タリスマン獲得決定表（200-202頁）：1Dで表A/Bを決め、各表内をグループ→アイテムの
+  // 2段階で振って1個を決定する参考資料。ゲーム内でダイスを振らせる機能ではなく、GM向けの一覧表示。
+  function renderTalismanAcquisitionTable() {
+    var container = document.getElementById("talisman-acquisition-table");
+    var Talismans = window.PriTestTalismans;
+    if (!container || !Talismans) return;
+    container.innerHTML = "";
+
+    var note = document.createElement("p");
+    note.className = "threat-ref-body";
+    note.textContent = window.I18N.t("talisman_acquisition_note");
+    container.appendChild(note);
+
+    var tables = Talismans.acquisitionTables();
+    [
+      { label: window.I18N.t("talisman_acquisition_table_a_label"), groups: tables.groupsA },
+      { label: window.I18N.t("talisman_acquisition_table_b_label"), groups: tables.groupsB },
+    ].forEach(function (table) {
+      var heading = document.createElement("p");
+      heading.className = "boss-subheading";
+      heading.textContent = table.label;
+      container.appendChild(heading);
+
+      table.groups.forEach(function (ids, groupIndex) {
+        var groupBlock = document.createElement("details");
+        groupBlock.className = "ability-entry";
+        var summary = document.createElement("summary");
+        summary.textContent = window.I18N.t("talisman_acquisition_group_label", { n: groupIndex + 1 });
+        groupBlock.appendChild(summary);
+        var itemList = document.createElement("ol");
+        ids.forEach(function (id) {
+          var talisman = Talismans.get(id);
+          var li = document.createElement("li");
+          li.textContent = talisman ? Talismans.localizedText(talisman.name) : id;
+          itemList.appendChild(li);
+        });
+        groupBlock.appendChild(itemList);
+        container.appendChild(groupBlock);
+      });
+    });
+  }
+
   // タリスマン（装飾品）一覧の参考資料タブ。武器と異なり単体でPassive効果を1つ持つだけ。
   function renderTalismanRulebook() {
     var container = document.getElementById("talisman-rulebook-list");
@@ -2335,6 +2377,7 @@
     renderLogToggleLabel();
     renderBossRulebook();
     renderWeaponRulebookAll();
+    renderTalismanAcquisitionTable();
     renderTalismanRulebook();
     renderConsumableRulebook();
     renderEnemyRulebookAll();
@@ -2420,6 +2463,7 @@
       renderBattleRefTexts();
       renderBossRulebook();
       renderWeaponRulebookAll();
+      renderTalismanAcquisitionTable();
       renderTalismanRulebook();
       renderConsumableRulebook();
       renderEnemyRulebookAll();
