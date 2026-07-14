@@ -5,6 +5,10 @@
   var SUIT_CLASSES = ["suit-black", "suit-red", "suit-orange", "suit-green"];
   var RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
   var SLOT_COUNT = 9;
+  // 固定配置副本（安寧者たち／瓦礫の王）の原書図解ポジション（1-9、上7-8-9／中4-S-5-E-6／下1-2-3）
+  // から実際の盤面スロット index（slot-0〜slot-8）への対応表。中央＝ポジション5＝slot-4。
+  var FIXED_LAYOUT_POS_TO_SLOT = { 1: 6, 2: 7, 3: 8, 4: 3, 5: 4, 6: 5, 7: 0, 8: 1, 9: 2 };
+  var FIXED_LAYOUT_CENTER_SLOT = FIXED_LAYOUT_POS_TO_SLOT[5];
   var NEW_GAME_PASSWORD = "night";
   var RULEBOOK_PASSWORD = "nightnight";
   var RULEBOOK_SESSION_KEY = "pritest-rulebook-session";
@@ -1975,18 +1979,27 @@
   function dealScenarioInitial() {
     state.startSuit = scenario.start.suit;
     state.endSuit = scenario.end.suit;
-    // 副本で決まっているのは「9枚のカードと場効果の組」だけで、どのマスに入るかは
-    // 自訂モードと同様にランダム（プレイのたびに配置が変わる）。
-    var positions = shuffle(
-      Array.from({ length: SLOT_COUNT }, function (_, i) {
-        return i;
-      })
-    );
-    scenario.day1.forEach(function (row, i) {
-      var idx = positions[i];
-      state.slots[idx] = { code: row.suit + "-" + row.rank, revealed: false };
-      state.cardLevels[idx] = 0;
-    });
+    if (scenario.fixedLayout) {
+      // 固定配置副本：原書図解の通りの位置（FIXED_LAYOUT_POS_TO_SLOT）にそのまま配置する。
+      scenario.day1.forEach(function (row) {
+        var idx = FIXED_LAYOUT_POS_TO_SLOT[row.pos];
+        state.slots[idx] = { code: row.suit + "-" + row.rank, revealed: false };
+        state.cardLevels[idx] = 0;
+      });
+    } else {
+      // 副本で決まっているのは「9枚のカードと場効果の組」だけで、どのマスに入るかは
+      // 自訂モードと同様にランダム（プレイのたびに配置が変わる）。
+      var positions = shuffle(
+        Array.from({ length: SLOT_COUNT }, function (_, i) {
+          return i;
+        })
+      );
+      scenario.day1.forEach(function (row, i) {
+        var idx = positions[i];
+        state.slots[idx] = { code: row.suit + "-" + row.rank, revealed: false };
+        state.cardLevels[idx] = 0;
+      });
+    }
     state.eventChips = rollEventChips();
     state.boardStarted = true;
     renderBoard();
@@ -2002,8 +2015,13 @@
 
   var keepSelection = new Set(); // 保留する場地（スロット番号）
 
+  function keepCardsTarget() {
+    return scenario && scenario.fixedLayout ? SLOT_COUNT - scenario.day2.length : 3;
+  }
+
   function openKeepCardsDrawer() {
     keepSelection.clear();
+    if (scenario && scenario.fixedLayout) keepSelection.add(FIXED_LAYOUT_CENTER_SLOT);
     renderKeepGrid();
     document.getElementById("keep-drawer").classList.add("open");
   }
@@ -2015,9 +2033,18 @@
   function renderKeepGrid() {
     var grid = document.getElementById("keep-grid");
     grid.innerHTML = "";
+    var target = keepCardsTarget();
+    var isFixed = scenario && scenario.fixedLayout;
+    var titleEl = document.querySelector("#keep-drawer h2");
+    if (titleEl) {
+      titleEl.textContent = isFixed
+        ? window.I18N.t("keep_cards_title_fixed", { n: target })
+        : window.I18N.t("keep_cards_title");
+    }
     for (var i = 0; i < SLOT_COUNT; i++) {
       (function (index) {
         var slot = state.slots[index];
+        var locked = isFixed && index === FIXED_LAYOUT_CENTER_SLOT;
         var btn = document.createElement("button");
         btn.type = "button";
         btn.className = "mini-card";
@@ -2031,12 +2058,13 @@
           btn.disabled = true;
         }
         if (keepSelection.has(index)) btn.classList.add("selected");
+        if (locked) btn.classList.add("locked");
         btn.addEventListener("click", function () {
-          if (!slot) return;
+          if (!slot || locked) return;
           if (keepSelection.has(index)) {
             keepSelection.delete(index);
           } else {
-            if (keepSelection.size >= 3) return;
+            if (keepSelection.size >= target) return;
             keepSelection.add(index);
           }
           renderKeepGrid();
@@ -2044,12 +2072,14 @@
         grid.appendChild(btn);
       })(i);
     }
-    document.getElementById("keep-count").textContent = window.I18N.t("keep_cards_count", { n: keepSelection.size });
-    document.getElementById("btn-keep-submit").disabled = keepSelection.size !== 3;
+    document.getElementById("keep-count").textContent = isFixed
+      ? window.I18N.t("keep_cards_count_fixed", { n: keepSelection.size, max: target })
+      : window.I18N.t("keep_cards_count", { n: keepSelection.size });
+    document.getElementById("btn-keep-submit").disabled = keepSelection.size !== target;
   }
 
   function submitKeepCards() {
-    if (keepSelection.size !== 3) return;
+    if (keepSelection.size !== keepCardsTarget()) return;
     saveUndoSnapshot();
     for (var i = 0; i < SLOT_COUNT; i++) {
       if (!keepSelection.has(i)) {
