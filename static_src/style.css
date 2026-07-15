@@ -885,6 +885,12 @@ button {
   border-bottom: 1px solid #eee;
 }
 
+.roster-skills-divider {
+  margin: 1rem 0;
+  border: none;
+  border-top: 2px dashed #ccc;
+}
+
 .roster-character-block {
   margin: 1rem 0;
   padding-top: 0.75rem;
@@ -896,10 +902,28 @@ button {
   font-size: 1rem;
 }
 
-.roster-character-block h5 {
+.roster-character-block h5,
+.roster-detail-col h5 {
   margin: 0.6rem 0 0.3rem;
   font-size: 0.85rem;
   color: #888;
+}
+
+.roster-detail-row td {
+  border-bottom: 1px solid #eee;
+  padding: 0.35rem 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.roster-detail-flex {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.roster-detail-col {
+  flex: 1 1 240px;
+  min-width: 200px;
 }
 
 .roster-weapon-list {
