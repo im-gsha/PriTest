@@ -9,6 +9,17 @@
   // から実際の盤面スロット index（slot-0〜slot-8）への対応表。中央＝ポジション5＝slot-4。
   var FIXED_LAYOUT_POS_TO_SLOT = { 1: 6, 2: 7, 3: 8, 4: 3, 5: 4, 6: 5, 7: 0, 8: 1, 9: 2 };
   var FIXED_LAYOUT_CENTER_SLOT = FIXED_LAYOUT_POS_TO_SLOT[5];
+  // 地変（terrain-shift）副本：「場地列5」＝開始山札に隣接するカード列（縦3マス）。
+  // scenario.day2 内で terrain:true のカードは常にこの3マスへ強制配置され、
+  // プレイヤーの「保持する場地」選択の対象外になる（135頁）。
+  var TERRAIN_SWAP_SLOTS = [0, 3, 6];
+
+  function scenarioTerrainRows() {
+    if (!scenario || !scenario.day2) return [];
+    return scenario.day2.filter(function (row) {
+      return row.terrain;
+    });
+  }
   var NEW_GAME_PASSWORD = "night";
   var RULEBOOK_PASSWORD = "nightnight";
   var RULEBOOK_SESSION_KEY = "pritest-rulebook-session";
@@ -55,7 +66,7 @@
     if (entered.length === 0) {
       var emptyRow = document.createElement("tr");
       var td = document.createElement("td");
-      td.colSpan = 6;
+      td.colSpan = 7;
       td.className = "character-roster-empty";
       td.textContent = window.I18N.t("character_roster_empty");
       emptyRow.appendChild(td);
@@ -93,11 +104,13 @@
       nameTd.appendChild(nameBtn);
       tr.appendChild(nameTd);
 
+      var flaskText = c.flaskBase.used + "/" + c.flaskBase.max + (c.flaskExtra && c.flaskExtra.max > 0 ? "（+" + c.flaskExtra.used + "/" + c.flaskExtra.max + "）" : "");
       [
         type ? CharacterTypes.localizedName(type.name) : "-",
         c.level,
         c.hp.current + "/" + c.hp.max,
         c.fp.current + "/" + c.fp.max,
+        flaskText,
       ].forEach(function (val) {
         var cell = document.createElement("td");
         cell.textContent = val;
@@ -110,6 +123,22 @@
       var h4 = document.createElement("h4");
       h4.textContent = c.name;
       block.appendChild(h4);
+
+      var diceTitle = document.createElement("h5");
+      diceTitle.textContent = window.I18N.t("character_dice_pool_label");
+      var diceWrap = document.createElement("div");
+      diceWrap.className = "dice-pool-list";
+      CharacterDrawer.renderDiceDisplay(diceWrap, c.dicePool || []);
+      block.appendChild(diceTitle);
+      block.appendChild(diceWrap);
+
+      var weaponTitle = document.createElement("h5");
+      weaponTitle.textContent = window.I18N.t("character_weapons_label");
+      var weaponWrap = document.createElement("div");
+      weaponWrap.className = "roster-weapon-list";
+      CharacterDrawer.renderRosterWeaponList(c, weaponWrap);
+      block.appendChild(weaponTitle);
+      block.appendChild(weaponWrap);
 
       var activeTitle = document.createElement("h5");
       activeTitle.textContent = window.I18N.t("cv_active_skills_title");
@@ -2094,7 +2123,15 @@
   function openKeepCardsDrawer() {
     keepSelection.clear();
     if (scenario && scenario.fixedLayout) keepSelection.add(FIXED_LAYOUT_CENTER_SLOT);
+    // 地変マスは「常に保持」ではなく「常に除外」なので keepSelection には入れない
+    // （入れると submitKeepCards のクリアループで残ってしまい、地変タイルを配置できなくなる）。
     renderKeepGrid();
+    var terrainNote = document.getElementById("keep-terrain-note");
+    if (terrainNote) {
+      var hasTerrain = scenarioTerrainRows().length > 0;
+      terrainNote.hidden = !hasTerrain;
+      if (hasTerrain && scenario.note) terrainNote.textContent = window.PriTestWeapons.localizedText(scenario.note);
+    }
     document.getElementById("keep-drawer").classList.add("open");
   }
 
@@ -2113,10 +2150,12 @@
         ? window.I18N.t("keep_cards_title_fixed", { n: target })
         : window.I18N.t("keep_cards_title");
     }
+    var hasTerrain = scenarioTerrainRows().length > 0;
     for (var i = 0; i < SLOT_COUNT; i++) {
       (function (index) {
         var slot = state.slots[index];
         var locked = isFixed && index === FIXED_LAYOUT_CENTER_SLOT;
+        var terrainLocked = hasTerrain && TERRAIN_SWAP_SLOTS.indexOf(index) !== -1;
         var btn = document.createElement("button");
         btn.type = "button";
         btn.className = "mini-card";
@@ -2131,8 +2170,9 @@
         }
         if (keepSelection.has(index)) btn.classList.add("selected");
         if (locked) btn.classList.add("locked");
+        if (terrainLocked) btn.classList.add("terrain-locked");
         btn.addEventListener("click", function () {
-          if (!slot || locked) return;
+          if (!slot || locked || terrainLocked) return;
           if (keepSelection.has(index)) {
             keepSelection.delete(index);
           } else {
@@ -2159,6 +2199,25 @@
         state.cardLevels[i] = null;
       }
     }
+    var allDay2Rows = scenario.day2.slice().sort(function (a, b) {
+      return a.pos - b.pos;
+    });
+    var terrainRows = allDay2Rows.filter(function (row) {
+      return row.terrain;
+    });
+    var normalRows = allDay2Rows.filter(function (row) {
+      return !row.terrain;
+    });
+    // 地変（terrain-shift）タイル：場地列5（slot 0/3/6）へランダム順で強制配置。
+    // 保持選択の対象外なので、この時点で既に空マスになっている。
+    if (terrainRows.length) {
+      shuffle(terrainRows).forEach(function (row, i) {
+        var pos = TERRAIN_SWAP_SLOTS[i];
+        if (pos === undefined) return;
+        state.slots[pos] = { code: row.suit + "-" + row.rank, revealed: false };
+        state.cardLevels[pos] = 0;
+      });
+    }
     var emptyPositions = shuffle(
       state.slots
         .map(function (s, i) {
@@ -2168,15 +2227,13 @@
           return v !== null;
         })
     );
-    var day2Rows = scenario.day2.slice().sort(function (a, b) {
-      return a.pos - b.pos;
-    });
-    day2Rows.forEach(function (row, i) {
+    normalRows.forEach(function (row, i) {
       var pos = emptyPositions[i];
       if (pos === undefined) return;
       state.slots[pos] = { code: row.suit + "-" + row.rank, revealed: false };
       state.cardLevels[pos] = 0;
     });
+    var day2Rows = allDay2Rows;
     state.eventChips = rollEventChips();
 
     advanceToNextNight();
@@ -2394,6 +2451,7 @@
       characters: rosterCharacters,
       save: saveRosterCharacters,
       onChange: renderCharacterRoster,
+      renderRoster: renderCharacterRoster,
     });
     loadState();
     buildBattleAreas();
@@ -2414,6 +2472,7 @@
 
     document.getElementById("btn-open-rulebook").addEventListener("click", handleOpenRulebook);
     document.getElementById("btn-rulebook-close").addEventListener("click", closeRulebookModal);
+    document.getElementById("btn-rulebook-floating-close").addEventListener("click", closeRulebookModal);
     document.querySelectorAll(".rulebook-tab-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
         switchRulebookTab(btn.getAttribute("data-tab"));

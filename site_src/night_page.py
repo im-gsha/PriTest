@@ -80,19 +80,22 @@ BODY = """    <div class="night-header-row">
       </div>
       <div class="character-roster" id="character-roster">
         <h3 data-i18n="character_roster_title"></h3>
-        <table class="character-roster-table" id="character-roster-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th data-i18n="character_roster_col_name"></th>
-              <th data-i18n="character_type_label"></th>
-              <th data-i18n="record_level_label"></th>
-              <th data-i18n="character_hp_label"></th>
-              <th data-i18n="character_fp_label"></th>
-            </tr>
-          </thead>
-          <tbody id="character-roster-tbody"></tbody>
-        </table>
+        <div class="character-roster-table-wrap">
+          <table class="character-roster-table" id="character-roster-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th data-i18n="character_roster_col_name"></th>
+                <th data-i18n="character_type_label"></th>
+                <th data-i18n="record_level_label"></th>
+                <th data-i18n="character_hp_label"></th>
+                <th data-i18n="character_fp_label"></th>
+                <th data-i18n="record_flask_base_label"></th>
+              </tr>
+            </thead>
+            <tbody id="character-roster-tbody"></tbody>
+          </table>
+        </div>
         <div id="character-roster-skills"></div>
       </div>
       <div class="log-panel">
@@ -110,6 +113,7 @@ BODY = """    <div class="night-header-row">
 
     <div id="rulebook-modal" class="modal" hidden>
       <div class="modal-box gallery-modal-box">
+        <button type="button" id="btn-rulebook-floating-close" class="modal-floating-close" aria-label="close">×</button>
         <h2 data-i18n="boss_rulebook_title"></h2>
         <div class="rulebook-tabs" id="rulebook-tabs">
           <button type="button" class="rulebook-tab-btn active" data-tab="nightking" data-i18n="rulebook_tab_nightking"></button>
@@ -174,6 +178,7 @@ BODY = """    <div class="night-header-row">
       <div class="drawer-backdrop" id="keep-drawer-backdrop"></div>
       <div class="drawer-panel">
         <h2 data-i18n="keep_cards_title"></h2>
+        <p id="keep-terrain-note" class="threat-ref-body" hidden></p>
         <div id="keep-grid" class="suit-grid"></div>
         <p id="keep-count"></p>
         <div class="actions">
@@ -269,6 +274,48 @@ BODY = """    <div class="night-header-row">
         <h2 id="character-drawer-name"></h2>
         <p id="character-type-badge" class="character-type-badge"></p>
         <img id="character-portrait" class="character-portrait" hidden>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="record_sheet_title"></h3>
+          <div class="field-grid">
+            <label class="field-row">
+              <span data-i18n="record_level_label"></span>
+              <input type="number" id="char-level" class="stat-input" min="1" max="15">
+            </label>
+            <label class="field-row">
+              <span data-i18n="record_runes_label"></span>
+              <input type="number" id="char-runes" class="stat-input">
+            </label>
+          </div>
+          <div class="field-grid">
+            <label class="field-row">
+              <span data-i18n="character_blessing_slots_label"></span>
+              <input type="number" id="char-blessing-current" class="stat-input">
+              <span>/</span>
+              <input type="number" id="char-blessing-max" class="stat-input">
+              <span id="char-blessing-level-bonus" class="level-bonus-marker"></span>
+            </label>
+          </div>
+          <div class="field-grid">
+            <label class="field-row">
+              <span data-i18n="record_flask_base_label"></span>
+              <input type="number" id="char-flask-base-used" class="stat-input">
+              <span>/</span>
+              <input type="number" id="char-flask-base-max" class="stat-input">
+            </label>
+            <label class="field-row">
+              <span data-i18n="record_flask_extra_label"></span>
+              <input type="number" id="char-flask-extra-used" class="stat-input">
+              <span>/</span>
+              <input type="number" id="char-flask-extra-max" class="stat-input">
+            </label>
+          </div>
+          <label class="field-row">
+            <span data-i18n="record_revival_label"></span>
+            <input type="number" id="char-revival-count" class="stat-input" min="0">
+            <span id="char-revival-bonus-marker" class="level-bonus-marker"></span>
+          </label>
+        </div>
 
         <label class="field-row">
           <input type="checkbox" id="char-entered">
@@ -381,47 +428,6 @@ BODY = """    <div class="night-header-row">
           </div>
         </div>
 
-        <div class="threat-ref-block">
-          <h3 data-i18n="record_sheet_title"></h3>
-          <div class="field-grid">
-            <label class="field-row">
-              <span data-i18n="record_level_label"></span>
-              <input type="number" id="char-level" class="stat-input" min="1" max="15">
-            </label>
-            <label class="field-row">
-              <span data-i18n="record_runes_label"></span>
-              <input type="number" id="char-runes" class="stat-input">
-            </label>
-          </div>
-          <div class="field-grid">
-            <label class="field-row">
-              <span data-i18n="character_blessing_slots_label"></span>
-              <input type="number" id="char-blessing-current" class="stat-input">
-              <span>/</span>
-              <input type="number" id="char-blessing-max" class="stat-input">
-              <span id="char-blessing-level-bonus" class="level-bonus-marker"></span>
-            </label>
-          </div>
-          <div class="field-grid">
-            <label class="field-row">
-              <span data-i18n="record_flask_base_label"></span>
-              <input type="number" id="char-flask-base-used" class="stat-input">
-              <span>/</span>
-              <input type="number" id="char-flask-base-max" class="stat-input">
-            </label>
-            <label class="field-row">
-              <span data-i18n="record_flask_extra_label"></span>
-              <input type="number" id="char-flask-extra-used" class="stat-input">
-              <span>/</span>
-              <input type="number" id="char-flask-extra-max" class="stat-input">
-            </label>
-          </div>
-          <label class="field-row">
-            <span data-i18n="record_revival_label"></span>
-            <input type="number" id="char-revival-count" class="stat-input" min="0">
-          </label>
-        </div>
-
         <div class="tag-field" data-field="talismans">
           <h3 data-i18n="record_talismans_label"></h3>
           <div class="tag-list" id="tag-list-talismans"></div>
@@ -499,6 +505,17 @@ BODY = """    <div class="night-header-row">
         </div>
         <div class="actions">
           <button id="btn-skills-drawer-close" type="button" class="primary-btn" data-i18n="close_button"></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="weapon-detail-drawer" class="drawer drawer-left">
+      <div class="drawer-backdrop" id="weapon-detail-drawer-backdrop"></div>
+      <div class="drawer-panel">
+        <h2 data-i18n="weapon_detail_drawer_title"></h2>
+        <div id="weapon-detail-drawer-body"></div>
+        <div class="actions">
+          <button id="btn-weapon-detail-drawer-close" type="button" class="primary-btn" data-i18n="close_button"></button>
         </div>
       </div>
     </div>
