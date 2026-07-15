@@ -29,6 +29,8 @@ def build_static_assets() -> None:
     shutil.copy(STATIC_SRC_DIR / "style.css", static_dist / "style.css")
     for name in (
         "games.js",
+        "firebase_config.js",
+        "game_storage.js",
         "scenarios.js",
         "character_types.js",
         "weapons.js",

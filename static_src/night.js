@@ -27,6 +27,7 @@
   var LEVEL_STEPS = [null, 0, 1, 2, 3, 4, 5]; // null = "全"（未指定）
 
   var Games = window.PriTestGames;
+  var GameStorage = window.PriTestGameStorage;
   var Scenarios = window.PriTestScenarios;
   var CharacterTypes = window.PriTestCharacterTypes;
   var CharacterDrawer = window.PriTestCharacterDrawer;
@@ -51,6 +52,7 @@
 
   function saveRosterCharacters() {
     localStorage.setItem(CHARACTERS_KEY, JSON.stringify(rosterCharacters));
+    if (game) GameStorage.pushCharacters(gameId, game.storageMode, rosterCharacters);
   }
 
   function renderCharacterRoster() {
@@ -351,7 +353,9 @@
   }
 
   function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSaveData()));
+    var data = buildSaveData();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    if (game) GameStorage.pushNightState(gameId, game.storageMode, data);
   }
 
   // --- 「次の夜」への移行を1回分だけ取り消せる（押し間違い対策） ---
@@ -482,11 +486,9 @@
       .slice(0, CharacterDrawer.MAX_DICE_POOL);
   }
 
-  function loadState() {
-    var raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
+  // dataは既にパース済みのオブジェクト（クラウド購読からの再入も想定）を受け取る。
+  function applyLoadedData(data) {
     try {
-      var data = JSON.parse(raw);
       if (Array.isArray(data.slots) && data.slots.length === SLOT_COUNT) {
         state.slots = data.slots;
       }
@@ -517,6 +519,16 @@
       state.grace = typeof data.grace === "string" ? data.grace : "";
       state.battle = loadBattleState(data.battle);
       state.dicePool = loadDicePool(data.dicePool);
+    } catch (e) {
+      // 壊れた状態は無視して初期状態のまま続行する
+    }
+  }
+
+  function loadState() {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    try {
+      applyLoadedData(JSON.parse(raw));
     } catch (e) {
       // 壊れた状態は無視して初期状態のまま続行する
     }
@@ -2444,10 +2456,19 @@
     }
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
+  document.addEventListener("DOMContentLoaded", async function () {
     if (!Games.checkAdminPassword(window.I18N.t("admin_password_prompt"))) {
       window.location.href = "../admin/index.html";
       return;
+    }
+    // この端末がまだ知らないgameId（他端末で作成されたクラウドゲームのリンクを初めて開いた場合）
+    // なら、Firebaseからメタ情報を取得してローカルにも登録を試みる。
+    if (!game) {
+      var remoteMeta = await GameStorage.fetchGameMeta(gameId);
+      if (remoteMeta) {
+        game = Games.registerCloudGame(gameId, remoteMeta);
+        scenario = game && game.scenarioId ? Scenarios.get(game.scenarioId) : null;
+      }
     }
     if (!game) {
       document.getElementById("screen-missing-game").hidden = false;
@@ -2487,6 +2508,38 @@
     renderTalismanRulebook();
     renderConsumableRulebook();
     renderEnemyRulebookAll();
+
+    // クラウド保存ゲームのみ：Firebaseから最新状態を取得し（購読開始時に1回必ず呼ばれる）、
+    // 以後は他端末からの変更を受信するたびに再描画する。ローカル専用ゲームでは何もしない。
+    if (game && game.storageMode === "cloud") {
+      // ゲーム作成直後にすぐページ遷移すると送信中のメタ情報書き込みが中断されることがあるため、
+      // このページの読み込み時にも念のため再送信しておく（冪等な操作なので害はない）。
+      GameStorage.pushGameMeta(gameId, "cloud", {
+        name: game.name,
+        createdAt: game.createdAt,
+        scenarioId: game.scenarioId || null,
+        night3BossId: game.night3BossId || null,
+      });
+      GameStorage.subscribeNightState(gameId, game.storageMode, function (data) {
+        applyLoadedData(data);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        renderEnemyHpGrid();
+        renderMobHpList();
+        renderDicePool();
+        renderBoard();
+        renderLog();
+        renderLogToggleLabel();
+        renderUndoButton();
+      });
+      GameStorage.subscribeCharacters(gameId, game.storageMode, function (list) {
+        rosterCharacters.length = 0;
+        list.forEach(function (c) {
+          rosterCharacters.push(CharacterDrawer.ensureDefaults(c));
+        });
+        localStorage.setItem(CHARACTERS_KEY, JSON.stringify(rosterCharacters));
+        renderCharacterRoster();
+      });
+    }
 
     document.getElementById("btn-open-rulebook").addEventListener("click", handleOpenRulebook);
     document.getElementById("btn-rulebook-close").addEventListener("click", closeRulebookModal);

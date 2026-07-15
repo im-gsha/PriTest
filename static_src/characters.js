@@ -1,5 +1,6 @@
 (function () {
   var Games = window.PriTestGames;
+  var GameStorage = window.PriTestGameStorage;
   var CharacterTypes = window.PriTestCharacterTypes;
   var CharacterDrawer = window.PriTestCharacterDrawer;
 
@@ -25,6 +26,7 @@
 
   function saveCharacters() {
     localStorage.setItem(storageKey(), JSON.stringify(characters));
+    if (game) GameStorage.pushCharacters(gameId, game.storageMode, characters);
   }
 
   function findCharacter(id) {
@@ -126,10 +128,16 @@
     CharacterDrawer.open(c.id);
   }
 
-  function init() {
+  async function init() {
     if (!Games.checkAdminPassword(window.I18N.t("admin_password_prompt"))) {
       window.location.href = "../admin/index.html";
       return;
+    }
+    // この端末がまだ知らないgameId（他端末で作成されたクラウドゲームのリンクを初めて開いた場合）
+    // なら、Firebaseからメタ情報を取得してローカルにも登録を試みる。
+    if (!game) {
+      var remoteMeta = await GameStorage.fetchGameMeta(gameId);
+      if (remoteMeta) game = Games.registerCloudGame(gameId, remoteMeta);
     }
     if (!game) {
       document.getElementById("screen-missing-game").hidden = false;
@@ -154,6 +162,27 @@
 
     var openId = new URLSearchParams(window.location.search).get("open");
     if (openId && findCharacter(openId)) CharacterDrawer.open(openId);
+
+    // クラウド保存ゲームのみ：Firebaseから最新の名簿を取得し、以後は他端末からの
+    // 変更を受信するたびに再描画する。ローカル専用ゲームでは何もしない。
+    if (game.storageMode === "cloud") {
+      // ゲーム作成直後にすぐページ遷移すると送信中のメタ情報書き込みが中断されることがあるため、
+      // このページの読み込み時にも念のため再送信しておく（冪等な操作なので害はない）。
+      GameStorage.pushGameMeta(gameId, "cloud", {
+        name: game.name,
+        createdAt: game.createdAt,
+        scenarioId: game.scenarioId || null,
+        night3BossId: game.night3BossId || null,
+      });
+      GameStorage.subscribeCharacters(gameId, game.storageMode, function (list) {
+        characters.length = 0;
+        list.forEach(function (c) {
+          characters.push(CharacterDrawer.ensureDefaults(c));
+        });
+        localStorage.setItem(storageKey(), JSON.stringify(characters));
+        renderList();
+      });
+    }
 
     window.addEventListener("i18n:change", function () {
       renderTypeSelect();

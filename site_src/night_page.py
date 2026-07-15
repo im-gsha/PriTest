@@ -602,6 +602,8 @@ def build_night_html() -> str:
         home_href="../index.html",
         extra_scripts=(
             "games.js",
+            "firebase_config.js",
+            "game_storage.js",
             "scenarios.js",
             "character_types.js",
             "weapons.js",

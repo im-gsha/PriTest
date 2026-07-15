@@ -296,6 +296,8 @@ def build_characters_html() -> str:
         home_href="../index.html",
         extra_scripts=(
             "games.js",
+            "firebase_config.js",
+            "game_storage.js",
             "character_types.js",
             "weapons.js",
             "talismans.js",

@@ -64,6 +64,12 @@
         }
       }
 
+      var storageBadge = document.createElement("span");
+      storageBadge.className = "game-date";
+      storageBadge.textContent =
+        game.storageMode === "cloud" ? window.I18N.t("storage_mode_cloud_badge") : window.I18N.t("storage_mode_local_badge");
+      info.appendChild(storageBadge);
+
       var bossRow = document.createElement("div");
       bossRow.className = "game-boss-row";
       var bossLabel = document.createElement("label");
@@ -119,6 +125,26 @@
 
       actions.appendChild(openBtn);
       actions.appendChild(shareBtn);
+
+      if (game.storageMode !== "cloud") {
+        var cloudifyBtn = document.createElement("button");
+        cloudifyBtn.type = "button";
+        cloudifyBtn.textContent = window.I18N.t("admin_cloudify_button");
+        cloudifyBtn.addEventListener("click", function () {
+          if (Games.list().length >= Games.MAX_GAMES) {
+            alert(window.I18N.t("admin_max_games", { max: Games.MAX_GAMES }));
+            return;
+          }
+          if (!window.confirm(window.I18N.t("admin_cloudify_confirm", { name: game.name }))) return;
+          var newGame = Games.cloudifyGame(game.id);
+          if (newGame) {
+            alert(window.I18N.t("admin_cloudify_success", { name: newGame.name }));
+            renderGameList();
+          }
+        });
+        actions.appendChild(cloudifyBtn);
+      }
+
       actions.appendChild(deleteBtn);
 
       li.appendChild(info);
@@ -200,7 +226,8 @@
     var name = window.prompt(window.I18N.t("admin_new_game_prompt"));
     if (!name) return;
     var scenarioId = document.getElementById("scenario-select").value || null;
-    Games.create(name.trim(), scenarioId);
+    var wantsCloud = window.confirm(window.I18N.t("admin_cloud_confirm"));
+    Games.create(name.trim(), scenarioId, wantsCloud ? "cloud" : "local");
     renderGameList();
   }
 

@@ -26,18 +26,27 @@
     })[0] || null;
   }
 
-  function createGame(name, scenarioId) {
+  // storageMode: "local"（既定・省略可）または "cloud"。cloudの場合はgameId自体が
+  // アクセス制御の鍵になるため、推測困難な長いIDを発行する（GameStorage.generateCloudGameId）。
+  function createGame(name, scenarioId, storageMode) {
     var games = listGames();
     if (games.length >= MAX_GAMES) return null;
+    var mode = storageMode === "cloud" ? "cloud" : "local";
+    var id =
+      mode === "cloud" && window.PriTestGameStorage
+        ? window.PriTestGameStorage.generateCloudGameId()
+        : "g" + Date.now() + Math.floor(Math.random() * 1000);
     var game = {
-      id: "g" + Date.now() + Math.floor(Math.random() * 1000),
+      id: id,
       name: name,
       createdAt: Date.now(),
       scenarioId: scenarioId || null,
       night3BossId: null,
+      storageMode: mode,
     };
     games.push(game);
     saveGames(games);
+    pushMetaIfCloud(game);
     return game;
   }
 
@@ -51,16 +60,53 @@
       game[key] = patch[key];
     });
     saveGames(games);
+    pushMetaIfCloud(game);
+    return game;
+  }
+
+  function pushMetaIfCloud(game) {
+    if (game.storageMode !== "cloud" || !window.PriTestGameStorage) return;
+    window.PriTestGameStorage.pushGameMeta(game.id, "cloud", {
+      name: game.name,
+      createdAt: game.createdAt,
+      scenarioId: game.scenarioId || null,
+      night3BossId: game.night3BossId || null,
+    });
+  }
+
+  // 他端末で初めてクラウドゲームのリンクを開いた時、Firebaseから取得したmetaを
+  // このローカル端末のゲーム一覧にも登録する（以後は通常のクラウドゲームとして扱われる）。
+  // MAX_GAMESの上限は適用しない（共有されたリンクは常に開けるようにする）。
+  function registerCloudGame(id, meta) {
+    var games = listGames();
+    var existing = games.filter(function (g) {
+      return g.id === id;
+    })[0];
+    if (existing) return existing;
+    var game = {
+      id: id,
+      name: (meta && meta.name) || "",
+      createdAt: (meta && meta.createdAt) || Date.now(),
+      scenarioId: (meta && meta.scenarioId) || null,
+      night3BossId: (meta && meta.night3BossId) || null,
+      storageMode: "cloud",
+    };
+    games.push(game);
+    saveGames(games);
     return game;
   }
 
   function deleteGame(id) {
+    var target = getGame(id);
     var games = listGames().filter(function (g) {
       return g.id !== id;
     });
     saveGames(games);
     localStorage.removeItem("pritest-night-state-" + id);
     localStorage.removeItem("pritest-characters-" + id);
+    if (target && target.storageMode === "cloud" && window.PriTestGameStorage) {
+      window.PriTestGameStorage.removeCloudGame(id, "cloud");
+    }
   }
 
   function isAdminAuthenticated() {
@@ -118,6 +164,25 @@
     return newGame;
   }
 
+  // ローカル専用ゲームの中身を複製し、新規のクラウドゲームとしてアップロードする。
+  // 元のローカルゲームはそのまま残る（ユーザーが必要なら手動で削除する）。
+  function cloudifyGame(id) {
+    var bundle = exportGame(id);
+    if (!bundle) return null;
+    var newGame = createGame(bundle.game.name, bundle.game.scenarioId, "cloud");
+    if (!newGame) return null;
+    if (bundle.game.night3BossId) {
+      updateGame(newGame.id, { night3BossId: bundle.game.night3BossId });
+    }
+    if (window.PriTestGameStorage) {
+      if (bundle.nightState) {
+        window.PriTestGameStorage.pushNightState(newGame.id, "cloud", bundle.nightState);
+      }
+      window.PriTestGameStorage.pushCharacters(newGame.id, "cloud", bundle.characters || []);
+    }
+    return newGame;
+  }
+
   // UTF-8文字列 <-> URLセーフbase64（絵文字/漢字を含んでも安全に変換できる）
   function utf8ToBase64Url(str) {
     var b64 = btoa(unescape(encodeURIComponent(str)));
@@ -139,11 +204,13 @@
     create: createGame,
     update: updateGame,
     remove: deleteGame,
+    registerCloudGame: registerCloudGame,
     checkAdminPassword: checkAdminPassword,
     isAdminAuthenticated: isAdminAuthenticated,
     getGameIdFromQuery: getGameIdFromQuery,
     exportGame: exportGame,
     importGame: importGame,
+    cloudifyGame: cloudifyGame,
     utf8ToBase64Url: utf8ToBase64Url,
     base64UrlToUtf8: base64UrlToUtf8,
   };
