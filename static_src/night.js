@@ -118,27 +118,45 @@
       });
       tbody.appendChild(tr);
 
-      var block = document.createElement("div");
-      block.className = "roster-character-block";
-      var h4 = document.createElement("h4");
-      h4.textContent = c.name;
-      block.appendChild(h4);
+      // 骰子池と武器欄は、この角色の情報行のすぐ下（同じ角色欄）に並べて表示する。
+      var detailTr = document.createElement("tr");
+      detailTr.className = "roster-detail-row";
+      var detailTd = document.createElement("td");
+      detailTd.colSpan = 7;
+      var detailFlex = document.createElement("div");
+      detailFlex.className = "roster-detail-flex";
 
+      var diceCol = document.createElement("div");
+      diceCol.className = "roster-detail-col";
       var diceTitle = document.createElement("h5");
       diceTitle.textContent = window.I18N.t("character_dice_pool_label");
       var diceWrap = document.createElement("div");
       diceWrap.className = "dice-pool-list";
       CharacterDrawer.renderDiceDisplay(diceWrap, c.dicePool || []);
-      block.appendChild(diceTitle);
-      block.appendChild(diceWrap);
+      diceCol.appendChild(diceTitle);
+      diceCol.appendChild(diceWrap);
 
+      var weaponCol = document.createElement("div");
+      weaponCol.className = "roster-detail-col";
       var weaponTitle = document.createElement("h5");
       weaponTitle.textContent = window.I18N.t("character_weapons_label");
       var weaponWrap = document.createElement("div");
       weaponWrap.className = "roster-weapon-list";
       CharacterDrawer.renderRosterWeaponList(c, weaponWrap);
-      block.appendChild(weaponTitle);
-      block.appendChild(weaponWrap);
+      weaponCol.appendChild(weaponTitle);
+      weaponCol.appendChild(weaponWrap);
+
+      detailFlex.appendChild(diceCol);
+      detailFlex.appendChild(weaponCol);
+      detailTd.appendChild(detailFlex);
+      detailTr.appendChild(detailTd);
+      tbody.appendChild(detailTr);
+
+      var block = document.createElement("div");
+      block.className = "roster-character-block";
+      var h4 = document.createElement("h4");
+      h4.textContent = c.name;
+      block.appendChild(h4);
 
       var activeTitle = document.createElement("h5");
       activeTitle.textContent = window.I18N.t("cv_active_skills_title");

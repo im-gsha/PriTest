@@ -96,6 +96,7 @@ BODY = """    <div class="night-header-row">
             <tbody id="character-roster-tbody"></tbody>
           </table>
         </div>
+        <hr class="roster-skills-divider">
         <div id="character-roster-skills"></div>
       </div>
       <div class="log-panel">
