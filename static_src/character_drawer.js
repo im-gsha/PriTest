@@ -659,6 +659,16 @@
     });
   }
 
+  // 復歸次数（死亡→再挑戦した回数）に応じたHP/FP/加護ボーナスの目安を表示する。
+  // 0回: +20/+20/+20、1回: +30/+30/+30、2回以上: +40/+40/+40（常に3項目とも同値）。
+  function renderRevivalBonusMarkers(c) {
+    var el = document.getElementById("char-revival-bonus-marker");
+    if (!el) return;
+    var count = c ? c.revivalCount || 0 : 0;
+    var n = count >= 2 ? 40 : count === 1 ? 30 : 20;
+    el.textContent = window.I18N.t("revival_bonus_marker", { n: n });
+  }
+
   // --- 武器データベース検索＆選択（武器欄に既存の自由記述タグとは別枠で追加する） ---
   // ※ランダム戦技: 決定表が未確認のため、既知の戦技一覧から検索して手動で割り当てる
   function renderRandomSkillPicker(container, weaponId, c) {
@@ -797,7 +807,7 @@
     container.appendChild(details);
   }
 
-  function renderWeaponCard(container, weaponId, c) {
+  function renderWeaponCard(container, weaponId, c, onRemoved) {
     var weapon = Weapons.get(weaponId);
     if (!weapon) return;
     var category = Weapons.getCategory(weapon.category);
@@ -900,8 +910,12 @@
       c.weaponIds.splice(c.weaponIds.indexOf(weaponId), 1);
       if (c.weaponRandomSkills) delete c.weaponRandomSkills[weaponId];
       if (c.weaponNotes) delete c.weaponNotes[weaponId];
+      if (c.equippedWeaponIds) {
+        var eqIdx = c.equippedWeaponIds.indexOf(weaponId);
+        if (eqIdx !== -1) c.equippedWeaponIds.splice(eqIdx, 1);
+      }
       saveFn();
-      renderWeaponList();
+      (onRemoved || renderWeaponList)();
     });
     card.appendChild(removeBtn);
 
@@ -916,6 +930,134 @@
     if (!c) return;
     (c.weaponIds || []).forEach(function (id) {
       renderWeaponCard(container, id, c);
+    });
+  }
+
+  // 盤面ロスター用：戦技名だけを簡潔に取り出す（本文・ランダム決定表UIは含めない）
+  function weaponSkillRefName(ref) {
+    if (ref.kind === "random") return window.I18N.t("weapon_random_skill_label");
+    if (ref.kind === "art") {
+      var art = Weapons.getSkill(ref.id);
+      return art ? Weapons.localizedText(art.name) : ref.id;
+    }
+    if (ref.kind === "innate") {
+      var innate = null;
+      Weapons.categories().forEach(function (cat) {
+        (cat.innateSkills || []).forEach(function (s) {
+          if (s.id === ref.id) innate = s;
+        });
+      });
+      return innate ? Weapons.localizedText(innate.name) : ref.id;
+    }
+    if (ref.kind === "status") return window.I18N.t("weapon_status_skill_label", { status: Weapons.localizedText(ref.status) });
+    if (ref.kind === "element") return window.I18N.t("weapon_element_skill_label", { element: Weapons.localizedText(ref.element) });
+    if (ref.kind === "bonus") return Weapons.localizedText(ref.text);
+    return null; // "note" 等、要約に含める意味のないもの
+  }
+
+  // 盤面ロスター（キャラクターの下）に出す武器要約1行：[装備チェック][名前(攻撃消耗)・戦技名, クリックで詳細][転交]
+  function renderRosterWeaponList(c, container) {
+    container.innerHTML = "";
+    if (!c || !(c.weaponIds || []).length) return;
+    if (!c.equippedWeaponIds) c.equippedWeaponIds = [];
+    c.weaponIds.forEach(function (weaponId) {
+      var weapon = Weapons.get(weaponId);
+      if (!weapon) return;
+      var category = Weapons.getCategory(weapon.category);
+      var row = document.createElement("div");
+      row.className = "roster-weapon-row";
+
+      var checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "roster-weapon-equip-check";
+      checkbox.checked = c.equippedWeaponIds.indexOf(weaponId) !== -1;
+      checkbox.title = window.I18N.t("weapon_equipped_label");
+      checkbox.addEventListener("change", function () {
+        var idx = c.equippedWeaponIds.indexOf(weaponId);
+        if (checkbox.checked && idx === -1) c.equippedWeaponIds.push(weaponId);
+        if (!checkbox.checked && idx !== -1) c.equippedWeaponIds.splice(idx, 1);
+        saveFn();
+      });
+      row.appendChild(checkbox);
+
+      var attackCost =
+        category && !category.isShield ? Weapons.localizedText(category.basicStats.attackCost) : category ? Weapons.localizedText(category.basicStats.guardCost) : "";
+      var skillRefs = category && category.isShield ? weapon.attachedEffect || [] : weapon.skills || [];
+      var skillNames = skillRefs
+        .map(weaponSkillRefName)
+        .filter(function (n) {
+          return n;
+        });
+
+      var nameBtn = document.createElement("button");
+      nameBtn.type = "button";
+      nameBtn.className = "roster-weapon-name-btn";
+      nameBtn.textContent =
+        Weapons.localizedText(weapon.name) +
+        (attackCost ? "（" + attackCost + "）" : "") +
+        (skillNames.length ? " ｜ " + skillNames.join("・") : "");
+      nameBtn.addEventListener("click", function () {
+        openWeaponDetailDrawer(c.id, weaponId);
+      });
+      row.appendChild(nameBtn);
+
+      var transferBtn = document.createElement("button");
+      transferBtn.type = "button";
+      transferBtn.className = "roster-weapon-transfer-btn";
+      transferBtn.textContent = window.I18N.t("weapon_transfer_button");
+      var transferSelect = document.createElement("select");
+      transferSelect.className = "roster-weapon-transfer-select";
+      transferSelect.hidden = true;
+      transferBtn.addEventListener("click", function () {
+        if (!transferSelect.hidden) {
+          transferSelect.hidden = true;
+          return;
+        }
+        transferSelect.innerHTML = "";
+        var placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = window.I18N.t("weapon_transfer_select_placeholder");
+        transferSelect.appendChild(placeholder);
+        characters
+          .filter(function (other) {
+            return other.entered && other.id !== c.id;
+          })
+          .forEach(function (other) {
+            var opt = document.createElement("option");
+            opt.value = other.id;
+            opt.textContent = other.name;
+            transferSelect.appendChild(opt);
+          });
+        transferSelect.hidden = false;
+      });
+      transferSelect.addEventListener("change", function () {
+        var targetId = transferSelect.value;
+        if (!targetId) return;
+        var target = findCharacter(targetId);
+        if (!target) return;
+        c.weaponIds.splice(c.weaponIds.indexOf(weaponId), 1);
+        var eqIdx = c.equippedWeaponIds.indexOf(weaponId);
+        if (eqIdx !== -1) c.equippedWeaponIds.splice(eqIdx, 1);
+        if (!target.weaponIds) target.weaponIds = [];
+        if (target.weaponIds.indexOf(weaponId) === -1) target.weaponIds.push(weaponId);
+        if (c.weaponRandomSkills && c.weaponRandomSkills[weaponId] !== undefined) {
+          if (!target.weaponRandomSkills) target.weaponRandomSkills = {};
+          target.weaponRandomSkills[weaponId] = c.weaponRandomSkills[weaponId];
+          delete c.weaponRandomSkills[weaponId];
+        }
+        if (c.weaponNotes && c.weaponNotes[weaponId] !== undefined) {
+          if (!target.weaponNotes) target.weaponNotes = {};
+          target.weaponNotes[weaponId] = c.weaponNotes[weaponId];
+          delete c.weaponNotes[weaponId];
+        }
+        saveFn();
+        renderRosterFn();
+        if (activeCharacterId === c.id || activeCharacterId === target.id) renderWeaponList();
+      });
+      row.appendChild(transferBtn);
+      row.appendChild(transferSelect);
+
+      container.appendChild(row);
     });
   }
 
@@ -1117,8 +1259,11 @@
   var characters = [];
   var activeCharacterId = null;
   var activeSkillsCharacterId = null;
+  var activeWeaponDetailCharacterId = null;
+  var activeWeaponDetailWeaponId = null;
   var saveFn = function () {};
   var onChangeFn = function () {};
+  var renderRosterFn = function () {};
 
   function newCharacter(name, typeId) {
     return {
@@ -1149,6 +1294,7 @@
       weaponIds: [],
       weaponRandomSkills: {},
       weaponNotes: {},
+      equippedWeaponIds: [],
       talismanIds: [],
       consumableCounts: {},
     };
@@ -1400,6 +1546,7 @@
     renderCharacterDicePool();
     renderRelicSection();
     renderLevelBonusMarkers(c);
+    renderRevivalBonusMarkers(c);
     renderAttachedSection();
     renderWeaponList();
     var weaponSearchInput = document.getElementById("weapon-search-input");
@@ -1454,6 +1601,35 @@
     activeSkillsCharacterId = null;
   }
 
+  // 盤面ロスターの武器要約をクリックすると左からスライドインする、単一武器の詳細閲覧パネル
+  function openWeaponDetailDrawer(characterId, weaponId) {
+    var c = findCharacter(characterId);
+    if (!c) return;
+    activeWeaponDetailCharacterId = characterId;
+    activeWeaponDetailWeaponId = weaponId;
+    renderWeaponDetailDrawer();
+    document.getElementById("weapon-detail-drawer").classList.add("open");
+  }
+
+  function renderWeaponDetailDrawer() {
+    var c = findCharacter(activeWeaponDetailCharacterId);
+    var container = document.getElementById("weapon-detail-drawer-body");
+    if (!container) return;
+    container.innerHTML = "";
+    if (!c || !activeWeaponDetailWeaponId) return;
+    renderWeaponCard(container, activeWeaponDetailWeaponId, c, function () {
+      closeWeaponDetailDrawer();
+      renderWeaponList();
+      if (renderRosterFn) renderRosterFn();
+    });
+  }
+
+  function closeWeaponDetailDrawer() {
+    document.getElementById("weapon-detail-drawer").classList.remove("open");
+    activeWeaponDetailCharacterId = null;
+    activeWeaponDetailWeaponId = null;
+  }
+
   function bindFieldSave(elId, apply) {
     var el = document.getElementById(elId);
     if (!el) return;
@@ -1490,6 +1666,10 @@
     });
     document.getElementById("btn-skills-drawer-close").addEventListener("click", closeSkillsDrawer);
     document.getElementById("skills-drawer-backdrop").addEventListener("click", closeSkillsDrawer);
+    var weaponDetailCloseBtn = document.getElementById("btn-weapon-detail-drawer-close");
+    var weaponDetailBackdrop = document.getElementById("weapon-detail-drawer-backdrop");
+    if (weaponDetailCloseBtn) weaponDetailCloseBtn.addEventListener("click", closeWeaponDetailDrawer);
+    if (weaponDetailBackdrop) weaponDetailBackdrop.addEventListener("click", closeWeaponDetailDrawer);
     document.getElementById("btn-char-dice-add").addEventListener("click", function () {
       var c = findCharacter(activeCharacterId);
       if (!c || c.dicePool.length >= MAX_DICE_POOL) return;
@@ -1584,11 +1764,13 @@
     });
     bindFieldSave("char-revival-count", function (c, el) {
       c.revivalCount = Number(el.value) || 0;
+      renderRevivalBonusMarkers(c);
     });
 
     window.addEventListener("i18n:change", function () {
       if (activeCharacterId) openDrawer(activeCharacterId);
       if (activeSkillsCharacterId) openSkillsDrawer(activeSkillsCharacterId);
+      if (activeWeaponDetailCharacterId && activeWeaponDetailWeaponId) renderWeaponDetailDrawer();
     });
   }
 
@@ -1596,6 +1778,7 @@
     characters = options.characters;
     saveFn = options.save;
     onChangeFn = options.onChange || function () {};
+    renderRosterFn = options.renderRoster || function () {};
     bindEvents();
   }
 
@@ -1610,6 +1793,8 @@
     renderAbilitySections: renderAbilitySections,
     rollD6: rollD6,
     renderDicePool: renderDicePool,
+    renderDiceDisplay: renderDiceDisplay,
     MAX_DICE_POOL: MAX_DICE_POOL,
+    renderRosterWeaponList: renderRosterWeaponList,
   };
 })();

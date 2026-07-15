@@ -52,6 +52,48 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
         <p id="character-type-badge" class="character-type-badge"></p>
         <img id="character-portrait" class="character-portrait" hidden>
 
+        <div class="threat-ref-block">
+          <h3 data-i18n="record_sheet_title"></h3>
+          <div class="field-grid">
+            <label class="field-row">
+              <span data-i18n="record_level_label"></span>
+              <input type="number" id="char-level" class="stat-input" min="1" max="15">
+            </label>
+            <label class="field-row">
+              <span data-i18n="record_runes_label"></span>
+              <input type="number" id="char-runes" class="stat-input">
+            </label>
+          </div>
+          <div class="field-grid">
+            <label class="field-row">
+              <span data-i18n="character_blessing_slots_label"></span>
+              <input type="number" id="char-blessing-current" class="stat-input">
+              <span>/</span>
+              <input type="number" id="char-blessing-max" class="stat-input">
+              <span id="char-blessing-level-bonus" class="level-bonus-marker"></span>
+            </label>
+          </div>
+          <div class="field-grid">
+            <label class="field-row">
+              <span data-i18n="record_flask_base_label"></span>
+              <input type="number" id="char-flask-base-used" class="stat-input">
+              <span>/</span>
+              <input type="number" id="char-flask-base-max" class="stat-input">
+            </label>
+            <label class="field-row">
+              <span data-i18n="record_flask_extra_label"></span>
+              <input type="number" id="char-flask-extra-used" class="stat-input">
+              <span>/</span>
+              <input type="number" id="char-flask-extra-max" class="stat-input">
+            </label>
+          </div>
+          <label class="field-row">
+            <span data-i18n="record_revival_label"></span>
+            <input type="number" id="char-revival-count" class="stat-input" min="0">
+            <span id="char-revival-bonus-marker" class="level-bonus-marker"></span>
+          </label>
+        </div>
+
         <label class="field-row">
           <input type="checkbox" id="char-entered">
           <span data-i18n="character_entered_label"></span>
@@ -161,47 +203,6 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
             <input type="text" id="tag-input-items">
             <button type="button" class="tag-add-btn" data-field="items" data-i18n="tag_add_button"></button>
           </div>
-        </div>
-
-        <div class="threat-ref-block">
-          <h3 data-i18n="record_sheet_title"></h3>
-          <div class="field-grid">
-            <label class="field-row">
-              <span data-i18n="record_level_label"></span>
-              <input type="number" id="char-level" class="stat-input" min="1" max="15">
-            </label>
-            <label class="field-row">
-              <span data-i18n="record_runes_label"></span>
-              <input type="number" id="char-runes" class="stat-input">
-            </label>
-          </div>
-          <div class="field-grid">
-            <label class="field-row">
-              <span data-i18n="character_blessing_slots_label"></span>
-              <input type="number" id="char-blessing-current" class="stat-input">
-              <span>/</span>
-              <input type="number" id="char-blessing-max" class="stat-input">
-              <span id="char-blessing-level-bonus" class="level-bonus-marker"></span>
-            </label>
-          </div>
-          <div class="field-grid">
-            <label class="field-row">
-              <span data-i18n="record_flask_base_label"></span>
-              <input type="number" id="char-flask-base-used" class="stat-input">
-              <span>/</span>
-              <input type="number" id="char-flask-base-max" class="stat-input">
-            </label>
-            <label class="field-row">
-              <span data-i18n="record_flask_extra_label"></span>
-              <input type="number" id="char-flask-extra-used" class="stat-input">
-              <span>/</span>
-              <input type="number" id="char-flask-extra-max" class="stat-input">
-            </label>
-          </div>
-          <label class="field-row">
-            <span data-i18n="record_revival_label"></span>
-            <input type="number" id="char-revival-count" class="stat-input" min="0">
-          </label>
         </div>
 
         <div class="tag-field" data-field="talismans">
