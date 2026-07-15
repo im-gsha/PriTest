@@ -2621,12 +2621,18 @@
     spell_glintstone_pebble: {
       name: C("輝石のつぶて", "輝石礫"),
       kind: "Action",
-      body: C("コスト：①／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：15", "消耗：①／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：15"),
+      body: C(
+        "コスト：③／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：35　効果：対象に【総合ダメージ：威力】を与える。",
+        "消耗：③／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：35　效果：對目標造成【綜合傷害：威力】。"
+      ),
     },
-    spell_arc_of_sin: {
-      name: C("罪のアーク", "罪之弧"),
+    spell_glintstone_arc: {
+      name: C("輝石のアーク", "輝石之弧"),
       kind: "Action",
-      body: C("コスト：②／FP■・モブ　対象：エネミー・モブ　隊列：前衛・後衛どちらでも使用可能　威力：35", "消耗：②／FP■・雜兵　對象：敵人・雜兵　編隊：前衛・後衛皆可使用　威力：35"),
+      body: C(
+        "コスト：③／FP■　対象：エネミー・モブ　隊列：前衛・後衛どちらでも使用可能　威力：15　効果：対象に【総合ダメージ：威力】を与える。",
+        "消耗：③／FP■　對象：敵人・雜兵　編隊：前衛・後衛皆可使用　威力：15　效果：對目標造成【綜合傷害：威力】。"
+      ),
     },
     spell_rock_sling: {
       name: C("岩盤砕き", "岩盤破碎"),
@@ -2637,8 +2643,16 @@
       name: C("カーリアの速剣", "卡利亞的速劍"),
       kind: "Action",
       body: C(
-        "コスト：ソロ（2個）／FP■・モブ　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：40",
-        "消耗：ソロ（2個）／FP■・雜兵　對象：敵人・雜兵　編隊：前衛時可使用　威力：40"
+        "コスト：①／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：35　効果：対象に【総合ダメージ：威力】を与える。",
+        "消耗：①／FP■　對象：敵人　編隊：前衛時可使用　威力：35　效果：對目標造成【綜合傷害：威力】。"
+      ),
+    },
+    spell_royal_carian_glintblade: {
+      name: C("魔術王家の輝剣", "魔術王家的輝劍"),
+      kind: "Action",
+      body: C(
+        "コスト：③／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：25　効果：対象に【総合ダメージ：威力】を与える。",
+        "消耗：③／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：25　效果：對目標造成【綜合傷害：威力】。"
       ),
     },
     spell_glintblade: {
@@ -2649,32 +2663,42 @@
     spell_night_comet: {
       name: C("夜の彗星（不可視）", "夜之彗星（不可視）"),
       kind: "Action",
-      body: C("コスト：④／FP■■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：45", "消耗：④／FP■■　對象：敵人　編隊：前衛・後衛皆可使用　威力：45"),
+      body: C(
+        "コスト：⑥／FP■■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：45　効果：対象に【総合ダメージ：威力】と「魔：4」を与える。",
+        "消耗：⑥／FP■■　對象：敵人　編隊：前衛・後衛皆可使用　威力：45　效果：對目標造成【綜合傷害：威力】與「魔：4」。"
+      ),
     },
     spell_lava_bolt: {
       name: C("溶岩弾", "熔岩彈"),
       kind: "Action",
-      body: C("コスト：②／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：30", "消耗：②／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：30"),
-    },
-    spell_shattering_thorns: {
-      name: C("砕け散る茨（結晶人）", "碎裂荊棘（結晶人）"),
-      kind: "Action",
-      body: C("コスト：②（2個）／FP■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：40", "消耗：②（2個）／FP■　對象：敵人・雜兵　編隊：前衛時可使用　威力：40"),
+      body: C(
+        "コスト：④／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：30　効果：対象に【総合ダメージ：威力】と「炎：1D」を与える。",
+        "消耗：④／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：30　效果：對目標造成【綜合傷害：威力】與「炎：1D」。"
+      ),
     },
     spell_thorns_of_punishment: {
       name: C("罰の茨", "罰之荊棘"),
       kind: "Action",
-      body: C("コスト：②②／HP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：10", "消耗：②②／HP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：10"),
+      body: C(
+        "コスト：②②／HP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：10　効果：対象に【総合ダメージ：威力】と「出血：4」を与える。",
+        "消耗：②②／HP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：10　效果：對目標造成【綜合傷害：威力】與「出血：4」。"
+      ),
     },
     spell_azur_comet: {
       name: C("彗星アズール", "彗星阿祖爾"),
       kind: "Action",
-      body: C("コスト：連番（4個）／FP■■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：130", "消耗：連號（4個）／FP■■　對象：敵人　編隊：前衛・後衛皆可使用　威力：130"),
+      body: C(
+        "コスト：連番（4個）／FP■■■　対象：エネミー　隊列：後衛のとき使用可能　威力：130　効果：対象に【総合ダメージ：威力】と「魔：6」を与える。",
+        "消耗：連號（4個）／FP■■■　對象：敵人　編隊：後衛時可使用　威力：130　效果：對目標造成【綜合傷害：威力】與「魔：6」。"
+      ),
     },
     spell_ruinous_meteor: {
       name: C("滅びの流星", "滅亡的流星"),
       kind: "Action",
-      body: C("コスト：③③／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：55", "消耗：③③／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：55"),
+      body: C(
+        "コスト：③③／FP■■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：55　効果：対象エネミーに【総合ダメージ：威力】と「魔：4」を与える。",
+        "消耗：③③／FP■■　對象：敵人　編隊：前衛・後衛皆可使用　威力：55　效果：對目標敵人造成【綜合傷害：威力】與「魔：4」。"
+      ),
     },
     spell_crystal_person: {
       name: C("結晶人", "結晶人"),
@@ -2717,7 +2741,10 @@
     spell_shattering_crystal: {
       name: C("砕け散る結晶", "碎裂結晶"),
       kind: "Action",
-      body: C("コスト：連番（2〜3個）／エネミー・モブ　隊列：前衛のとき使用可能　威力：25", "消耗：連號（2〜3個）／敵人・雜兵　編隊：前衛時可使用　威力：25"),
+      body: C(
+        "コスト：連番（2個）／FP■■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：40　効果：モブに「HP損害：■」、エネミーに【総合ダメージ：威力】と「魔：4」を与える。",
+        "消耗：連號（2個）／FP■■　對象：敵人・雜兵　編隊：前衛時可使用　威力：40　效果：對雜兵造成「HP損害：■」，對敵人造成【綜合傷害：威力】與「魔：4」。"
+      ),
     },
     spell_crystal_release: {
       name: C("結晶の解放", "結晶的解放"),
@@ -2792,7 +2819,18 @@
     spell_gravity_bolt: {
       name: C("重力弾", "重力彈"),
       kind: "Action",
-      body: C("コスト：③③／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：50", "消耗：③③／FP■　對象：敵人　編隊：前衛時可使用　威力：50"),
+      body: C(
+        "コスト：④／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：10　効果：対象に【総合ダメージ：威力】と「魔：2」を与える。",
+        "消耗：④／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：10　效果：對目標造成【綜合傷害：威力】與「魔：2」。"
+      ),
+    },
+    spell_ghost_call: {
+      name: C("怨霊呼び", "喚怨靈"),
+      kind: "Action",
+      body: C(
+        "コスト：③③／FP■■　対象：エネミー　隊列：後衛のとき使用可能　威力：65　効果：対象エネミーに【総合ダメージ：威力】と「魔：4」を与える。",
+        "消耗：③③／FP■■　對象：敵人　編隊：後衛時可使用　威力：65　效果：對目標敵人造成【綜合傷害：威力】與「魔：4」。"
+      ),
     },
     spell_star_shower: {
       name: C("星殺ぎ", "星殺"),
@@ -2875,7 +2913,10 @@
     spell_rennalas_full_moon: {
       name: C("レナラの満月", "蕾娜菈的滿月"),
       kind: "Action",
-      body: C("コスト：ソロ（2個）／エネミー　隊列：後衛のとき使用可能　威力：60", "消耗：ソロ（2個）／敵人　編隊：後衛時可使用　威力：60"),
+      body: C(
+        "コスト：ソロ（2個）／FP■■■　対象：エネミー　隊列：後衛のとき使用可能　威力：60　効果：対象に【総合ダメージ：威力】と「魔：6」を与える。",
+        "消耗：索羅（2個）／FP■■■　對象：敵人　編隊：後衛時可使用　威力：60　效果：對目標造成【綜合傷害：威力】與「魔：6」。"
+      ),
     },
 
     // ▼聖印｜祈祷（191〜199頁）。杖の魔術と同様、戦技とは別の呪文体系。「効果」節の詳細まで
@@ -2885,30 +2926,69 @@
       kind: "Action",
       body: C("コスト：②②／エネミー　隊列：前衛・後衛どちらでも使用可能　威力：35", "消耗：②②／敵人　編隊：前衛・後衛皆可使用　威力：35"),
     },
+    prayer_rejection: {
+      name: C("拒絶", "拒絕"),
+      kind: "Action",
+      body: C(
+        "コスト：FP■　対象：エネミー　隊列：前衛のとき使用可能　効果：対象に「▲」を与える。このスキルは1ターンの間にPC1人ごとに1度までしか使用できない。",
+        "消耗：FP■　對象：敵人　編隊：前衛時可使用　效果：對目標造成「▲」。此技能每個PC每回合限用1次。"
+      ),
+    },
+    prayer_heal: {
+      name: C("回復", "回復"),
+      kind: "Action",
+      body: C(
+        "コスト：③③／FP■　対象：自身とPC1体　隊列：前衛・後衛どちらでも使用可能　効果：対象に信仰値分「HP回復：□□□」を適用する。",
+        "消耗：③③／FP■　對象：自身與1名PC　編隊：前衛・後衛皆可使用　效果：對目標套用信仰值份的「HP回復：□□□」。"
+      ),
+    },
+    prayer_lightning_spear: {
+      name: C("雷の槍", "雷之槍"),
+      kind: "Action",
+      body: C(
+        "コスト：②②／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：35　効果：対象に【総合ダメージ：威力】と「雷：4」を与える。",
+        "消耗：②②／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：35　效果：對目標造成【綜合傷害：威力】與「雷：4」。"
+      ),
+    },
     prayer_firebomb: {
       name: C("火投げ", "投火"),
       kind: "Action",
-      body: C("コスト：③／自身　隊列：前衛・後衛どちらでも使用可能　威力：30", "消耗：③／自身　編隊：前衛・後衛皆可使用　威力：30"),
+      body: C(
+        "コスト：③／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：30　効果：対象に【総合ダメージ：威力】と「炎：2」を与える。",
+        "消耗：③／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：30　效果：對目標造成【綜合傷害：威力】與「炎：2」。"
+      ),
     },
     prayer_dragon_feast: {
-      name: C("竜餐", "龍餐"),
+      name: C("竜炎", "龍炎"),
       kind: "Action",
-      body: C("コスト：③／エネミー・モブ　隊列：前衛のとき使用可能　威力：10", "消耗：③／敵人・雜兵　編隊：前衛時可使用　威力：10"),
+      body: C(
+        "コスト：連番（3個）／FP■■■　対象：エネミー・モブ　隊列：後衛のとき使用可能　威力：60　効果：モブに「HP損害：■■」、エネミーに【総合ダメージ：威力】と「炎：1D」を与える。",
+        "消耗：連號（3個）／FP■■■　對象：敵人・雜兵　編隊：後衛時可使用　威力：60　效果：對雜兵造成「HP損害：■■」，對敵人造成【綜合傷害：威力】與「炎：1D」。"
+      ),
     },
-    prayer_beast: {
-      name: C("獣", "獸"),
+    prayer_beast_stone: {
+      name: C("獣の石", "獸之石"),
       kind: "Action",
-      body: C("コスト：③／エネミー　隊列：前衛のとき使用可能　威力：45", "消耗：③／敵人　編隊：前衛時可使用　威力：45"),
+      body: C(
+        "コスト：①／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：45　効果：対象に【総合ダメージ：威力】を与える。",
+        "消耗：①／FP■　對象：敵人　編隊：前衛時可使用　威力：45　效果：對目標造成【綜合傷害：威力】。"
+      ),
     },
     prayer_golden_fury: {
       name: C("黄金の怒り", "黃金之怒"),
       kind: "Action",
-      body: C("コスト：④／エネミー・モブ　隊列：前衛のとき使用可能　威力：5", "消耗：④／敵人・雜兵　編隊：前衛時可使用　威力：5"),
+      body: C(
+        "コスト：④／FP■　対象：エネミー・モブ　隊列：前衛のとき使用可能　威力：5　効果：モブに「HP損害：■」、エネミーに【総合ダメージ：威力】と「聖：2」を与える。このスキルは1ターンの間にPC1人ごとに1度までしか使用できない。",
+        "消耗：④／FP■　對象：敵人・雜兵　編隊：前衛時可使用　威力：5　效果：對雜兵造成「HP損害：■」，對敵人造成【綜合傷害：威力】與「聖：2」。此技能每個PC每回合限用1次。"
+      ),
     },
     prayer_golden_order_fundamentalism_halo: {
       name: C("黄金律原理主義｜光輪", "黃金律原理主義｜光輪"),
       kind: "Action",
-      body: C("コスト：④／エネミー　隊列：後衛のとき使用可能　威力：25", "消耗：④／敵人　編隊：後衛時可使用　威力：25"),
+      body: C(
+        "コスト：②／FP■　対象：エネミー　隊列：後衛のとき使用可能　威力：25　効果：対象に【総合ダメージ：威力】と「聖：2」を与える。このアクションフェイズ終了後、このスキルのコストは「②」に変更される。",
+        "消耗：②／FP■　對象：敵人　編隊：後衛時可使用　威力：25　效果：對目標造成【綜合傷害：威力】與「聖：2」。此行動階段結束後，此技能的消耗變更為「②」。"
+      ),
     },
     prayer_urgent_heal: {
       name: C("性急な回復", "緊急回復"),
@@ -3003,7 +3083,10 @@
     prayer_black_flame: {
       name: C("黒炎", "黑炎"),
       kind: "Action",
-      body: C("コスト：③／エネミー・モブ　隊列：前衛どちらでも使用可能　威力：20", "消耗：③／敵人・雜兵　編隊：前衛皆可使用　威力：20"),
+      body: C(
+        "コスト：③／FP■　対象：エネミー　隊列：前衛・後衛どちらでも使用可能　威力：10　効果：対象に【総合ダメージ：威力＋▲】と「炎：2」を与える。",
+        "消耗：③／FP■　對象：敵人　編隊：前衛・後衛皆可使用　威力：10　效果：對目標造成【綜合傷害：威力＋▲】與「炎：2」。"
+      ),
     },
     prayer_beastclaw_gnaw: {
       name: C("グランクの獣爪", "格蘭克的獸爪"),
@@ -3035,10 +3118,13 @@
       kind: "Action",
       body: C("コスト：FP■　隊列：前衛・後衛どちらでも使用可能　威力：30", "消耗：FP■　編隊：前衛・後衛皆可使用　威力：30"),
     },
-    prayer_shabrirris_scream: {
-      name: C("シャブリリの叫び", "夏布利利的吶喊"),
+    prayer_frenzied_flame: {
+      name: C("狂い火", "狂火"),
       kind: "Action",
-      body: C("コスト：⑤／FP■　対象：エネミー", "消耗：⑤／FP■　對象：敵人"),
+      body: C(
+        "コスト：連番（2個）／FP■■　対象：エネミー　隊列：前衛のとき使用可能　威力：10　効果：対象に【総合ダメージ：威力】と「炎：1D」と「発狂：1D」を与える。",
+        "消耗：連號（2個）／FP■■　對象：敵人　編隊：前衛時可使用　威力：10　效果：對目標造成【綜合傷害：威力】、「炎：1D」與「發狂：1D」。"
+      ),
     },
     prayer_unquenchable_madness_fire: {
       name: C("燃えきれぬ狂い火", "燒不盡的狂火"),
@@ -5067,217 +5153,266 @@
       reverseArt: [{ kind: "innate", id: "large_shield_contagious_fury" }],
     },
 
-    // ▼杖（staff）：装備品スキル欄は魔術（spell_*）を参照する。※ランダム魔術（A/B表）は
-    // random 扱いとし、固有に紐付く魔術が判読できたものは art 参照とした。
+    // ▼杖（staff）：種類決定表・固有魔術ページを撮影再確認して全17種を収録（2026年7月訂正）。
+    // 装備品スキル欄は魔術（spell_*）を参照する。※ランダム魔術（A/B表）は random 扱い。
     {
       id: "staff_hermit",
       category: "staff",
       name: C("隠者の杖", "隱者的杖"),
       rarity: "C",
       roll: "－",
-      skills: [{ kind: "art", id: "spell_glintstone_pebble" }, { kind: "art", id: "spell_arc_of_sin" }, { kind: "random" }],
+      skills: [{ kind: "art", id: "spell_glintstone_pebble" }, { kind: "art", id: "spell_glintstone_arc" }],
     },
     {
       id: "staff_stargazer",
       category: "staff",
       name: C("星見の杖", "觀星的杖"),
-      rarity: "U",
-      roll: "1",
-      skills: [{ kind: "art", id: "spell_glintstone_quick_pebble" }, { kind: "random" }],
+      rarity: "C",
+      roll: "1〜2",
+      skills: [{ kind: "art", id: "spell_glintstone_pebble" }, { kind: "random", table: "A" }],
     },
     {
       id: "staff_glintstone",
       category: "staff",
       name: C("輝石の杖", "輝石之杖"),
-      rarity: "U",
-      roll: "2",
-      skills: [{ kind: "art", id: "spell_glintstone_big_pebble" }, { kind: "random" }],
+      rarity: "C",
+      roll: "3",
+      skills: [{ kind: "art", id: "spell_glintstone_pebble" }, { kind: "random", table: "B" }],
     },
     {
       id: "staff_academy",
       category: "staff",
       name: C("学院の輝石杖", "學院的輝石杖"),
-      rarity: "U",
-      roll: "3",
-      skills: [{ kind: "art", id: "spell_carian_slicer" }, { kind: "random" }],
+      rarity: "C",
+      roll: "4",
+      skills: [{ kind: "art", id: "spell_glintstone_pebble" }, { kind: "random", table: "A" }],
     },
     {
       id: "staff_demihuman_queen",
       category: "staff",
       name: C("亜人女王の杖", "亞人女王的杖"),
-      rarity: "U",
-      roll: "4",
-      skills: [{ kind: "note", text: UNCONFIRMED }, { kind: "random" }],
+      rarity: "C",
+      roll: "5",
+      skills: [{ kind: "art", id: "spell_glintstone_pebble" }, { kind: "random", table: "B" }],
     },
     {
       id: "staff_meteorite",
       category: "staff",
-      name: C("石撮りの杖", "拾石者的杖"),
-      rarity: "U",
-      roll: "5",
-      skills: [{ kind: "art", id: "spell_rock_sling" }, { kind: "random" }],
+      name: C("石撮り杖", "拾石者的杖"),
+      rarity: "C",
+      roll: "6",
+      skills: [{ kind: "art", id: "spell_rock_sling" }, { kind: "random", table: "A" }],
     },
     {
       id: "staff_carian_glintstone",
       category: "staff",
       name: C("カーリアの輝石杖", "卡利亞的輝石杖"),
       rarity: "U",
-      roll: "6",
-      skills: [{ kind: "art", id: "spell_carian_retaliation" }, { kind: "random" }],
+      roll: "1",
+      skills: [{ kind: "art", id: "spell_carian_slicer" }, { kind: "random", table: "B" }],
     },
     {
       id: "staff_carian_glintblade",
       category: "staff",
       name: C("カーリアの輝剣杖", "卡利亞的輝劍杖"),
-      rarity: "R",
-      roll: "1〜2",
-      skills: [{ kind: "art", id: "spell_night_comet" }, { kind: "random" }],
+      rarity: "U",
+      roll: "2",
+      skills: [{ kind: "art", id: "spell_royal_carian_glintblade" }, { kind: "random", table: "A" }],
     },
     {
       id: "staff_loss",
       category: "staff",
       name: C("喪失の杖", "喪失之杖"),
-      rarity: "R",
+      rarity: "U",
       roll: "3",
-      skills: [{ kind: "art", id: "spell_lava_bolt" }, { kind: "random" }],
+      skills: [{ kind: "art", id: "spell_night_comet" }, { kind: "random", table: "A" }],
     },
     {
       id: "staff_gelmir_glintstone",
       category: "staff",
       name: C("ゲルミアの輝石杖", "格爾米爾的輝石杖"),
-      rarity: "R",
+      rarity: "U",
       roll: "4",
-      skills: [{ kind: "art", id: "spell_gelmirs_wrath" }, { kind: "random" }],
+      skills: [{ kind: "art", id: "spell_lava_bolt" }, { kind: "random", table: "B" }],
     },
     {
       id: "staff_crystal",
       category: "staff",
       name: C("結晶杖", "結晶杖"),
-      rarity: "R",
+      rarity: "U",
       roll: "5",
-      skills: [{ kind: "art", id: "spell_shattering_thorns" }, { kind: "random" }],
+      skills: [{ kind: "art", id: "spell_shattering_crystal" }, { kind: "random", table: "A" }],
     },
     {
       id: "staff_sinner",
       category: "staff",
       name: C("咎人の杖", "咎人之杖"),
-      rarity: "R",
+      rarity: "U",
       roll: "6",
-      skills: [{ kind: "art", id: "spell_thorns_of_punishment" }, { kind: "random" }],
+      skills: [{ kind: "art", id: "spell_thorns_of_punishment" }, { kind: "random", table: "B" }],
     },
     {
       id: "staff_azur_glintstone",
       category: "staff",
       name: C("アズールの輝石杖", "阿祖爾的輝石杖"),
-      rarity: "L",
+      rarity: "R",
       roll: "1〜2",
-      skills: [{ kind: "art", id: "spell_azur_comet" }],
+      skills: [{ kind: "art", id: "spell_azur_comet" }, { kind: "random", table: "A" }],
     },
     {
       id: "staff_lusat_glintstone",
       category: "staff",
       name: C("ルーサットの輝石杖", "盧薩特的輝石杖"),
-      rarity: "L",
-      roll: "3",
-      skills: [{ kind: "art", id: "spell_ruinous_meteor" }],
+      rarity: "R",
+      roll: "3〜4",
+      skills: [{ kind: "art", id: "spell_ruinous_meteor" }, { kind: "random", table: "B" }],
     },
     {
       id: "staff_meteor",
       category: "staff",
       name: C("隕石の杖", "隕石之杖"),
-      rarity: "L",
-      roll: "4",
-      skills: [{ kind: "art", id: "spell_rennalas_full_moon" }],
+      rarity: "R",
+      roll: "5",
+      skills: [{ kind: "art", id: "spell_gravity_bolt" }, { kind: "random", table: "A" }],
     },
     {
       id: "staff_death_prince",
       category: "staff",
       name: C("死王子の杖", "死亡王子的杖"),
-      rarity: "L",
-      roll: "5",
-      skills: [{ kind: "note", text: UNCONFIRMED }],
+      rarity: "R",
+      roll: "6",
+      skills: [{ kind: "art", id: "spell_ghost_call" }, { kind: "random", table: "B" }],
     },
     {
       id: "staff_carian_regal_scepter",
       category: "staff",
       name: C("カーリアの正笏", "卡利亞的正笏"),
       rarity: "L",
-      roll: "6",
-      skills: [{ kind: "random" }],
+      roll: "1〜6",
+      skills: [{ kind: "art", id: "spell_rennalas_full_moon" }, { kind: "random", table: "A" }],
     },
 
-    // ▼聖印（sacred_seal）：写真からアイコンギャラリーで確認できた9種を収録。
+    // ▼聖印（sacred_seal）：種類決定表・固有祈祷ページを撮影再確認して全15種を収録（2026年7月訂正）。
+    // Lレアリティは規則書上「存在しない（Rの表で再抽選する）」と明記されているため未収録。
     {
-      id: "seal_finger",
+      id: "seal_finger_start",
+      category: "sacred_seal",
+      name: C("指の聖印（復讐者初期装備）", "手指的聖印（復仇者初期裝備）"),
+      rarity: "C",
+      roll: "－",
+      skills: [{ kind: "art", id: "prayer_rejection" }, { kind: "art", id: "prayer_heal" }],
+    },
+    {
+      id: "seal_finger_a",
       category: "sacred_seal",
       name: C("指の聖印", "手指的聖印"),
       rarity: "C",
-      roll: "－",
-      skills: [{ kind: "random" }],
+      roll: "1〜3",
+      skills: [{ kind: "art", id: "prayer_rejection" }, { kind: "random", table: "A" }],
     },
     {
-      id: "seal_giant",
+      id: "seal_finger_b",
+      category: "sacred_seal",
+      name: C("指の聖印", "手指的聖印"),
+      rarity: "C",
+      roll: "4〜6",
+      skills: [{ kind: "art", id: "prayer_rejection" }, { kind: "random", table: "B" }],
+    },
+    {
+      id: "seal_pebble_a",
+      category: "sacred_seal",
+      name: C("さざれ石の聖印", "碎石的聖印"),
+      rarity: "U",
+      roll: "1",
+      skills: [{ kind: "art", id: "prayer_lightning_spear" }, { kind: "random", table: "A" }],
+    },
+    {
+      id: "seal_pebble_b",
+      category: "sacred_seal",
+      name: C("さざれ石の聖印", "碎石的聖印"),
+      rarity: "U",
+      roll: "2",
+      skills: [{ kind: "art", id: "prayer_lightning_spear" }, { kind: "random", table: "B" }],
+    },
+    {
+      id: "seal_giant_a",
       category: "sacred_seal",
       name: C("巨人の聖印", "巨人的聖印"),
       rarity: "U",
-      roll: "1〜2",
-      skills: [{ kind: "art", id: "prayer_giants_flame_burn" }, { kind: "random" }],
+      roll: "3",
+      skills: [{ kind: "art", id: "prayer_firebomb" }, { kind: "random", table: "A" }],
     },
     {
-      id: "seal_thorn",
+      id: "seal_giant_c",
       category: "sacred_seal",
-      name: C("さされ石の聖印", "刺石的聖印"),
+      name: C("巨人の聖印", "巨人的聖印"),
       rarity: "U",
-      roll: "3〜4",
-      skills: [{ kind: "random" }],
+      roll: "4",
+      skills: [{ kind: "art", id: "prayer_firebomb" }, { kind: "random", table: "C" }],
     },
     {
-      id: "seal_golden_order",
+      id: "seal_godslayer",
       category: "sacred_seal",
-      name: C("黄金律の聖印", "黃金律的聖印"),
+      name: C("神狩りの聖印", "狩神的聖印"),
       rarity: "U",
-      roll: "5〜6",
-      skills: [{ kind: "art", id: "prayer_golden_order_fundamentalism_halo" }, { kind: "random" }],
+      roll: "5",
+      skills: [{ kind: "art", id: "prayer_black_flame" }, { kind: "random", table: "B" }],
     },
     {
-      id: "seal_erdtree",
+      id: "seal_claw_mark",
+      category: "sacred_seal",
+      name: C("爪痕の聖印", "爪痕的聖印"),
+      rarity: "U",
+      roll: "6",
+      skills: [{ kind: "art", id: "prayer_beast_stone" }, { kind: "random", table: "A" }],
+    },
+    {
+      id: "seal_erdtree_a",
       category: "sacred_seal",
       name: C("黄金樹の聖印", "黃金樹的聖印"),
       rarity: "R",
-      roll: "1〜3",
-      skills: [{ kind: "art", id: "prayer_erdtree_blessing" }, { kind: "random" }],
+      roll: "1",
+      skills: [{ kind: "art", id: "prayer_golden_fury" }, { kind: "random", table: "A" }],
+    },
+    {
+      id: "seal_erdtree_b",
+      category: "sacred_seal",
+      name: C("黄金樹の聖印", "黃金樹的聖印"),
+      rarity: "R",
+      roll: "2",
+      skills: [{ kind: "art", id: "prayer_golden_fury" }, { kind: "random", table: "B" }],
+    },
+    {
+      id: "seal_golden_order_b",
+      category: "sacred_seal",
+      name: C("黄金律の聖印", "黃金律的聖印"),
+      rarity: "R",
+      roll: "3",
+      skills: [{ kind: "art", id: "prayer_golden_order_fundamentalism_halo" }, { kind: "random", table: "B" }],
+    },
+    {
+      id: "seal_golden_order_c",
+      category: "sacred_seal",
+      name: C("黄金律の聖印", "黃金律的聖印"),
+      rarity: "R",
+      roll: "4",
+      skills: [{ kind: "art", id: "prayer_golden_order_fundamentalism_halo" }, { kind: "random", table: "C" }],
     },
     {
       id: "seal_frenzied_flame",
       category: "sacred_seal",
       name: C("狂い火の聖印", "狂火的聖印"),
       rarity: "R",
-      roll: "4〜6",
-      skills: [{ kind: "art", id: "prayer_shabrirris_scream" }, { kind: "random" }],
+      roll: "5",
+      skills: [{ kind: "art", id: "prayer_frenzied_flame" }, { kind: "random", table: "B" }],
     },
     {
       id: "seal_dragon_communion",
       category: "sacred_seal",
-      name: C("竜餐の聖印", "龍餐的聖印"),
-      rarity: "L",
-      roll: "1〜2",
-      skills: [{ kind: "art", id: "prayer_dragon_feast" }],
-    },
-    {
-      id: "seal_claw_mark",
-      category: "sacred_seal",
-      name: C("爪痕の聖印", "爪痕的聖印"),
-      rarity: "L",
-      roll: "3〜4",
-      skills: [{ kind: "art", id: "prayer_bloody_claw_mark" }],
-    },
-    {
-      id: "seal_godslayer",
-      category: "sacred_seal",
-      name: C("神狩りの聖印", "狩神的聖印"),
-      rarity: "L",
-      roll: "5〜6",
-      skills: [{ kind: "art", id: "prayer_gods_slaying_venom" }],
+      name: C("竜餐の印", "龍餐的印"),
+      rarity: "R",
+      roll: "6",
+      skills: [{ kind: "art", id: "prayer_dragon_feast" }, { kind: "random", table: "A" }],
     },
   ];
 
