@@ -251,6 +251,7 @@
       back: [false, false, false, false, false, false],
       enemyHp: new Array(ENEMY_HP_ROWS * ENEMY_HP_COLS).fill(false),
       mobHpRows: [],
+      selectedEnemyIds: [],
     };
   }
 
@@ -437,7 +438,13 @@
           return r;
         })
       : [];
-    return { front: front, back: back, enemyHp: enemyHp, mobHpRows: mobHpRows };
+    // 「familyId|enemyId」の合成キー文字列で保持する（Enemies.get(familyId, enemyId)で解決するため）。
+    var selectedEnemyIds = Array.isArray(raw.selectedEnemyIds)
+      ? raw.selectedEnemyIds.filter(function (v) {
+          return typeof v === "string" && v.indexOf("|") !== -1;
+        })
+      : fallback.selectedEnemyIds.slice();
+    return { front: front, back: back, enemyHp: enemyHp, mobHpRows: mobHpRows, selectedEnemyIds: selectedEnemyIds };
   }
 
   function loadTimeLossDay(raw) {
@@ -940,6 +947,7 @@
   function renderFieldCard(container, card, T) {
     var block = document.createElement("div");
     block.className = "field-card-block";
+    block.id = "field-card-" + card.id;
 
     var h = document.createElement("h3");
     h.className = "field-card-title";
@@ -973,9 +981,10 @@
       block.appendChild(buildBossTable(card.varianceTable.columns, card.varianceTable.rows, T));
     }
 
-    (card.branches || []).forEach(function (branch) {
+    (card.branches || []).forEach(function (branch, branchIndex) {
       var branchDiv = document.createElement("div");
       branchDiv.className = "field-branch";
+      branchDiv.id = "field-branch-" + card.id + "-" + branchIndex;
 
       var tag = document.createElement("span");
       tag.className = "field-region-tag";
@@ -1057,13 +1066,57 @@
     container.appendChild(block);
   }
 
+  // カード（大分類）と分岐区域（中分類）へのジャンプボタンを並べた目次。
+  // カードは同じcardLabel（例:「A」）を複数枚持ちうるため、カード単位（card.id）でリンク先を決める。
+  function renderFieldNav(container, cards, T) {
+    var nav = document.createElement("div");
+    nav.className = "field-nav";
+    cards.forEach(function (card) {
+      var cardEntry = document.createElement("div");
+      cardEntry.className = "field-nav-card";
+
+      var cardLink = document.createElement("button");
+      cardLink.type = "button";
+      cardLink.className = "field-nav-card-link";
+      cardLink.textContent = "【" + card.cardLabel + "】" + T(card.name);
+      cardLink.addEventListener("click", function () {
+        var target = document.getElementById("field-card-" + card.id);
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      cardEntry.appendChild(cardLink);
+
+      var branches = card.branches || [];
+      if (branches.length) {
+        var branchList = document.createElement("div");
+        branchList.className = "field-nav-branch-list";
+        branches.forEach(function (branch, branchIndex) {
+          var branchLink = document.createElement("button");
+          branchLink.type = "button";
+          branchLink.className = "field-nav-branch-link";
+          branchLink.textContent = T(branch.name);
+          branchLink.addEventListener("click", function () {
+            var target = document.getElementById("field-branch-" + card.id + "-" + branchIndex);
+            if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+          branchList.appendChild(branchLink);
+        });
+        cardEntry.appendChild(branchList);
+      }
+
+      nav.appendChild(cardEntry);
+    });
+    container.appendChild(nav);
+  }
+
   function renderFieldRulebook() {
     var container = document.getElementById("field-rulebook-list");
     var Fields = window.PriTestFields;
     if (!container || !Fields) return;
     container.innerHTML = "";
     var T = Fields.localizedText;
-    Fields.list().forEach(function (card) {
+    var cards = Fields.list();
+    renderFieldNav(container, cards, T);
+    cards.forEach(function (card) {
       renderFieldCard(container, card, T);
     });
   }
@@ -1796,6 +1849,7 @@
     renderBattleToggleValues("battle-back-grid", state.battle.back);
     renderEnemyHpGrid();
     renderMobHpList();
+    renderSelectedEnemies();
   }
 
   function renderDicePool() {
@@ -1912,6 +1966,77 @@
       note.textContent = window.I18N.t("enemy_hp_unavailable_note");
       container.appendChild(note);
     }
+
+    var addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "primary-btn";
+    addBtn.textContent = window.I18N.t("battle_enemy_add_button");
+    addBtn.addEventListener("click", function () {
+      var key = row.familyId + "|" + row.enemy.id;
+      if (state.battle.selectedEnemyIds.indexOf(key) === -1) {
+        state.battle.selectedEnemyIds.push(key);
+        saveState();
+        renderSelectedEnemies();
+      }
+    });
+    container.appendChild(addBtn);
+  }
+
+  // 戦場で選択中のエネミー（複数選択可）。合成キー「familyId|enemyId」をEnemies.getで解決し、
+  // 汎用アイコン（strong-enemy.png、専用イラストは未整備）+ 名前 + 削除ボタンとして、
+  // 戦場面板（スライドインするbattle-drawer）の中と、盤面（board-grid）の左側の空きスペースの
+  // 2箇所に同じ内容を描画する。
+  function renderSelectedEnemies() {
+    var Enemies = window.PriTestEnemies;
+    if (!Enemies) return;
+    var T = Enemies.localizedText;
+    var ids = (state.battle && state.battle.selectedEnemyIds) || [];
+    var resolved = ids
+      .map(function (key) {
+        var parts = key.split("|");
+        var info = Enemies.get(parts[0], parts[1]);
+        return info ? { key: key, info: info } : null;
+      })
+      .filter(Boolean);
+
+    [
+      { containerId: "battle-selected-enemies", withRemove: true },
+      { containerId: "board-side-enemies", withRemove: false },
+    ].forEach(function (target) {
+      var container = document.getElementById(target.containerId);
+      if (!container) return;
+      container.innerHTML = "";
+      container.hidden = resolved.length === 0;
+      resolved.forEach(function (item) {
+        var chip = document.createElement("div");
+        chip.className = "selected-enemy-chip";
+        var icon = document.createElement("img");
+        icon.className = "selected-enemy-icon";
+        icon.src = "../static/images/icons/strong-enemy.png";
+        icon.alt = "";
+        chip.appendChild(icon);
+        var name = document.createElement("span");
+        name.className = "selected-enemy-name";
+        name.textContent = T(item.info.enemy.name);
+        chip.appendChild(name);
+        if (target.withRemove) {
+          var removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "tag-remove";
+          removeBtn.textContent = "×";
+          removeBtn.addEventListener("click", function () {
+            var idx = state.battle.selectedEnemyIds.indexOf(item.key);
+            if (idx !== -1) {
+              state.battle.selectedEnemyIds.splice(idx, 1);
+              saveState();
+              renderSelectedEnemies();
+            }
+          });
+          chip.appendChild(removeBtn);
+        }
+        container.appendChild(chip);
+      });
+    });
   }
 
   function renderFieldLevels() {
@@ -2647,6 +2772,7 @@
     buildEnemyHpGrid();
     renderEnemyHpGrid();
     renderMobHpList();
+    renderSelectedEnemies();
     renderBattleRefTexts();
     renderDicePool();
     renderBoard();
@@ -2676,6 +2802,7 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         renderEnemyHpGrid();
         renderMobHpList();
+        renderSelectedEnemies();
         renderDicePool();
         renderBoard();
         renderLog();
@@ -2779,6 +2906,7 @@
       renderConsumableRulebook();
       renderEnemyRulebookAll();
       renderFieldRulebook();
+      renderSelectedEnemies();
     });
   });
 })();

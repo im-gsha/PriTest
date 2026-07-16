@@ -659,6 +659,15 @@
     });
   }
 
+  // 次の等級に上げるために必要な盧恩を、等級欄の横に「(-N)」として表示する。
+  // 等級Lから等級L+1に上げるのに必要な盧恩は「L+1」（等級1なら次の2等へ「-2」）。上限等級では非表示。
+  function renderLevelNextCostMarker(c) {
+    var el = document.getElementById("char-level-next-cost");
+    if (!el) return;
+    var level = c ? c.level || 0 : 0;
+    el.textContent = level > 0 && level < LEVEL_CAP ? window.I18N.t("level_next_cost_marker", { cost: level + 1 }) : "";
+  }
+
   // 復歸次数（死亡→再挑戦した回数）に応じたHP/FP/加護ボーナスの目安を表示する。
   // 0回: +20/+20/+20、1回: +30/+30/+30、2回以上: +40/+40/+40（常に3項目とも同値）。
   function renderRevivalBonusMarkers(c) {
@@ -1280,6 +1289,7 @@
       skills: [],
       items: [],
       level: 1,
+      hpValue: 30,
       runes: 0,
       blessingSlots: { current: 0, max: 0 },
       flaskBase: { used: 0, max: 3 },
@@ -1529,6 +1539,7 @@
     document.getElementById("char-fp-max").value = c.fp.max;
     document.getElementById("char-level").value = c.level;
     document.getElementById("char-runes").value = c.runes;
+    document.getElementById("char-hp-value").value = c.hpValue;
     document.getElementById("char-blessing-current").value = c.blessingSlots.current;
     document.getElementById("char-blessing-max").value = c.blessingSlots.max;
     document.getElementById("char-flask-base-used").value = c.flaskBase.used;
@@ -1546,6 +1557,7 @@
     renderCharacterDicePool();
     renderRelicSection();
     renderLevelBonusMarkers(c);
+    renderLevelNextCostMarker(c);
     renderRevivalBonusMarkers(c);
     renderAttachedSection();
     renderWeaponList();
@@ -1589,9 +1601,14 @@
     var c = findCharacter(id);
     if (!c) return;
     activeSkillsCharacterId = id;
+    // 補充説明タグ（notes）はこのスキル発動ウィンドウ最上部に表示するため、
+    // ここから直接開かれた場合（本体ドロワーを経由しない盤面ロスターからの導線）にも
+    // 対象キャラクターを反映できるよう、activeCharacterIdもここで合わせておく。
+    activeCharacterId = id;
     var type = c.typeId ? CharacterTypes.get(c.typeId) : null;
     document.getElementById("skills-drawer-name").textContent =
       c.name + (type ? "（" + CharacterTypes.localizedName(type.name) + "）" : "");
+    renderTagList("notes");
     renderAbilitySections(c, type, document.getElementById("skills-drawer-active"), document.getElementById("skills-drawer-passive"));
     document.getElementById("skills-drawer").classList.add("open");
   }
@@ -1644,6 +1661,7 @@
         renderTypeReference(c);
         renderRelicSection();
         renderLevelBonusMarkers(c);
+        renderLevelNextCostMarker(c);
       }
     });
   }
@@ -1743,6 +1761,9 @@
     });
     bindFieldSave("char-runes", function (c, el) {
       c.runes = Number(el.value) || 0;
+    });
+    bindFieldSave("char-hp-value", function (c, el) {
+      c.hpValue = Number(el.value) || 0;
     });
     bindFieldSave("char-blessing-current", function (c, el) {
       c.blessingSlots.current = Number(el.value) || 0;

@@ -41,6 +41,7 @@ BODY = """    <div class="night-header-row">
 
     <section id="screen-board" class="screen">
       <div class="board-area" id="board-area">
+        <div id="board-side-enemies" class="selected-enemy-list board-side-enemies" hidden></div>
         <div class="board-grid" id="board-grid">
           <div class="field-level field-level-0" id="field-level-0"></div>
           <div class="field-level field-level-1" id="field-level-1"></div>
@@ -113,7 +114,7 @@ BODY = """    <div class="night-header-row">
     </section>
 
     <div id="rulebook-modal" class="modal" hidden>
-      <div class="modal-box gallery-modal-box">
+      <div class="modal-box gallery-modal-box rulebook-modal-box">
         <button type="button" id="btn-rulebook-floating-close" class="modal-floating-close" aria-label="close">×</button>
         <h2 data-i18n="boss_rulebook_title"></h2>
         <div class="rulebook-tabs" id="rulebook-tabs">
@@ -282,10 +283,15 @@ BODY = """    <div class="night-header-row">
             <label class="field-row">
               <span data-i18n="record_level_label"></span>
               <input type="number" id="char-level" class="stat-input" min="1" max="15">
+              <span id="char-level-next-cost" class="level-bonus-marker"></span>
             </label>
             <label class="field-row">
               <span data-i18n="record_runes_label"></span>
               <input type="number" id="char-runes" class="stat-input">
+            </label>
+            <label class="field-row">
+              <span data-i18n="record_hp_value_label"></span>
+              <input type="number" id="char-hp-value" class="stat-input" min="0">
             </label>
           </div>
           <div class="field-grid">
@@ -346,15 +352,6 @@ BODY = """    <div class="night-header-row">
             <button type="button" class="icon-btn" id="btn-char-dice-add">+</button>
           </div>
           <div class="dice-pool-list" id="char-dice-pool-list"></div>
-        </div>
-
-        <div class="tag-field" data-field="notes">
-          <h3 data-i18n="character_notes_label"></h3>
-          <div class="tag-list" id="tag-list-notes"></div>
-          <div class="tag-add-row">
-            <input type="text" id="tag-input-notes">
-            <button type="button" class="tag-add-btn" data-field="notes" data-i18n="tag_add_button"></button>
-          </div>
         </div>
 
         <div class="tag-field" data-field="status">
@@ -496,6 +493,14 @@ BODY = """    <div class="night-header-row">
       <div class="drawer-backdrop" id="skills-drawer-backdrop"></div>
       <div class="drawer-panel">
         <h2 id="skills-drawer-name"></h2>
+        <div class="tag-field" data-field="notes">
+          <h3 data-i18n="character_notes_label"></h3>
+          <div class="tag-list" id="tag-list-notes"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-notes">
+            <button type="button" class="tag-add-btn" data-field="notes" data-i18n="tag_add_button"></button>
+          </div>
+        </div>
         <div class="threat-ref-block">
           <h3 data-i18n="cv_active_skills_title"></h3>
           <div id="skills-drawer-active"></div>
@@ -533,6 +538,11 @@ BODY = """    <div class="night-header-row">
             <div class="weapon-search-results" id="battle-enemy-search-results" hidden></div>
           </div>
           <div id="battle-enemy-lookup-result"></div>
+        </div>
+
+        <div class="threat-ref-block">
+          <h3 data-i18n="battle_selected_enemies_title"></h3>
+          <div id="battle-selected-enemies" class="selected-enemy-list" hidden></div>
         </div>
 
         <div class="threat-ref-block">

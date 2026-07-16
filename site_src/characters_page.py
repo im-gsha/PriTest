@@ -58,10 +58,15 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
             <label class="field-row">
               <span data-i18n="record_level_label"></span>
               <input type="number" id="char-level" class="stat-input" min="1" max="15">
+              <span id="char-level-next-cost" class="level-bonus-marker"></span>
             </label>
             <label class="field-row">
               <span data-i18n="record_runes_label"></span>
               <input type="number" id="char-runes" class="stat-input">
+            </label>
+            <label class="field-row">
+              <span data-i18n="record_hp_value_label"></span>
+              <input type="number" id="char-hp-value" class="stat-input" min="0">
             </label>
           </div>
           <div class="field-grid">
@@ -122,15 +127,6 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
             <button type="button" class="icon-btn" id="btn-char-dice-add">+</button>
           </div>
           <div class="dice-pool-list" id="char-dice-pool-list"></div>
-        </div>
-
-        <div class="tag-field" data-field="notes">
-          <h3 data-i18n="character_notes_label"></h3>
-          <div class="tag-list" id="tag-list-notes"></div>
-          <div class="tag-add-row">
-            <input type="text" id="tag-input-notes">
-            <button type="button" class="tag-add-btn" data-field="notes" data-i18n="tag_add_button"></button>
-          </div>
         </div>
 
         <div class="tag-field" data-field="status">
@@ -272,6 +268,14 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
       <div class="drawer-backdrop" id="skills-drawer-backdrop"></div>
       <div class="drawer-panel">
         <h2 id="skills-drawer-name"></h2>
+        <div class="tag-field" data-field="notes">
+          <h3 data-i18n="character_notes_label"></h3>
+          <div class="tag-list" id="tag-list-notes"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-notes">
+            <button type="button" class="tag-add-btn" data-field="notes" data-i18n="tag_add_button"></button>
+          </div>
+        </div>
         <div class="threat-ref-block">
           <h3 data-i18n="cv_active_skills_title"></h3>
           <div id="skills-drawer-active"></div>

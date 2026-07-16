@@ -1645,6 +1645,122 @@ button {
   white-space: pre-line;
 }
 
+/* --- 板塊タブ目次：カード（大分類）／分岐区域（中分類）へのジャンプボタン --- */
+.field-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.field-nav-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 140px;
+}
+
+.field-nav-card-link {
+  align-self: flex-start;
+  border: none;
+  background: #ffe9a8;
+  color: #5c4400;
+  font-weight: 700;
+  font-size: 0.82rem;
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+}
+
+.field-nav-branch-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding-left: 0.3rem;
+}
+
+.field-nav-branch-link {
+  border: 1px solid #d7e8ff;
+  background: none;
+  color: #1c3f66;
+  font-size: 0.75rem;
+  border-radius: 5px;
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+}
+
+/* --- 戦場面板で選択中のエネミー（複数選択可）: battle-drawer内と盤面左側の空きスペースの両方に描画 --- */
+.selected-enemy-list {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.selected-enemy-list[hidden] {
+  display: none;
+}
+
+.selected-enemy-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #f2f2f2;
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.selected-enemy-icon {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.selected-enemy-name {
+  white-space: nowrap;
+}
+
+.board-side-enemies {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  min-width: 110px;
+  max-width: 150px;
+  margin-top: 1.75rem;
+}
+
+.board-side-enemies .selected-enemy-chip {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.board-side-enemies .selected-enemy-name {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/* 規則書モーダルは文章量が多いため、通常のギャラリーモーダルより大幅に大きく・
+   ドラッグでさらに拡大できるようにする（ブラウザ既定のresize、右下角をドラッグ）。 */
+.rulebook-modal-box {
+  max-width: 1400px;
+  width: 96vw;
+  max-height: 94vh;
+  resize: both;
+}
+
+@media (max-width: 640px) {
+  .rulebook-modal-box {
+    width: 98vw;
+    max-height: 96vh;
+    resize: vertical;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   .project-card p {
     color: #aaa;
@@ -1774,5 +1890,20 @@ button {
   .field-line-d3 {
     background: #241a3d;
     color: #c8b3ff;
+  }
+  .selected-enemy-chip {
+    background: #262626;
+    color: #eee;
+  }
+  .field-nav {
+    border-color: #333;
+  }
+  .field-nav-card-link {
+    background: #4a3a00;
+    color: #ffd873;
+  }
+  .field-nav-branch-link {
+    border-color: #113252;
+    color: #9dc4ee;
   }
 }
