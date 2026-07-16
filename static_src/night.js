@@ -835,15 +835,80 @@
   function buildEnemyActionTable(enemy) {
     var Enemies = window.PriTestEnemies;
     var T = Enemies.localizedText;
+    var hasNote = (enemy.actions || []).some(function (a) {
+      return a.note;
+    });
     var columns = [
       { ja: "出目", zh: "點數" },
       { ja: "アクション名", zh: "招式名稱" },
       { ja: "乱戦ダメージ修正", zh: "亂戰傷害修正" },
     ];
+    if (hasNote) columns.push({ ja: "乱戦ダメージへの注釈、個別ダメージなど", zh: "亂戰傷害注釋、個別傷害等" });
     var rows = (enemy.actions || []).map(function (a) {
-      return [{ ja: a.roll, zh: a.roll }, a.name, { ja: a.mod || "—", zh: a.mod || "—" }];
+      var row = [{ ja: a.roll, zh: a.roll }, a.name, { ja: a.mod || "—", zh: a.mod || "—" }];
+      if (hasNote) row.push(a.note || { ja: "", zh: "" });
+      return row;
     });
-    return buildBossTable(columns, rows, T);
+    var wrap = document.createElement("div");
+    wrap.className = "field-variance-wrap";
+    wrap.appendChild(buildBossTable(columns, rows, T));
+    return wrap;
+  }
+
+  // 系統共通の「ガード回数／HP価値」参考表（データがある系統のみ表示。レベルによらず一定）。
+  function buildEnemyGuardValueTable(fam) {
+    var Enemies = window.PriTestEnemies;
+    var T = Enemies.localizedText;
+    var columns = [
+      { ja: "ガード回数", zh: "防禦次數" },
+      { ja: "HP価値", zh: "HP價值" },
+    ];
+    var rows = fam.guardValueTable.map(function (row) {
+      var valueText = row.theoretical ? "（" + row.value + "）" : String(row.value);
+      return [row.count, { ja: valueText, zh: valueText }];
+    });
+    var wrap = document.createElement("div");
+    wrap.className = "field-variance-wrap";
+    wrap.appendChild(buildBossTable(columns, rows, T));
+    return wrap;
+  }
+
+  // 系統（大分類）／エネミー（中分類）へのジャンプボタンを並べた目次。現在の検索・サブタブの絞り込み結果と連動する。
+  function renderEnemyNav(container, matchedFamilies, T) {
+    var nav = document.createElement("div");
+    nav.className = "field-nav";
+    matchedFamilies.forEach(function (row) {
+      var famEntry = document.createElement("div");
+      famEntry.className = "field-nav-card";
+
+      var famLink = document.createElement("button");
+      famLink.type = "button";
+      famLink.className = "field-nav-card-link";
+      famLink.textContent = T(row.fam.name);
+      famLink.addEventListener("click", function () {
+        var target = document.getElementById("enemy-family-" + row.fam.id);
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      famEntry.appendChild(famLink);
+
+      var enemyList = document.createElement("div");
+      enemyList.className = "field-nav-branch-list";
+      row.enemies.forEach(function (enemy) {
+        var enemyLink = document.createElement("button");
+        enemyLink.type = "button";
+        enemyLink.className = "field-nav-branch-link";
+        enemyLink.textContent = T(enemy.name);
+        enemyLink.addEventListener("click", function () {
+          var target = document.getElementById("enemy-entry-" + row.fam.id + "-" + enemy.id);
+          if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        enemyList.appendChild(enemyLink);
+      });
+      famEntry.appendChild(enemyList);
+
+      nav.appendChild(famEntry);
+    });
+    container.appendChild(nav);
   }
 
   function renderEnemyRulebookList() {
@@ -856,17 +921,31 @@
     var query = (document.getElementById("enemy-rulebook-search-input") || {}).value || "";
     var q = query.trim().toLowerCase();
 
-    Enemies.listFamilies().forEach(function (fam) {
-      if (activeEnemyFamily !== "all" && activeEnemyFamily !== fam.id) return;
-      var famEnemies = fam.enemies.filter(function (e) {
-        if (!q) return true;
-        var n = e.name;
-        return (n.ja && n.ja.toLowerCase().indexOf(q) !== -1) || (n.zh && n.zh.toLowerCase().indexOf(q) !== -1);
+    var matchedFamilies = Enemies.listFamilies()
+      .filter(function (fam) {
+        return activeEnemyFamily === "all" || activeEnemyFamily === fam.id;
+      })
+      .map(function (fam) {
+        var famEnemies = fam.enemies.filter(function (e) {
+          if (!q) return true;
+          var n = e.name;
+          return (n.ja && n.ja.toLowerCase().indexOf(q) !== -1) || (n.zh && n.zh.toLowerCase().indexOf(q) !== -1);
+        });
+        return { fam: fam, enemies: famEnemies };
+      })
+      .filter(function (row) {
+        return row.enemies.length > 0;
       });
-      if (!famEnemies.length) return;
+
+    renderEnemyNav(container, matchedFamilies, T);
+
+    matchedFamilies.forEach(function (row) {
+      var fam = row.fam;
+      var famEnemies = row.enemies;
 
       var famHeading = document.createElement("p");
       famHeading.className = "boss-subheading";
+      famHeading.id = "enemy-family-" + fam.id;
       famHeading.textContent = T(fam.name);
       container.appendChild(famHeading);
 
@@ -877,12 +956,33 @@
         container.appendChild(noteP);
       }
 
+      if (fam.guardValueTable) {
+        if (fam.guardCount != null) {
+          var guardCountP = document.createElement("p");
+          guardCountP.className = "threat-ref-body";
+          guardCountP.textContent =
+            window.I18N.t("enemy_guard_count_label") + window.I18N.t("colon_separator") + fam.guardCount;
+          container.appendChild(guardCountP);
+        }
+        container.appendChild(buildEnemyGuardValueTable(fam));
+      }
+
       famEnemies.forEach(function (enemy) {
         var details = document.createElement("details");
         details.className = "ability-entry";
+        details.id = "enemy-entry-" + fam.id + "-" + enemy.id;
         var summary = document.createElement("summary");
         summary.textContent = T(enemy.name);
         details.appendChild(summary);
+
+        var imgSrc = Enemies.imagePath(enemy);
+        if (imgSrc) {
+          var img = document.createElement("img");
+          img.className = "enemy-portrait";
+          img.src = imgSrc;
+          img.alt = T(enemy.name);
+          details.appendChild(img);
+        }
 
         var statLines = document.createElement("p");
         statLines.className = "threat-ref-body";
@@ -1967,25 +2067,41 @@
       container.appendChild(note);
     }
 
+    var addRow = document.createElement("div");
+    addRow.className = "wb-row";
+    var levelLabel = document.createElement("label");
+    levelLabel.textContent = window.I18N.t("enemy_level_label");
+    var maxLevel = (row.familyBase || []).length || 15;
+    var levelInput = document.createElement("input");
+    levelInput.type = "number";
+    levelInput.className = "stat-input";
+    levelInput.min = "1";
+    levelInput.max = String(maxLevel);
+    levelInput.value = "1";
+    levelLabel.appendChild(levelInput);
+    addRow.appendChild(levelLabel);
+
     var addBtn = document.createElement("button");
     addBtn.type = "button";
     addBtn.className = "primary-btn";
     addBtn.textContent = window.I18N.t("battle_enemy_add_button");
     addBtn.addEventListener("click", function () {
-      var key = row.familyId + "|" + row.enemy.id;
+      var level = Math.max(1, Math.min(maxLevel, Number(levelInput.value) || 1));
+      var key = row.familyId + "|" + row.enemy.id + "|" + level;
       if (state.battle.selectedEnemyIds.indexOf(key) === -1) {
         state.battle.selectedEnemyIds.push(key);
         saveState();
         renderSelectedEnemies();
       }
     });
-    container.appendChild(addBtn);
+    addRow.appendChild(addBtn);
+    container.appendChild(addRow);
   }
 
-  // 戦場で選択中のエネミー（複数選択可）。合成キー「familyId|enemyId」をEnemies.getで解決し、
-  // 汎用アイコン（strong-enemy.png、専用イラストは未整備）+ 名前 + 削除ボタンとして、
-  // 戦場面板（スライドインするbattle-drawer）の中と、盤面（board-grid）の左側の空きスペースの
-  // 2箇所に同じ内容を描画する。
+  // 戦場で選択中のエネミー（複数選択可）。合成キー「familyId|enemyId|level」をEnemies.getで解決し、
+  // 専用イラスト（未整備の場合は汎用アイコンstrong-enemy.pngで代替）+ 名前 +
+  // 等級・血量・種族・体型を公開情報として、戦場面板（スライドインするbattle-drawer）の中と、
+  // 盤面（board-grid）の左側の共通地図の空きスペースの2箇所に同じ内容を描画する。
   function renderSelectedEnemies() {
     var Enemies = window.PriTestEnemies;
     if (!Enemies) return;
@@ -1995,7 +2111,8 @@
       .map(function (key) {
         var parts = key.split("|");
         var info = Enemies.get(parts[0], parts[1]);
-        return info ? { key: key, info: info } : null;
+        var level = Math.max(1, Number(parts[2]) || 1);
+        return info ? { key: key, info: info, level: level } : null;
       })
       .filter(Boolean);
 
@@ -2012,13 +2129,31 @@
         chip.className = "selected-enemy-chip";
         var icon = document.createElement("img");
         icon.className = "selected-enemy-icon";
-        icon.src = "../static/images/icons/strong-enemy.png";
+        icon.src = Enemies.imagePath(item.info.enemy) || "../static/images/icons/strong-enemy.png";
         icon.alt = "";
         chip.appendChild(icon);
+        var info = document.createElement("div");
+        info.className = "selected-enemy-info";
         var name = document.createElement("span");
         name.className = "selected-enemy-name";
         name.textContent = T(item.info.enemy.name);
-        chip.appendChild(name);
+        info.appendChild(name);
+        var statLine = document.createElement("span");
+        statLine.className = "selected-enemy-stats";
+        var lvRow = (item.info.familyBase || []).filter(function (lv) {
+          return lv.level === item.level;
+        })[0];
+        var statParts = [
+          window.I18N.t("enemy_level_label") + window.I18N.t("colon_separator") + item.level,
+          T(item.info.familyName),
+          item.info.enemy.size || "-",
+        ];
+        if (lvRow && lvRow.hp) {
+          statParts.push(window.I18N.t("enemy_hp_label") + window.I18N.t("colon_separator") + lvRow.hp);
+        }
+        statLine.textContent = statParts.join("　");
+        info.appendChild(statLine);
+        chip.appendChild(info);
         if (target.withRemove) {
           var removeBtn = document.createElement("button");
           removeBtn.type = "button";
