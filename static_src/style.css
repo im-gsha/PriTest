@@ -1534,6 +1534,117 @@ button {
   color: inherit;
 }
 
+/* --- マップ盤面（フィールド）カード：規則書タブ「板塊／盤面」 --- */
+.field-card-block {
+  margin: 1.25rem 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid #ddd;
+}
+
+.field-card-title {
+  margin: 0 0 0.3rem;
+  font-size: 1rem;
+}
+
+.field-card-meta {
+  font-size: 0.8rem;
+  color: #888;
+  margin: 0 0 0.6rem;
+}
+
+.field-branch {
+  margin: 0.9rem 0;
+  padding-left: 0.1rem;
+}
+
+.field-region-tag {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 0.88rem;
+  background: #ffe9a8;
+  color: #5c4400;
+  border-radius: 6px;
+  padding: 0.15rem 0.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.field-branch-intro {
+  font-size: 0.82rem;
+  color: #666;
+  line-height: 1.6;
+  margin: 0.3rem 0 0.5rem;
+  white-space: pre-line;
+}
+
+.field-floor {
+  margin: 0.5rem 0 0.8rem;
+  padding-left: 0.4rem;
+  border-left: 2px solid #eee;
+}
+
+.field-floor-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: #d7e8ff;
+  color: #1c3f66;
+  border-radius: 4px;
+  padding: 0.15rem 0.55rem;
+  margin: 0.3rem 0 0.4rem;
+}
+
+.field-floor-title {
+  font-weight: 400;
+  color: #444;
+}
+
+.field-line {
+  font-size: 0.82rem;
+  line-height: 1.65;
+  white-space: pre-line;
+  margin: 0.35rem 0;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.field-line-label {
+  font-weight: 700;
+  margin-right: 0.3rem;
+}
+
+.field-line-d0 {
+  color: #555;
+}
+
+.field-line-d1 {
+  background: #fff2cf;
+  color: #5c4a12;
+  margin-left: 0.2rem;
+}
+
+.field-line-d2 {
+  background: #ffdcdc;
+  color: #6b1f1f;
+  margin-left: 0.8rem;
+}
+
+.field-line-d3 {
+  background: #e6dcff;
+  color: #3c2a66;
+  margin-left: 1.4rem;
+}
+
+.field-line-bullet {
+  font-size: 0.8rem;
+  opacity: 0.92;
+}
+
+.field-variance-wrap td {
+  white-space: pre-line;
+}
+
 @media (prefers-color-scheme: dark) {
   .project-card p {
     color: #aaa;
@@ -1628,5 +1739,40 @@ button {
   }
   .weapon-search-item:hover {
     background: #1c2a42;
+  }
+  .field-card-block {
+    border-color: #333;
+  }
+  .field-branch-intro {
+    color: #aaa;
+  }
+  .field-floor {
+    border-color: #333;
+  }
+  .field-floor-title {
+    color: #ccc;
+  }
+  .field-region-tag {
+    background: #4a3a00;
+    color: #ffd873;
+  }
+  .field-floor-marker {
+    background: #113252;
+    color: #9dc4ee;
+  }
+  .field-line-d0 {
+    color: #bbb;
+  }
+  .field-line-d1 {
+    background: #3d3211;
+    color: #f0d585;
+  }
+  .field-line-d2 {
+    background: #3d1818;
+    color: #f2a9a9;
+  }
+  .field-line-d3 {
+    background: #241a3d;
+    color: #c8b3ff;
   }
 }

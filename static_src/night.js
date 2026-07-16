@@ -918,6 +918,156 @@
     }
   }
 
+  // マップ盤面（フィールド）カードの参考資料タブ。1行＝L(depth, label, text, bullet)。
+  // depth 0＝通常記述、1〜3＝「→」「→→」「→→→」に相当するイベント／小イベントの分岐（背景色で強調）。
+  function renderFieldLine(container, line, T) {
+    var depth = Math.min(line.depth || 0, 3);
+    var p = document.createElement("p");
+    p.className = "field-line field-line-d" + depth + (line.bullet ? " field-line-bullet" : "");
+    var prefix = "";
+    if (line.bullet) {
+      prefix = "・";
+    } else if (depth > 0) {
+      for (var i = 0; i < depth; i++) prefix += "→";
+    }
+    var text = prefix;
+    if (line.label) text += "【" + T(line.label) + "】";
+    text += T(line.text);
+    p.textContent = text;
+    container.appendChild(p);
+  }
+
+  function renderFieldCard(container, card, T) {
+    var block = document.createElement("div");
+    block.className = "field-card-block";
+
+    var h = document.createElement("h3");
+    h.className = "field-card-title";
+    h.textContent = "【" + card.cardLabel + "】" + T(card.name);
+    block.appendChild(h);
+
+    var metaParts = [];
+    if (card.floorCount != null) {
+      metaParts.push(window.I18N.t("field_floor_count_label") + window.I18N.t("colon_separator") + card.floorCount);
+    }
+    if (card.allFloorEffect) {
+      metaParts.push(
+        window.I18N.t("field_all_floor_effect_label") + window.I18N.t("colon_separator") + T(card.allFloorEffect)
+      );
+    }
+    if (metaParts.length) {
+      var metaP = document.createElement("p");
+      metaP.className = "field-card-meta";
+      metaP.textContent = metaParts.join("　");
+      block.appendChild(metaP);
+    }
+
+    if (card.varianceNote) {
+      var noteP = document.createElement("p");
+      noteP.className = "threat-ref-body";
+      noteP.textContent = T(card.varianceNote);
+      block.appendChild(noteP);
+    }
+
+    if (card.varianceTable) {
+      block.appendChild(buildBossTable(card.varianceTable.columns, card.varianceTable.rows, T));
+    }
+
+    (card.branches || []).forEach(function (branch) {
+      var branchDiv = document.createElement("div");
+      branchDiv.className = "field-branch";
+
+      var tag = document.createElement("span");
+      tag.className = "field-region-tag";
+      tag.textContent = T(branch.name);
+      branchDiv.appendChild(tag);
+
+      if (branch.intro) {
+        var introP = document.createElement("p");
+        introP.className = "field-branch-intro";
+        introP.textContent = T(branch.intro);
+        branchDiv.appendChild(introP);
+      }
+
+      if (branch.specialRule) {
+        var ruleP = document.createElement("p");
+        ruleP.className = "field-branch-intro";
+        ruleP.textContent = T(branch.specialRule);
+        branchDiv.appendChild(ruleP);
+      }
+
+      (branch.floorPreviews || []).forEach(function (preview) {
+        var pv = document.createElement("p");
+        pv.className = "field-branch-intro";
+        pv.textContent = "＞" + T(preview.label) + "：" + T(preview.title) + "\n" + T(preview.text);
+        branchDiv.appendChild(pv);
+      });
+
+      (branch.floors || []).forEach(function (floor) {
+        var floorDiv = document.createElement("div");
+        floorDiv.className = "field-floor";
+
+        var marker = document.createElement("div");
+        marker.className = "field-floor-marker";
+        marker.textContent = T(floor.label) + (floor.title ? "　" : "");
+        if (floor.title) {
+          var titleSpan = document.createElement("span");
+          titleSpan.className = "field-floor-title";
+          titleSpan.textContent = T(floor.title);
+          marker.appendChild(titleSpan);
+        }
+        floorDiv.appendChild(marker);
+
+        (floor.lines || []).forEach(function (line) {
+          renderFieldLine(floorDiv, line, T);
+        });
+
+        branchDiv.appendChild(floorDiv);
+      });
+
+      block.appendChild(branchDiv);
+    });
+
+    (card.extraNotes || []).forEach(function (note) {
+      var noteBlock = document.createElement("div");
+      noteBlock.className = "threat-ref-block";
+      var noteH = document.createElement("h4");
+      noteH.textContent = T(note.title);
+      noteBlock.appendChild(noteH);
+      var noteBody = document.createElement("p");
+      noteBody.className = "threat-ref-body";
+      noteBody.textContent = T(note.body);
+      noteBlock.appendChild(noteBody);
+      block.appendChild(noteBlock);
+    });
+
+    (card.extraTables || []).forEach(function (tbl) {
+      var tblBlock = document.createElement("div");
+      tblBlock.className = "threat-ref-block";
+      var tblH = document.createElement("h4");
+      tblH.textContent = T(tbl.title);
+      tblBlock.appendChild(tblH);
+      var tblWrap = document.createElement("div");
+      tblWrap.className = "field-variance-wrap";
+      tblWrap.appendChild(buildBossTable(tbl.columns, tbl.rows, T));
+      tblBlock.appendChild(tblWrap);
+      block.appendChild(tblBlock);
+    });
+
+    container.appendChild(block);
+  }
+
+  function renderFieldRulebook() {
+    var container = document.getElementById("field-rulebook-list");
+    var Fields = window.PriTestFields;
+    if (!container || !Fields) return;
+    container.innerHTML = "";
+    var T = Fields.localizedText;
+    Fields.list().forEach(function (card) {
+      renderFieldCard(container, card, T);
+    });
+  }
+
   // 「得意武器：武器」時の抽選手順（レア度判定→大分類→小分類）の参考資料タブ
   function renderWeaponRulebook() {
     var container = document.getElementById("weapon-rulebook-list");
@@ -2508,6 +2658,7 @@
     renderTalismanRulebook();
     renderConsumableRulebook();
     renderEnemyRulebookAll();
+    renderFieldRulebook();
 
     // クラウド保存ゲームのみ：Firebaseから最新状態を取得し（購読開始時に1回必ず呼ばれる）、
     // 以後は他端末からの変更を受信するたびに再描画する。ローカル専用ゲームでは何もしない。
@@ -2627,6 +2778,7 @@
       renderTalismanRulebook();
       renderConsumableRulebook();
       renderEnemyRulebookAll();
+      renderFieldRulebook();
     });
   });
 })();
