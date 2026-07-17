@@ -149,13 +149,14 @@ BODY = """    <div class="night-header-row">
           <div id="talisman-rulebook-list"></div>
         </div>
         <div class="rulebook-tab-panel" id="rulebook-panel-consumable" hidden>
+          <div id="consumable-determine-table"></div>
           <div id="consumable-rulebook-list"></div>
         </div>
         <div class="rulebook-tab-panel" id="rulebook-panel-board" hidden>
           <div id="field-rulebook-list"></div>
         </div>
         <div class="rulebook-tab-panel" id="rulebook-panel-event" hidden>
-          <p class="threat-ref-body" data-i18n="rulebook_no_data"></p>
+          <div id="event-rulebook-list"></div>
         </div>
         <div class="actions">
           <button type="button" id="btn-rulebook-close" class="primary-btn" data-i18n="close_button"></button>
@@ -625,6 +626,7 @@ def build_night_html() -> str:
             "night_boss_rulebook.js",
             "enemies.js",
             "fields.js",
+            "event_rulebook.js",
             "night.js",
         ),
     )

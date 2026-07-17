@@ -817,6 +817,16 @@
     });
   }
 
+  // 消耗品決定表（ダイス2回、d66形式）の参考資料。
+  function renderConsumableDetermineTable() {
+    var container = document.getElementById("consumable-determine-table");
+    var Consumables = window.PriTestConsumables;
+    if (!container || !Consumables) return;
+    container.innerHTML = "";
+    var table = Consumables.determineTable();
+    container.appendChild(buildBossTable(table.columns, table.rows, window.PriTestConsumables.localizedText));
+  }
+
   // エネミー（通常討伐対象）一覧の参考資料タブ。系統別サブタブ＋名前検索。
   var activeEnemyFamily = "all";
 
@@ -1289,6 +1299,21 @@
     });
   }
 
+  // イベントチット（霊脈・商人・強敵・ランダムイベント）のルールブックタブ。
+  // データ形状はfields.jsのCARDSと同じなので、renderFieldNav/renderFieldCardをそのまま再利用する。
+  function renderEventRulebook() {
+    var container = document.getElementById("event-rulebook-list");
+    var Events = window.PriTestEventRulebook;
+    if (!container || !Events) return;
+    container.innerHTML = "";
+    var T = Events.localizedText;
+    var cards = Events.list();
+    renderFieldNav(container, cards, T);
+    cards.forEach(function (card) {
+      renderFieldCard(container, card, T);
+    });
+  }
+
   // 「得意武器：武器」時の抽選手順（レア度判定→大分類→小分類）の参考資料タブ
   function renderWeaponRulebook() {
     var container = document.getElementById("weapon-rulebook-list");
@@ -1329,7 +1354,7 @@
       container.appendChild(block);
     });
 
-    [WR.acquisitionNote(), WR.rarityNote()].forEach(function (note) {
+    [WR.acquisitionNote(), WR.rarityNote()].concat(WR.commonSkillNotes()).forEach(function (note) {
       var block = document.createElement("div");
       block.className = "threat-ref-block";
       var h = document.createElement("h4");
@@ -1420,6 +1445,18 @@
     } else if (ref.kind === "element") {
       name = window.I18N.t("weapon_element_skill_label", { element: WL(ref.element) });
       body = WL(Weapons.elementSkillBody(ref.element));
+      kind = "Passive";
+    } else if (ref.kind === "special") {
+      name = window.I18N.t("weapon_special_skill_label", { target: WL(ref.target) });
+      body = WL(Weapons.specialEffectSkillBody(ref.target));
+      kind = "Passive";
+    } else if (ref.kind === "elementMinus5") {
+      name = window.I18N.t("weapon_element_minus5_skill_label", { element: WL(ref.element) });
+      body = WL(Weapons.elementMinus5SkillBody(ref.element));
+      kind = "Passive";
+    } else if (ref.kind === "statusMinus5") {
+      name = window.I18N.t("weapon_status_minus5_skill_label", { status: WL(ref.status) });
+      body = WL(Weapons.statusMinus5SkillBody(ref.status));
       kind = "Passive";
     } else if (ref.kind === "bonus") {
       name = WL(ref.text);
@@ -3036,9 +3073,11 @@
     renderWeaponRulebookAll();
     renderTalismanAcquisitionTable();
     renderTalismanRulebook();
+    renderConsumableDetermineTable();
     renderConsumableRulebook();
     renderEnemyRulebookAll();
     renderFieldRulebook();
+    renderEventRulebook();
 
     // クラウド保存ゲームのみ：Firebaseから最新状態を取得し（購読開始時に1回必ず呼ばれる）、
     // 以後は他端末からの変更を受信するたびに再描画する。ローカル専用ゲームでは何もしない。
@@ -3157,9 +3196,11 @@
       renderWeaponRulebookAll();
       renderTalismanAcquisitionTable();
       renderTalismanRulebook();
+      renderConsumableDetermineTable();
       renderConsumableRulebook();
       renderEnemyRulebookAll();
       renderFieldRulebook();
+      renderEventRulebook();
       renderSelectedEnemies();
     });
   });
