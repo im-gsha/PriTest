@@ -1007,6 +1007,24 @@ button {
   font-weight: 700;
 }
 
+.battle-toggle-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.battle-aggro-input {
+  width: 2rem;
+  padding: 0.1rem 0.2rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
 .battle-hp-grid {
   display: flex;
   flex-direction: column;

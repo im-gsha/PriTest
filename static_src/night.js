@@ -249,6 +249,8 @@
     return {
       front: [false, false, false, false, false, false],
       back: [false, false, false, false, false, false],
+      // PC1〜6の「敵視」。番号は前衛／後衛どちらのマスにいても同じPCを指すため、両エリアで共有する。
+      aggro: [0, 0, 0, 0, 0, 0],
       enemyHp: new Array(ENEMY_HP_ROWS * ENEMY_HP_COLS).fill(false),
       mobHpRows: [],
       selectedEnemyIds: [],
@@ -428,6 +430,12 @@
     while (front.length < 6) front.push(false);
     var back = Array.isArray(raw.back) ? raw.back.slice(0, 6).map(Boolean) : fallback.back.slice();
     while (back.length < 6) back.push(false);
+    var aggro = Array.isArray(raw.aggro)
+      ? raw.aggro.slice(0, 6).map(function (v) {
+          return Number(v) || 0;
+        })
+      : fallback.aggro.slice();
+    while (aggro.length < 6) aggro.push(0);
     var hpTotal = ENEMY_HP_ROWS * ENEMY_HP_COLS;
     var enemyHp = Array.isArray(raw.enemyHp) ? raw.enemyHp.slice(0, hpTotal).map(Boolean) : fallback.enemyHp.slice();
     while (enemyHp.length < hpTotal) enemyHp.push(false);
@@ -444,7 +452,14 @@
           return typeof v === "string" && v.indexOf("|") !== -1;
         })
       : fallback.selectedEnemyIds.slice();
-    return { front: front, back: back, enemyHp: enemyHp, mobHpRows: mobHpRows, selectedEnemyIds: selectedEnemyIds };
+    return {
+      front: front,
+      back: back,
+      aggro: aggro,
+      enemyHp: enemyHp,
+      mobHpRows: mobHpRows,
+      selectedEnemyIds: selectedEnemyIds,
+    };
   }
 
   function loadTimeLossDay(raw) {
@@ -855,6 +870,25 @@
     return wrap;
   }
 
+  // 系統共通の「レベル／HP枠／乱戦ダメージ」基礎データ表（fam.baseがある系統のみ表示）。
+  function buildEnemyBaseTable(fam) {
+    var Enemies = window.PriTestEnemies;
+    var T = Enemies.localizedText;
+    var columns = [
+      { ja: "レベル", zh: "等級" },
+      { ja: "HP枠", zh: "HP枠" },
+      { ja: "乱戦ダメージ", zh: "亂戰傷害" },
+    ];
+    var rows = fam.base.map(function (lv) {
+      var hpText = lv.hp || "—";
+      return [lv.level, { ja: hpText, zh: hpText }, lv.dmg];
+    });
+    var wrap = document.createElement("div");
+    wrap.className = "field-variance-wrap";
+    wrap.appendChild(buildBossTable(columns, rows, T));
+    return wrap;
+  }
+
   // 系統共通の「ガード回数／HP価値」参考表（データがある系統のみ表示）。
   // row.value は通常レベルによらず一定の数値だが、一部の系統（結晶人・人形兵系、ゴーレム・乙女人形系、
   // 小姓・卑兵系など）は原本の基礎データ表でレベルごとにHP価値が異なるため、その場合は
@@ -978,6 +1012,10 @@
       famHeading.id = "enemy-family-" + fam.id;
       famHeading.textContent = T(fam.name);
       container.appendChild(famHeading);
+
+      if (fam.base) {
+        container.appendChild(buildEnemyBaseTable(fam));
+      }
 
       if (fam.note) {
         var noteP = document.createElement("p");
@@ -1855,12 +1893,24 @@
   }
 
   // --- 戦場シート ---
-  // 前衛／後衛エリア: 1〜6の目に対応する6個のマスをクリックでON/OFFトグルする
-  function buildBattleToggleGrid(containerId, valuesArray) {
+  // PC番号（1〜6）は前衛／後衛どちらのマスにいても同じPCを指すため、敵視の値は両エリアで共有する。
+  // 片方の入力を変更したら、もう片方の同じ番号の入力欄にも同じ値を反映する。
+  function syncAggroInputs(idx, value) {
+    ["battle-front-grid", "battle-back-grid"].forEach(function (containerId) {
+      var input = document.getElementById(containerId + "-aggro-" + idx);
+      if (input && input.value !== String(value)) input.value = value;
+    });
+  }
+
+  // 前衛／後衛エリア: 1〜6の目に対応する6個のマス（クリックでON/OFFトグル）＋各PCの敵視入力欄
+  function buildBattleToggleGrid(containerId, valuesArray, aggroArray) {
     var container = document.getElementById(containerId);
     container.innerHTML = "";
     for (var i = 0; i < 6; i++) {
       (function (idx) {
+        var cell = document.createElement("div");
+        cell.className = "battle-toggle-cell";
+
         var btn = document.createElement("button");
         btn.type = "button";
         btn.id = containerId + "-" + idx;
@@ -1872,21 +1922,40 @@
           btn.classList.toggle("active", valuesArray[idx]);
           saveState();
         });
-        container.appendChild(btn);
+        cell.appendChild(btn);
+
+        var aggroInput = document.createElement("input");
+        aggroInput.type = "number";
+        aggroInput.id = containerId + "-aggro-" + idx;
+        aggroInput.className = "battle-aggro-input";
+        aggroInput.min = "0";
+        aggroInput.title = window.I18N.t("battle_aggro_label") + " (PC" + (idx + 1) + ")";
+        aggroInput.value = (aggroArray && aggroArray[idx]) || 0;
+        aggroInput.addEventListener("input", function () {
+          var v = Math.max(0, Number(aggroInput.value) || 0);
+          state.battle.aggro[idx] = v;
+          syncAggroInputs(idx, v);
+          saveState();
+        });
+        cell.appendChild(aggroInput);
+
+        container.appendChild(cell);
       })(i);
     }
   }
 
-  function renderBattleToggleValues(containerId, valuesArray) {
+  function renderBattleToggleValues(containerId, valuesArray, aggroArray) {
     valuesArray.forEach(function (value, idx) {
       var btn = document.getElementById(containerId + "-" + idx);
       if (btn) btn.classList.toggle("active", !!value);
+      var input = document.getElementById(containerId + "-aggro-" + idx);
+      if (input) input.value = (aggroArray && aggroArray[idx]) || 0;
     });
   }
 
   function buildBattleAreas() {
-    buildBattleToggleGrid("battle-front-grid", state.battle.front);
-    buildBattleToggleGrid("battle-back-grid", state.battle.back);
+    buildBattleToggleGrid("battle-front-grid", state.battle.front, state.battle.aggro);
+    buildBattleToggleGrid("battle-back-grid", state.battle.back, state.battle.aggro);
   }
 
   function buildEnemyHpGrid() {
@@ -1975,8 +2044,8 @@
     if (!window.confirm(window.I18N.t("battle_clear_confirm"))) return;
     state.battle = defaultBattleState();
     saveState();
-    renderBattleToggleValues("battle-front-grid", state.battle.front);
-    renderBattleToggleValues("battle-back-grid", state.battle.back);
+    renderBattleToggleValues("battle-front-grid", state.battle.front, state.battle.aggro);
+    renderBattleToggleValues("battle-back-grid", state.battle.back, state.battle.aggro);
     renderEnemyHpGrid();
     renderMobHpList();
     renderSelectedEnemies();
@@ -2060,6 +2129,14 @@
     familyLine.textContent = window.I18N.t("enemy_family_label") + window.I18N.t("colon_separator") + T(row.familyName);
     container.appendChild(familyLine);
 
+    var weakness = extractWeakness(row.enemy.special, T);
+    if (weakness) {
+      var weaknessLine = document.createElement("p");
+      weaknessLine.className = "threat-ref-body";
+      weaknessLine.textContent = window.I18N.t("enemy_weakness_label") + window.I18N.t("colon_separator") + weakness;
+      container.appendChild(weaknessLine);
+    }
+
     var table = document.createElement("table");
     table.className = "boss-action-table";
     var thead = document.createElement("thead");
@@ -2132,6 +2209,14 @@
   // 専用イラスト（未整備の場合は汎用アイコンstrong-enemy.pngで代替）+ 名前 +
   // 等級・血量・種族・体型を公開情報として、戦場面板（スライドインするbattle-drawer）の中と、
   // 盤面（board-grid）の左側の共通地図の空きスペースの2箇所に同じ内容を描画する。
+  // 特殊能力欄の「〔弱点:XXX〕公開情報」のような記述から、弱点だけを取り出す（公開情報として戦場に表示するため）。
+  function extractWeakness(specialField, T) {
+    if (!specialField) return null;
+    var text = T(specialField);
+    var m = text.match(/〔弱[点點][:：]([^〕]+)〕/);
+    return m ? m[1] : null;
+  }
+
   function renderSelectedEnemies() {
     var Enemies = window.PriTestEnemies;
     if (!Enemies) return;
@@ -2180,6 +2265,10 @@
         ];
         if (lvRow && lvRow.hp) {
           statParts.push(window.I18N.t("enemy_hp_label") + window.I18N.t("colon_separator") + lvRow.hp);
+        }
+        var weakness = extractWeakness(item.info.enemy.special, T);
+        if (weakness) {
+          statParts.push(window.I18N.t("enemy_weakness_label") + window.I18N.t("colon_separator") + weakness);
         }
         statLine.textContent = statParts.join("　");
         info.appendChild(statLine);
