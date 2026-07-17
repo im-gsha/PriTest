@@ -1453,6 +1453,47 @@ button {
   padding: 0.5rem;
 }
 
+.weapon-roll-field {
+  margin: 0.5rem 0;
+}
+
+.weapon-roll-toggle-btn {
+  width: 100%;
+}
+
+.weapon-roll-panel {
+  margin-top: 0.5rem;
+  border: 1px dashed #bbb;
+  border-radius: 6px;
+  padding: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.weapon-roll-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.weapon-roll-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+}
+
+.weapon-roll-result {
+  margin: 0;
+  font-weight: 600;
+}
+
+.weapon-roll-note {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
 .weapon-search-box {
   position: relative;
 }

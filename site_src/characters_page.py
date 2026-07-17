@@ -162,6 +162,7 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
             <input type="text" id="weapon-search-input">
             <div class="weapon-search-results" id="weapon-search-results" hidden></div>
           </div>
+          <div class="weapon-roll-field" id="weapon-roll-field"></div>
           <div id="weapon-list"></div>
         </div>
 
@@ -304,6 +305,7 @@ def build_characters_html() -> str:
             "game_storage.js",
             "character_types.js",
             "weapons.js",
+            "weapon_rulebook.js",
             "talismans.js",
             "consumables.js",
             "character_drawer.js",

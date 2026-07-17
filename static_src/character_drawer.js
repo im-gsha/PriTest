@@ -5,6 +5,7 @@
   // 自分の characters 配列（参照）と永続化関数を渡す。
   var CharacterTypes = window.PriTestCharacterTypes;
   var Weapons = window.PriTestWeapons;
+  var WeaponRulebook = window.PriTestWeaponRulebook;
   var Talismans = window.PriTestTalismans;
   var Consumables = window.PriTestConsumables;
   var TAG_FIELDS = ["notes", "status", "equipment", "weapons", "skills", "items", "talismans", "buildup"];
@@ -1101,6 +1102,351 @@
     });
   }
 
+  // --- 武器の抽選入手（稀有度→武器→ランダム戦技の3段階ロール） ---
+  // 稀有度は「weapon_rulebook.js」のレア度決定表（★の数だけD6を振り、合計値で判定）に、
+  // 武器決定は各WEAPONS項目の roll 範囲（例："1〜2"）に、戦技決定は各カテゴリの
+  // randomSkillTable（単純な1D6）または namedSkillTables（"1・2／3"形式の複合ロール、杖・聖印用）に
+  // それぞれ準拠する。既存の手動検索（renderWeaponSearchResults）とは独立して共存する。
+  var weaponRollState = null;
+
+  function resetWeaponRollState() {
+    weaponRollState = {
+      categoryId: null,
+      starCount: 2,
+      rarityDice: null,
+      raritySum: null,
+      rarity: null,
+      itemDie: null,
+      item: null,
+      skillTableIndex: 0,
+      skillDice: null,
+      skillId: null,
+    };
+  }
+
+  function parseRollRange(roll) {
+    var m = String(roll || "").match(/^(\d+)(?:\s*[〜~]\s*(\d+))?/);
+    if (!m) return null;
+    var lo = parseInt(m[1], 10);
+    var hi = m[2] ? parseInt(m[2], 10) : lo;
+    return [lo, hi];
+  }
+
+  function getRarityBreakpoints() {
+    if (!WeaponRulebook) return null;
+    var table = WeaponRulebook.rarityTable();
+    var headers = table.columns.slice(1);
+    var rarityCells = table.rows[0].slice(1);
+    return headers.map(function (h, i) {
+      var text = Weapons.localizedText(h);
+      var m = text.match(/^(\d+)(?:[〜~](\d+))?/);
+      var lo = m ? parseInt(m[1], 10) : 0;
+      var hi = m && m[2] ? parseInt(m[2], 10) : text.indexOf("以上") !== -1 || text.indexOf("+") !== -1 ? Infinity : lo;
+      var rarityText = Weapons.localizedText(rarityCells[i]);
+      var rarityLetter = (rarityText.match(/[CURL]/) || [])[0] || "C";
+      return { lo: lo, hi: hi, rarity: rarityLetter };
+    });
+  }
+
+  function lookupRarityBySum(sum) {
+    var bps = getRarityBreakpoints();
+    if (!bps) return null;
+    for (var i = 0; i < bps.length; i++) {
+      if (sum >= bps[i].lo && sum <= bps[i].hi) return bps[i].rarity;
+    }
+    return bps[bps.length - 1].rarity;
+  }
+
+  function pickWeaponByRoll(categoryId, rarity, dieValue) {
+    var matches = Weapons.list().filter(function (w) {
+      if (w.category !== categoryId || w.rarity !== rarity) return false;
+      var range = parseRollRange(w.roll);
+      if (!range) return false;
+      return dieValue >= range[0] && dieValue <= range[1];
+    });
+    return matches[0] || null;
+  }
+
+  function resolveSimpleTableRoll(category, d1) {
+    var row = (category.randomSkillTable || []).filter(function (r) {
+      return String(r.roll) === String(d1);
+    })[0];
+    return row || null;
+  }
+
+  function resolveNamedTableRoll(table, d1, d2) {
+    for (var i = 0; i < table.rows.length; i++) {
+      var row = table.rows[i];
+      var parts = String(row.roll).split("／");
+      if (parts.length !== 2) continue;
+      var leftVals = parts[0].split("・").map(function (s) {
+        return parseInt(s, 10);
+      });
+      var rightVal = parseInt(parts[1], 10);
+      if (leftVals.indexOf(d1) !== -1 && rightVal === d2) return row;
+    }
+    return null;
+  }
+
+  function renderWeaponRollField() {
+    var field = document.getElementById("weapon-roll-field");
+    if (!field) return;
+    if (!weaponRollState) resetWeaponRollState();
+    var st = weaponRollState;
+
+    field.innerHTML = "";
+
+    var toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = "weapon-roll-toggle-btn";
+    toggleBtn.textContent = window.I18N.t(field.dataset.open === "1" ? "weapon_roll_toggle_hide" : "weapon_roll_toggle_button");
+    toggleBtn.addEventListener("click", function () {
+      field.dataset.open = field.dataset.open === "1" ? "0" : "1";
+      renderWeaponRollField();
+    });
+    field.appendChild(toggleBtn);
+
+    if (field.dataset.open !== "1") return;
+
+    var panel = document.createElement("div");
+    panel.className = "weapon-roll-panel";
+
+    // カテゴリ／★選択
+    var configRow = document.createElement("div");
+    configRow.className = "weapon-roll-row";
+    var catLabel = document.createElement("label");
+    catLabel.textContent = window.I18N.t("weapon_roll_category_label");
+    var catSelect = document.createElement("select");
+    Weapons.categories().forEach(function (cat) {
+      var opt = document.createElement("option");
+      opt.value = cat.id;
+      opt.textContent = Weapons.localizedText(cat.name);
+      if (cat.id === st.categoryId) opt.selected = true;
+      catSelect.appendChild(opt);
+    });
+    if (!st.categoryId && Weapons.categories().length) st.categoryId = Weapons.categories()[0].id;
+    catSelect.value = st.categoryId;
+    catSelect.addEventListener("change", function () {
+      var newCategoryId = catSelect.value;
+      resetWeaponRollState();
+      weaponRollState.categoryId = newCategoryId;
+      renderWeaponRollField();
+    });
+    catLabel.appendChild(catSelect);
+    configRow.appendChild(catLabel);
+
+    var starLabel = document.createElement("label");
+    starLabel.textContent = window.I18N.t("weapon_roll_star_label");
+    var starSelect = document.createElement("select");
+    [1, 2, 3, 4].forEach(function (n) {
+      var opt = document.createElement("option");
+      opt.value = String(n);
+      opt.textContent = "★".repeat(n);
+      if (n === st.starCount) opt.selected = true;
+      starSelect.appendChild(opt);
+    });
+    starSelect.disabled = !!st.rarity;
+    starSelect.addEventListener("change", function () {
+      st.starCount = parseInt(starSelect.value, 10);
+    });
+    starLabel.appendChild(starSelect);
+    configRow.appendChild(starLabel);
+    panel.appendChild(configRow);
+
+    var category = Weapons.getCategory(st.categoryId);
+
+    // ①稀有度決定
+    var step1Btn = document.createElement("button");
+    step1Btn.type = "button";
+    step1Btn.className = "primary-btn";
+    step1Btn.textContent = window.I18N.t("weapon_roll_step1_button");
+    step1Btn.disabled = !!st.rarity;
+    step1Btn.addEventListener("click", function () {
+      var dice = [];
+      for (var i = 0; i < st.starCount; i++) dice.push(rollD6());
+      var sum = dice.reduce(function (a, b) {
+        return a + b;
+      }, 0);
+      st.rarityDice = dice;
+      st.raritySum = sum;
+      st.rarity = lookupRarityBySum(sum);
+      renderWeaponRollField();
+    });
+    panel.appendChild(step1Btn);
+
+    if (st.rarity) {
+      var rarityResult = document.createElement("p");
+      rarityResult.className = "threat-ref-body weapon-roll-result";
+      rarityResult.textContent = window.I18N.t("weapon_roll_rarity_result", {
+        dice: st.rarityDice.join("、"),
+        sum: st.raritySum,
+        rarity: st.rarity,
+      });
+      panel.appendChild(rarityResult);
+
+      // ②武器決定
+      var step2Btn = document.createElement("button");
+      step2Btn.type = "button";
+      step2Btn.className = "primary-btn";
+      step2Btn.textContent = window.I18N.t("weapon_roll_step2_button");
+      step2Btn.disabled = !!st.item;
+      step2Btn.addEventListener("click", function () {
+        var die = rollD6();
+        st.itemDie = die;
+        var picked = pickWeaponByRoll(st.categoryId, st.rarity, die);
+        if (!picked) {
+          st.item = null;
+          st.itemMissMessage = true;
+        } else {
+          st.item = picked;
+          st.itemMissMessage = false;
+          st.skillId = null;
+          st.skillDice = null;
+        }
+        renderWeaponRollField();
+      });
+      panel.appendChild(step2Btn);
+
+      if (st.itemMissMessage) {
+        var missMsg = document.createElement("p");
+        missMsg.className = "threat-ref-body weapon-roll-result";
+        missMsg.textContent = window.I18N.t("weapon_roll_item_none");
+        panel.appendChild(missMsg);
+      }
+
+      if (st.item) {
+        var itemResult = document.createElement("p");
+        itemResult.className = "threat-ref-body weapon-roll-result";
+        itemResult.textContent = window.I18N.t("weapon_roll_item_result", {
+          die: st.itemDie,
+          name: Weapons.localizedText(st.item.name),
+          rarity: st.item.rarity,
+        });
+        panel.appendChild(itemResult);
+
+        var noteSkill = (st.item.skills || []).filter(function (s) {
+          return s.kind === "note";
+        })[0];
+        if (noteSkill) {
+          var noteP = document.createElement("p");
+          noteP.className = "threat-ref-body weapon-roll-result weapon-roll-note";
+          noteP.textContent = Weapons.localizedText(noteSkill.text);
+          panel.appendChild(noteP);
+        }
+
+        var needsSkillRoll = (st.item.skills || []).some(function (s) {
+          return s.kind === "random";
+        });
+
+        if (needsSkillRoll) {
+          var hasNamedTables = category.namedSkillTables && category.namedSkillTables.length;
+          var tableSelectRow = null;
+          if (hasNamedTables && category.namedSkillTables.length > 1 && !st.skillId) {
+            tableSelectRow = document.createElement("div");
+            tableSelectRow.className = "weapon-roll-row";
+            var tblLabel = document.createElement("label");
+            tblLabel.textContent = window.I18N.t("weapon_roll_skill_table_label");
+            var tblSelect = document.createElement("select");
+            category.namedSkillTables.forEach(function (t, idx) {
+              var opt = document.createElement("option");
+              opt.value = String(idx);
+              opt.textContent = Weapons.localizedText(t.title);
+              if (idx === st.skillTableIndex) opt.selected = true;
+              tblSelect.appendChild(opt);
+            });
+            tblSelect.addEventListener("change", function () {
+              st.skillTableIndex = parseInt(tblSelect.value, 10);
+            });
+            tblLabel.appendChild(tblSelect);
+            tableSelectRow.appendChild(tblLabel);
+            panel.appendChild(tableSelectRow);
+          }
+
+          var step3Btn = document.createElement("button");
+          step3Btn.type = "button";
+          step3Btn.className = "primary-btn";
+          step3Btn.textContent = window.I18N.t("weapon_roll_step3_button");
+          step3Btn.disabled = !!st.skillId;
+          step3Btn.addEventListener("click", function () {
+            if (hasNamedTables) {
+              var d1 = rollD6();
+              var d2 = rollD6();
+              st.skillDice = [d1, d2];
+              var table = category.namedSkillTables[st.skillTableIndex];
+              var row = table ? resolveNamedTableRoll(table, d1, d2) : null;
+              st.skillId = row ? row.id : null;
+              st.skillMissMessage = !row;
+            } else {
+              var d = rollD6();
+              st.skillDice = [d];
+              var row2 = resolveSimpleTableRoll(category, d);
+              st.skillId = row2 ? row2.id : null;
+              st.skillMissMessage = !row2;
+            }
+            renderWeaponRollField();
+          });
+          panel.appendChild(step3Btn);
+
+          if (st.skillMissMessage) {
+            var skillMissMsg = document.createElement("p");
+            skillMissMsg.className = "threat-ref-body weapon-roll-result";
+            skillMissMsg.textContent = window.I18N.t("weapon_roll_item_none");
+            panel.appendChild(skillMissMsg);
+          }
+
+          if (st.skillId) {
+            var resolvedSkill = Weapons.getSkill(st.skillId);
+            var skillResult = document.createElement("p");
+            skillResult.className = "threat-ref-body weapon-roll-result";
+            skillResult.textContent = window.I18N.t("weapon_roll_skill_result", {
+              dice: st.skillDice.join("、"),
+              name: resolvedSkill ? Weapons.localizedText(resolvedSkill.name) : st.skillId,
+            });
+            panel.appendChild(skillResult);
+          }
+        }
+
+        var confirmReady = !needsSkillRoll || !!st.skillId;
+        var confirmBtn = document.createElement("button");
+        confirmBtn.type = "button";
+        confirmBtn.className = "primary-btn";
+        confirmBtn.textContent = window.I18N.t("weapon_roll_confirm_button");
+        confirmBtn.disabled = !confirmReady;
+        confirmBtn.addEventListener("click", function () {
+          var c = findCharacter(activeCharacterId);
+          if (!c) return;
+          if (!c.weaponIds) c.weaponIds = [];
+          if (c.weaponIds.indexOf(st.item.id) === -1) c.weaponIds.push(st.item.id);
+          if (st.skillId) {
+            if (!c.weaponRandomSkills) c.weaponRandomSkills = {};
+            c.weaponRandomSkills[st.item.id] = st.skillId;
+          }
+          saveFn();
+          resetWeaponRollState();
+          field.dataset.open = "0";
+          renderWeaponRollField();
+          renderWeaponList();
+        });
+        panel.appendChild(confirmBtn);
+      }
+
+      var resetBtn = document.createElement("button");
+      resetBtn.type = "button";
+      resetBtn.textContent = window.I18N.t("weapon_roll_reset_button");
+      resetBtn.addEventListener("click", function () {
+        var keepCategoryId = st.categoryId;
+        var keepStarCount = st.starCount;
+        resetWeaponRollState();
+        weaponRollState.categoryId = keepCategoryId;
+        weaponRollState.starCount = keepStarCount;
+        renderWeaponRollField();
+      });
+      panel.appendChild(resetBtn);
+    }
+
+    field.appendChild(panel);
+  }
+
   // タリスマン（装飾品）：武器と異なり単体でPassive効果を1つ持つだけの単純な構造。
   function renderTalismanCard(container, talismanId, c) {
     var talisman = Talismans.get(talismanId);
@@ -1561,6 +1907,10 @@
     renderRevivalBonusMarkers(c);
     renderAttachedSection();
     renderWeaponList();
+    resetWeaponRollState();
+    var weaponRollField = document.getElementById("weapon-roll-field");
+    if (weaponRollField) weaponRollField.dataset.open = "0";
+    renderWeaponRollField();
     var weaponSearchInput = document.getElementById("weapon-search-input");
     if (weaponSearchInput) {
       weaponSearchInput.value = "";

@@ -388,6 +388,7 @@ BODY = """    <div class="night-header-row">
             <input type="text" id="weapon-search-input">
             <div class="weapon-search-results" id="weapon-search-results" hidden></div>
           </div>
+          <div class="weapon-roll-field" id="weapon-roll-field"></div>
           <div id="weapon-list"></div>
         </div>
 
