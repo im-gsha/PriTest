@@ -651,8 +651,8 @@
           name: C("忌み王の加護", "忌王之加護"),
           kind: "Passive",
           body: C(
-            "このスキルを持つ武器で遺物効果「致命の一撃」を行ったとき、発生するダメージに「2D」を追加する。",
-            "此技能持有的武器進行遺物效果「致命一擊」時，對發生的傷害追加「2D」。"
+            "このスキルを持つ武器で遺物効果「致命の一撃」を行ったとき、発生するダメージに「炎：2D」を追加する。",
+            "此技能持有的武器進行遺物效果「致命一擊」時，對發生的傷害追加「炎：2D」。"
           ),
         },
       ],
@@ -1689,7 +1689,6 @@
         powerMod: C("バランス", "平衡"),
       },
       innateSkills: [
-        { id: "small_shield_poison_immune_n", name: C("毒無効＋n", "毒無效＋n"), kind: "Passive", body: UNCONFIRMED },
         {
           id: "small_shield_reverse_parry",
           name: C("バックラーパリィ", "巴克勒格擋"),
@@ -1697,15 +1696,6 @@
           body: C(
             "コスト：②（2個）／FP■　対象：自身　隊列：前衛・後衛どちらでも使用可能　効果：「ガード」の代わりに使用可能。効果を完全に無効化し、追加効果も無効化する。開始時のスタミナダイスを1個追加する。",
             "消耗：②（2個）／FP■　對象：自身　編隊：前衛・後衛皆可使用　效果：可代替「防禦」使用。完全無效化該次傷害，追加效果也一併無效化。開始時追加1個體力骰。"
-          ),
-        },
-        {
-          id: "small_shield_golden_retribution",
-          name: C("黄金の返報", "黃金的回報"),
-          kind: "Action",
-          body: C(
-            "コスト：ソロ／FP■　対象：自身　隊列：前衛・後衛どちらでも使用可能",
-            "消耗：ソロ／FP■　對象：自身　編隊：前衛・後衛皆可使用"
           ),
         },
         {
@@ -1729,36 +1719,7 @@
         guardHpRL: 80,
         powerMod: C("筋力", "力量"),
       },
-      innateSkills: [
-        { id: "medium_shield_poison_immune_n", name: C("毒無効＋n", "毒無效＋n"), kind: "Passive", body: UNCONFIRMED },
-        {
-          id: "medium_shield_reverse_parry",
-          name: C("逆手クラーバリィ", "反手格擋"),
-          kind: "Defense",
-          body: C(
-            "コスト：②（2個）／FP■　対象：自身　隊列：前衛・後衛どちらでも使用可能　効果：「ガード」の代わりに使用可能。効果を完全に無効化し、追加効果も無効化する。開始時のスタミナダイスを1個追加する。",
-            "消耗：②（2個）／FP■　對象：自身　編隊：前衛・後衛皆可使用　效果：可代替「防禦」使用。完全無效化該次傷害，追加效果也一併無效化。開始時追加1個體力骰。"
-          ),
-        },
-        {
-          id: "medium_shield_golden_retribution",
-          name: C("黄金の返報", "黃金的回報"),
-          kind: "Action",
-          body: C(
-            "コスト：ソロ／FP■　対象：自身　隊列：前衛のとき使用可能",
-            "消耗：ソロ／FP■　對象：自身　編隊：前衛時可使用"
-          ),
-        },
-        {
-          id: "medium_shield_poison_bite",
-          name: C("毒の噛みつき", "毒之噬咬"),
-          kind: "Action",
-          body: C(
-            "コスト：③連番／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：10",
-            "消耗：③連號／FP■　對象：敵人　編隊：前衛時可使用　威力：10"
-          ),
-        },
-      ],
+      innateSkills: [],
     },
     {
       id: "large_shield",
@@ -1771,13 +1732,6 @@
         powerMod: C("筋力", "力量"),
       },
       innateSkills: [
-        { id: "large_shield_poison_immune_n", name: C("毒無効＋n", "毒無效＋n"), kind: "Passive", body: UNCONFIRMED },
-        {
-          id: "large_shield_reverse_parry",
-          name: C("ガードクラーバリィ", "格擋反手"),
-          kind: "Defense",
-          body: UNCONFIRMED,
-        },
         {
           id: "large_shield_golden_retribution",
           name: C("黄金の返報", "黃金的回報"),
@@ -3447,6 +3401,22 @@
       kind: "Action",
       body: C("コスト：FP■　対象：自身", "消耗：FP■　對象：自身"),
     },
+    art_wolf_assault: {
+      name: C("狼の襲撃", "狼之襲擊"),
+      kind: "Action",
+      body: C(
+        "コスト：ゾロ（2個）／FP■■　対象：エネミー　隊列：後衛のとき使用可能　威力：5＋戦技威力　効果：対象に【総合ダメージ：威力＋▲】と「凍傷：3」を与える。このアクション後、自分は前衛エリアに移動する。",
+        "消耗：豹子（2個）／FP■■　對象：敵人　編隊：後衛時可使用　威力：5＋戰技威力　效果：對敵人造成【總合傷害：威力＋▲】與「凍傷：3」。此動作後，自身移動至前衛區域。"
+      ),
+    },
+    art_queens_black_flame: {
+      name: C("女王の黒炎", "女王的黑炎"),
+      kind: "Action",
+      body: C(
+        "コスト：連番（2個）／FP■　対象：エネミー　隊列：後衛のとき使用可能　威力：20＋戦技威力　効果：対象に【総合ダメージ：威力＋▲】と「炎：3」を与える。",
+        "消耗：連號（2個）／FP■　對象：敵人　編隊：後衛時可使用　威力：20＋戰技威力　效果：對敵人造成【總合傷害：威力＋▲】與「炎：3」。"
+      ),
+    },
   };
 
   // roll：種類決定表（同カテゴリ・同レアリティ内で該当武器を決める出目）。写真の目分判読による暫定値のため、
@@ -3669,7 +3639,7 @@
     { id: "greatsword_iron", category: "greatsword", name: C("鉄の大剣", "鐵之大劍"), rarity: "C", roll: "3〜4", skills: [{ kind: "random" }] },
     { id: "greatsword_lordsworn", category: "greatsword", name: C("君主軍の大剣", "君主軍的大劍"), rarity: "C", roll: "5〜6", skills: [{ kind: "random" }] },
     { id: "greatsword_claymore", category: "greatsword", name: C("クレイモア", "克雷莫爾"), rarity: "U", roll: "1", skills: [{ kind: "random" }] },
-    { id: "greatsword_knight", category: "greatsword", name: C("騎士大剣", "騎士大劍"), rarity: "U", roll: "2", skills: [{ kind: "note", text: UNCONFIRMED }] },
+    { id: "greatsword_knight", category: "greatsword", name: C("騎士大剣", "騎士大劍"), rarity: "U", roll: "2", skills: [{ kind: "innate", id: "greatsword_two_handed_bonus" }] },
     { id: "greatsword_exiled", category: "greatsword", name: C("失地騎士の大剣", "失地騎士的大劍"), rarity: "U", roll: "3", skills: [{ kind: "random" }] },
     { id: "greatsword_flamberge", category: "greatsword", name: C("フランベルジュ", "焰形劍"), rarity: "U", roll: "4", skills: [{ kind: "random" }] },
     {
@@ -3812,7 +3782,7 @@
       name: C("トロルの騎士剣", "巨魔的騎士劍"),
       rarity: "U",
       roll: "5〜6",
-      skills: [{ kind: "element", element: C("炎", "火") }, { kind: "note", text: UNCONFIRMED }],
+      skills: [{ kind: "element", element: C("魔", "魔") }],
     },
     {
       id: "colossal_royal_greatsword",
@@ -3820,7 +3790,7 @@
       name: C("王家のグレートソード", "王家的大劍"),
       rarity: "R",
       roll: "1〜3",
-      skills: [{ kind: "note", text: UNCONFIRMED }],
+      skills: [{ kind: "element", element: C("魔", "魔") }, { kind: "art", id: "art_wolf_assault" }],
     },
     {
       id: "colossal_godslayer",
@@ -3828,7 +3798,7 @@
       name: C("神狩りの剣", "狩神之劍"),
       rarity: "R",
       roll: "4〜6",
-      skills: [{ kind: "note", text: UNCONFIRMED }],
+      skills: [{ kind: "element", element: C("炎", "火") }, { kind: "art", id: "art_queens_black_flame" }],
     },
     {
       id: "colossal_flensing",
@@ -4631,12 +4601,20 @@
       category: "great_weapon",
       name: UNCONFIRMED,
       rarity: "L",
-      roll: "1〜6",
+      roll: "1〜4",
       skills: [
         { kind: "innate", id: "great_weapon_kings_roar" },
         { kind: "innate", id: "great_weapon_first_king_grace" },
         { kind: "note", text: C("武器名未確認（写真未提供）。", "武器名稱未確認（尚未提供照片）。") },
       ],
+    },
+    {
+      id: "great_weapon_l_reroll",
+      category: "great_weapon",
+      name: C("（Lで出目⑤〜⑥）", "（L稀有度出目⑤～⑥）"),
+      rarity: "L",
+      roll: "5〜6",
+      skills: [{ kind: "note", text: C("Lで再抽選する。", "重新抽選L稀有度。") }],
     },
 
     // ▼槍（spear）／大槍（great_spear）
