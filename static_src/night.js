@@ -855,18 +855,48 @@
     return wrap;
   }
 
-  // 系統共通の「ガード回数／HP価値」参考表（データがある系統のみ表示。レベルによらず一定）。
+  // 系統共通の「ガード回数／HP価値」参考表（データがある系統のみ表示）。
+  // row.value は通常レベルによらず一定の数値だが、一部の系統（結晶人・人形兵系、ゴーレム・乙女人形系、
+  // 小姓・卑兵系など）は原本の基礎データ表でレベルごとにHP価値が異なるため、その場合は
+  // row.value に15要素（Lv.1〜15）の配列を指定する。配列を持つ行が1つでもあれば、
+  // レベル別の列を持つ表を表示する（配列でない行は全レベル同じ値として扱う）。
   function buildEnemyGuardValueTable(fam) {
     var Enemies = window.PriTestEnemies;
     var T = Enemies.localizedText;
-    var columns = [
-      { ja: "ガード回数", zh: "防禦次數" },
-      { ja: "HP価値", zh: "HP價值" },
-    ];
-    var rows = fam.guardValueTable.map(function (row) {
-      var valueText = row.theoretical ? "（" + row.value + "）" : String(row.value);
-      return [row.count, { ja: valueText, zh: valueText }];
+    var hasByLevel = fam.guardValueTable.some(function (row) {
+      return Array.isArray(row.value);
     });
+
+    function fmt(row, value) {
+      return row.theoretical ? "（" + value + "）" : String(value);
+    }
+
+    var columns, rows;
+    if (hasByLevel) {
+      columns = [{ ja: "ガード回数", zh: "防禦次數" }];
+      for (var lv = 1; lv <= 15; lv++) {
+        columns.push({ ja: "Lv." + lv, zh: "Lv." + lv });
+      }
+      rows = fam.guardValueTable.map(function (row) {
+        var cells = [row.count];
+        for (var i = 0; i < 15; i++) {
+          var v = Array.isArray(row.value) ? row.value[i] : row.value;
+          var text = fmt(row, v);
+          cells.push({ ja: text, zh: text });
+        }
+        return cells;
+      });
+    } else {
+      columns = [
+        { ja: "ガード回数", zh: "防禦次數" },
+        { ja: "HP価値", zh: "HP價值" },
+      ];
+      rows = fam.guardValueTable.map(function (row) {
+        var valueText = fmt(row, row.value);
+        return [row.count, { ja: valueText, zh: valueText }];
+      });
+    }
+
     var wrap = document.createElement("div");
     wrap.className = "field-variance-wrap";
     wrap.appendChild(buildBossTable(columns, rows, T));
