@@ -15,8 +15,6 @@
     return field[lang()] || field.zh || field.ja || "";
   }
 
-  var UNCONFIRMED = C("未確認（原文が判読できず要確認）", "未確認（原文判讀不易，待確認）");
-
   var CONSUMABLES = [
     {
       id: "item_hero_meat_chunk",
@@ -106,12 +104,6 @@
         "使用次數：○○　消耗：①／使用次數●　對象：敵人　編隊：前衛・後衛皆可使用　效果：對對象施加「X：1D」。「X」為屬性或異常狀態，依取得的場地而變化。若取得此消耗品的場地標示為「投擲壺(X)」，則採用該「X」。若場地未特別標示，則自動視為「投擲壺(炎)」。\n等級2效果（以其他效果滿足條件時發揮效果）：追加效果，造成【總合傷害：15】。\n※混合能生火的素材、封入壺中製成之物。"
       ),
     },
-    { id: "item_shard_of_caution", name: C("慎重の欠片", "謹慎的碎片"), body: UNCONFIRMED },
-    { id: "item_boulder_shard", name: C("巨石の欠片", "巨石的碎片"), body: UNCONFIRMED },
-    { id: "item_moss_shroom_reek", name: C("厳崩埋葬器", "嚴崩埋葬器"), body: UNCONFIRMED },
-    { id: "item_charming_incense", name: C("妖の香り", "妖異之香"), body: UNCONFIRMED },
-    { id: "item_savage_reward", name: C("蕃の褒賞", "蕃之褒賞"), body: UNCONFIRMED },
-    { id: "item_faint_venom_mist", name: C("淡霧の毒香品", "淡霧的毒香品"), body: UNCONFIRMED },
     {
       id: "item_perfume_acid_spray",
       name: C("調香瓶｜酸の噴霧", "調香瓶｜酸之噴霧"),
@@ -152,10 +144,6 @@
         "使用次數：○○　消耗：③／使用次數●　對象：敵人＋雜兵　編隊：前衛・後衛皆可使用　效果：對雜兵造成「HP損害：■」，對對象施加「猛毒：1D」效果。\n等級2效果（以其他效果滿足條件時發揮效果）：追加效果，再對雜兵造成「HP損害：■」，對敵人施加「猛毒：2」。"
       ),
     },
-    { id: "item_glowing_shard", name: C("蓄光の欠片", "蓄光的碎片"), body: UNCONFIRMED },
-    { id: "item_heavy_glowing_shard", name: C("重光の欠片", "重光的碎片"), body: UNCONFIRMED },
-    { id: "item_waking_shard", name: C("醒めの欠片", "醒覺的碎片"), body: UNCONFIRMED },
-    { id: "item_perfumers_taboo", name: C("調香師の禁忌", "調香師的禁忌"), body: UNCONFIRMED },
   ];
 
   // 消耗品決定表（この頁）。ダイス2回：1回目の出目で列（基本アイテム1-3／投擲系アイテム4-5／調香瓶系消耗品6）を、
