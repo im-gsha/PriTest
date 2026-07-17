@@ -413,8 +413,8 @@
     if (!window.confirm(window.I18N.t("undo_night_confirm"))) return;
     applySnapshot(snap);
     clearUndoSnapshot();
-    saveState();
     renderBoard();
+    addLog("log_undo_night");
   }
 
   function renderUndoButton() {
@@ -2122,7 +2122,7 @@
   function handleBattleClear() {
     if (!window.confirm(window.I18N.t("battle_clear_confirm"))) return;
     state.battle = defaultBattleState();
-    saveState();
+    addLog("log_battle_clear");
     renderBattleToggleValues("battle-front-grid", state.battle.front, state.battle.aggro);
     renderBattleToggleValues("battle-back-grid", state.battle.back, state.battle.aggro);
     renderEnemyHpGrid();
@@ -2276,8 +2276,8 @@
       var key = row.familyId + "|" + row.enemy.id + "|" + level;
       if (state.battle.selectedEnemyIds.indexOf(key) === -1) {
         state.battle.selectedEnemyIds.push(key);
-        saveState();
         renderSelectedEnemies();
+        addLog("log_battle_enemy_add", { enemy: T(row.enemy.name), level: level });
       }
     });
     addRow.appendChild(addBtn);
@@ -2361,8 +2361,8 @@
             var idx = state.battle.selectedEnemyIds.indexOf(item.key);
             if (idx !== -1) {
               state.battle.selectedEnemyIds.splice(idx, 1);
-              saveState();
               renderSelectedEnemies();
+              addLog("log_battle_enemy_remove", { enemy: T(item.info.enemy.name), level: item.level });
             }
           });
           chip.appendChild(removeBtn);
@@ -3223,7 +3223,12 @@
           }
           var checks = which === "start" ? state.startChecks : state.endChecks;
           checks[field] = e.target.checked;
-          saveState();
+          if (field === "all") {
+            var pileLabel = window.I18N.t(which === "start" ? "start_point_label" : "end_point_label");
+            addLog(e.target.checked ? "log_pile_all_check" : "log_pile_all_uncheck", { pile: pileLabel });
+          } else {
+            saveState();
+          }
         });
       });
     });
