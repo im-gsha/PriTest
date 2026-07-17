@@ -1586,6 +1586,32 @@
       });
     }
 
+    // 杖・聖印の「ランダム魔術／ランダム祈祷」決定表：ダイス出目→魔術/祈祷スキルIDを、
+    // カテゴリのrandomSkillTableと同じ〈details〉展開形式で複数表ぶん表示する。
+    if (category.namedSkillTables && category.namedSkillTables.length) {
+      category.namedSkillTables.forEach(function (namedTbl) {
+        var namedTitle = document.createElement("p");
+        namedTitle.className = "boss-subheading";
+        namedTitle.textContent = WL(namedTbl.title);
+        container.appendChild(namedTitle);
+        namedTbl.rows.forEach(function (row) {
+          var art = Weapons.getSkill(row.id);
+          var details = document.createElement("details");
+          details.className = "ability-entry";
+          var summary = document.createElement("summary");
+          summary.textContent = "[" + row.roll + "] " + (art ? WL(art.name) : row.id) + (art && art.kind ? "［" + art.kind + "］" : "");
+          details.appendChild(summary);
+          if (art) {
+            var p = document.createElement("p");
+            p.className = "threat-ref-body";
+            p.textContent = WL(art.body);
+            details.appendChild(p);
+          }
+          container.appendChild(details);
+        });
+      });
+    }
+
     var listTitle = document.createElement("p");
     listTitle.className = "boss-subheading";
     listTitle.textContent = window.I18N.t("weapon_category_weapon_list_label");
