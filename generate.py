@@ -42,6 +42,7 @@ def build_static_assets() -> None:
         "night_boss_rulebook.js",
         "enemies.js",
         "fields.js",
+        "event_rulebook.js",
         "qrcode.js",
         "night.js",
         "admin.js",

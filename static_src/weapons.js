@@ -1579,6 +1579,15 @@
     {
       id: "bow",
       name: C("弓", "弓"),
+      note: C(
+        "ランダム戦技決定表は原文で「出目1〜3」の3種のみ判読でき、出目4〜6に対応する内容は未確認。",
+        "隨機戰技決定表原文僅能判讀「出目1～3」的3種，出目4～6對應的內容尚未確認。"
+      ),
+      randomSkillTable: [
+        { roll: "1", id: "art_strong_shot" },
+        { roll: "2", id: "art_piercing_shot" },
+        { roll: "3", id: "art_continuous_shot" },
+      ],
       basicStats: {
         attackCost: C("1Hit：②／2Hit：②②", "1Hit：②／2Hit：②②"),
         weaponPower: 10,
