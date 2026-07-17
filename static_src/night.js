@@ -1461,7 +1461,7 @@
     } else if (ref.kind === "bonus") {
       name = WL(ref.text);
     } else if (ref.kind === "random") {
-      name = window.I18N.t("weapon_random_skill_label");
+      name = window.I18N.t("weapon_random_skill_label") + (ref.table ? "（" + ref.table + "）" : "");
       if (ref.note) body = WL(ref.note);
     } else {
       name = window.I18N.t("weapon_note_label");
@@ -1567,6 +1567,22 @@
           details.appendChild(p);
         }
         container.appendChild(details);
+      });
+    }
+
+    if (category.extraTables && category.extraTables.length) {
+      category.extraTables.forEach(function (tbl) {
+        var tblBlock = document.createElement("div");
+        tblBlock.className = "threat-ref-block";
+        var tblH = document.createElement("p");
+        tblH.className = "boss-subheading";
+        tblH.textContent = WL(tbl.title);
+        tblBlock.appendChild(tblH);
+        var tblWrap = document.createElement("div");
+        tblWrap.className = "field-variance-wrap";
+        tblWrap.appendChild(buildBossTable(tbl.columns, tbl.rows, WL));
+        tblBlock.appendChild(tblWrap);
+        container.appendChild(tblBlock);
       });
     }
 
