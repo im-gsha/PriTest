@@ -1102,25 +1102,43 @@
     });
   }
 
-  // --- 武器の抽選入手（稀有度→武器→ランダム戦技の3段階ロール） ---
+  // --- 武器の抽選入手（〔任意〕大分類→小分類 → 稀有度 → 武器 → ランダム戦技） ---
+  // カテゴリを「武器」（大分類未指定）で始めた場合のみ、weapon_rulebook.js の
+  // 「武器」大カテゴリ決定表〔4-1〕→小カテゴリ決定表〔4-2〕に従って先にカテゴリそのものを
+  // 決定する（杖・聖印はこの手順の対象外＝最初からカテゴリ指定で選ぶ）。
   // 稀有度は「weapon_rulebook.js」のレア度決定表（★の数だけD6を振り、合計値で判定）に、
   // 武器決定は各WEAPONS項目の roll 範囲（例："1〜2"）に、戦技決定は各カテゴリの
-  // randomSkillTable（単純な1D6）または namedSkillTables（"1・2／3"形式の複合ロール、杖・聖印用）に
-  // それぞれ準拠する。既存の手動検索（renderWeaponSearchResults）とは独立して共存する。
+  // randomSkillTable（単純な1D6）または namedSkillTables（"1・2／3"形式の複合ロール、杖・聖印用。
+  // 個々の武器項目が持つ skills の {kind:"random", table:"A"} で使用する決定表が指定されている）に
+  // それぞれ準拠する。各段階は「ロール結果を表示した上で手動でも上書きできる」形にし、
+  // 既存の手動検索（renderWeaponSearchResults）とは独立して共存する。
+  var ANY_WEAPON_CATEGORY = "__any_weapon__";
   var weaponRollState = null;
 
   function resetWeaponRollState() {
+    var firstCat = Weapons.categories()[0];
     weaponRollState = {
-      categoryId: null,
+      categoryId: firstCat ? firstCat.id : null,
+      categoryResolved: true,
+      majorDie: null,
+      majorIndex: null,
+      minorDie: null,
+      minorRerollNote: false,
+
       starCount: 2,
       rarityDice: null,
       raritySum: null,
       rarity: null,
+      rarityConfirmed: false,
+
       itemDie: null,
       item: null,
-      skillTableIndex: 0,
+      itemMissMessage: false,
+
+      skillTableLetter: null,
       skillDice: null,
       skillId: null,
+      skillMissMessage: false,
     };
   }
 
@@ -1188,6 +1206,28 @@
     return null;
   }
 
+  // weapon_rulebook.js の小カテゴリ決定表セル（例："短剣（158頁）"）からページ参照を除いた
+  // 名称で Weapons.categories() と突き合わせ、実データ上のカテゴリidを求める。
+  function findCategoryIdByMinorLabel(label) {
+    var name = String(label || "")
+      .replace(/[（(].*?[）)]/g, "")
+      .trim();
+    if (!name) return null;
+    var match = Weapons.categories().filter(function (c) {
+      return Weapons.localizedText(c.name) === name;
+    })[0];
+    return match ? match.id : null;
+  }
+
+  // 盾は skills ではなく attachedEffect／reverseArt にランダム枠を持つ（renderWeaponCard の
+  // skillRefs 判定と同じルール）。抽選フローでもここを見落とすとランダム戦技の解決漏れになる。
+  function getItemSkillRefs(category, item) {
+    if (category && category.isShield) {
+      return (item.attachedEffect || []).concat(item.reverseArt || []);
+    }
+    return item.skills || [];
+  }
+
   function renderWeaponRollField() {
     var field = document.getElementById("weapon-roll-field");
     if (!field) return;
@@ -1211,30 +1251,116 @@
     var panel = document.createElement("div");
     panel.className = "weapon-roll-panel";
 
-    // カテゴリ／★選択
+    // カテゴリ選択（「武器」を選ぶと大分類→小分類の抽選が挟まる／個別カテゴリなら即決定）
     var configRow = document.createElement("div");
     configRow.className = "weapon-roll-row";
     var catLabel = document.createElement("label");
     catLabel.textContent = window.I18N.t("weapon_roll_category_label");
     var catSelect = document.createElement("select");
+    var anyOpt = document.createElement("option");
+    anyOpt.value = ANY_WEAPON_CATEGORY;
+    anyOpt.textContent = window.I18N.t("weapon_roll_category_any_option");
+    catSelect.appendChild(anyOpt);
     Weapons.categories().forEach(function (cat) {
       var opt = document.createElement("option");
       opt.value = cat.id;
       opt.textContent = Weapons.localizedText(cat.name);
-      if (cat.id === st.categoryId) opt.selected = true;
       catSelect.appendChild(opt);
     });
-    if (!st.categoryId && Weapons.categories().length) st.categoryId = Weapons.categories()[0].id;
-    catSelect.value = st.categoryId;
+    catSelect.value = st.categoryId === null ? ANY_WEAPON_CATEGORY : st.categoryId;
     catSelect.addEventListener("change", function () {
-      var newCategoryId = catSelect.value;
+      var newValue = catSelect.value;
       resetWeaponRollState();
-      weaponRollState.categoryId = newCategoryId;
+      if (newValue === ANY_WEAPON_CATEGORY) {
+        weaponRollState.categoryId = null;
+        weaponRollState.categoryResolved = false;
+      } else {
+        weaponRollState.categoryId = newValue;
+        weaponRollState.categoryResolved = true;
+      }
       renderWeaponRollField();
     });
     catLabel.appendChild(catSelect);
     configRow.appendChild(catLabel);
+    panel.appendChild(configRow);
 
+    // 〔4-1〕〔4-2〕カテゴリ自体の抽選（「武器」を選んだときのみ）
+    if (!st.categoryResolved) {
+      if (st.majorIndex === null) {
+        var majorBtn = document.createElement("button");
+        majorBtn.type = "button";
+        majorBtn.className = "primary-btn";
+        majorBtn.textContent = window.I18N.t("weapon_roll_major_button");
+        majorBtn.addEventListener("click", function () {
+          var die = rollD6();
+          st.majorDie = die;
+          st.majorIndex = die - 1;
+          renderWeaponRollField();
+        });
+        panel.appendChild(majorBtn);
+      } else {
+        var majorTable = WeaponRulebook.majorTable();
+        var majorRow = majorTable.rows[st.majorIndex];
+        var majorResult = document.createElement("p");
+        majorResult.className = "threat-ref-body weapon-roll-result";
+        majorResult.textContent = window.I18N.t("weapon_roll_major_result", {
+          die: st.majorDie,
+          label: Weapons.localizedText(majorRow[1]),
+        });
+        panel.appendChild(majorResult);
+
+        var minorTable = WeaponRulebook.minorTables()[st.majorIndex];
+        var minorBtn = document.createElement("button");
+        minorBtn.type = "button";
+        minorBtn.className = "primary-btn";
+        minorBtn.textContent = window.I18N.t("weapon_roll_minor_button");
+        minorBtn.addEventListener("click", function () {
+          var die = rollD6();
+          st.minorDie = die;
+          var row = null;
+          for (var i = 0; i < minorTable.rows.length; i++) {
+            var range = parseRollRange(Weapons.localizedText(minorTable.rows[i][0]));
+            if (range && die >= range[0] && die <= range[1]) {
+              row = minorTable.rows[i];
+              break;
+            }
+          }
+          var resolvedId = row ? findCategoryIdByMinorLabel(Weapons.localizedText(row[1])) : null;
+          if (resolvedId) {
+            st.categoryId = resolvedId;
+            st.categoryResolved = true;
+            st.minorRerollNote = false;
+          } else {
+            st.minorRerollNote = true;
+          }
+          renderWeaponRollField();
+        });
+        panel.appendChild(minorBtn);
+
+        if (st.minorRerollNote) {
+          var rerollMsg = document.createElement("p");
+          rerollMsg.className = "threat-ref-body weapon-roll-result";
+          rerollMsg.textContent = window.I18N.t("weapon_roll_minor_reroll_note", { die: st.minorDie });
+          panel.appendChild(rerollMsg);
+        }
+      }
+      field.appendChild(panel);
+      return;
+    }
+
+    if (st.majorIndex !== null) {
+      var categoryResolvedMsg = document.createElement("p");
+      categoryResolvedMsg.className = "threat-ref-body weapon-roll-result";
+      var resolvedCat = Weapons.getCategory(st.categoryId);
+      categoryResolvedMsg.textContent = window.I18N.t("weapon_roll_category_resolved", {
+        name: resolvedCat ? Weapons.localizedText(resolvedCat.name) : st.categoryId,
+      });
+      panel.appendChild(categoryResolvedMsg);
+    }
+
+    // ★選択・稀有度決定
+    var starRow = document.createElement("div");
+    starRow.className = "weapon-roll-row";
     var starLabel = document.createElement("label");
     starLabel.textContent = window.I18N.t("weapon_roll_star_label");
     var starSelect = document.createElement("select");
@@ -1245,22 +1371,22 @@
       if (n === st.starCount) opt.selected = true;
       starSelect.appendChild(opt);
     });
-    starSelect.disabled = !!st.rarity;
+    starSelect.disabled = st.rarityConfirmed;
     starSelect.addEventListener("change", function () {
       st.starCount = parseInt(starSelect.value, 10);
     });
     starLabel.appendChild(starSelect);
-    configRow.appendChild(starLabel);
-    panel.appendChild(configRow);
+    starRow.appendChild(starLabel);
+    panel.appendChild(starRow);
 
     var category = Weapons.getCategory(st.categoryId);
 
-    // ①稀有度決定
+    // ①稀有度決定（ロール後も手動で上書きし、「次へ」で確定するまでは編集可能）
     var step1Btn = document.createElement("button");
     step1Btn.type = "button";
     step1Btn.className = "primary-btn";
     step1Btn.textContent = window.I18N.t("weapon_roll_step1_button");
-    step1Btn.disabled = !!st.rarity;
+    step1Btn.disabled = st.rarityConfirmed;
     step1Btn.addEventListener("click", function () {
       var dice = [];
       for (var i = 0; i < st.starCount; i++) dice.push(rollD6());
@@ -1274,7 +1400,7 @@
     });
     panel.appendChild(step1Btn);
 
-    if (st.rarity) {
+    if (st.rarityDice) {
       var rarityResult = document.createElement("p");
       rarityResult.className = "threat-ref-body weapon-roll-result";
       rarityResult.textContent = window.I18N.t("weapon_roll_rarity_result", {
@@ -1283,6 +1409,44 @@
         rarity: st.rarity,
       });
       panel.appendChild(rarityResult);
+    }
+
+    if (st.rarity && !st.rarityConfirmed) {
+      var rarityOverrideRow = document.createElement("div");
+      rarityOverrideRow.className = "weapon-roll-row";
+      var rarityOverrideLabel = document.createElement("label");
+      rarityOverrideLabel.textContent = window.I18N.t("weapon_roll_rarity_override_label");
+      var raritySelect = document.createElement("select");
+      ["C", "U", "R", "L"].forEach(function (r) {
+        var opt = document.createElement("option");
+        opt.value = r;
+        opt.textContent = r;
+        if (r === st.rarity) opt.selected = true;
+        raritySelect.appendChild(opt);
+      });
+      raritySelect.addEventListener("change", function () {
+        st.rarity = raritySelect.value;
+      });
+      rarityOverrideLabel.appendChild(raritySelect);
+      rarityOverrideRow.appendChild(rarityOverrideLabel);
+      panel.appendChild(rarityOverrideRow);
+
+      var rarityNextBtn = document.createElement("button");
+      rarityNextBtn.type = "button";
+      rarityNextBtn.className = "primary-btn";
+      rarityNextBtn.textContent = window.I18N.t("weapon_roll_rarity_next_button");
+      rarityNextBtn.addEventListener("click", function () {
+        st.rarityConfirmed = true;
+        renderWeaponRollField();
+      });
+      panel.appendChild(rarityNextBtn);
+    }
+
+    if (st.rarity && st.rarityConfirmed) {
+      var rarityConfirmedResult = document.createElement("p");
+      rarityConfirmedResult.className = "threat-ref-body weapon-roll-result";
+      rarityConfirmedResult.textContent = window.I18N.t("weapon_roll_rarity_confirmed", { rarity: st.rarity });
+      panel.appendChild(rarityConfirmedResult);
 
       // ②武器決定
       var step2Btn = document.createElement("button");
@@ -1302,6 +1466,10 @@
           st.itemMissMessage = false;
           st.skillId = null;
           st.skillDice = null;
+          var randomRef = getItemSkillRefs(category, picked).filter(function (s) {
+            return s.kind === "random";
+          })[0];
+          st.skillTableLetter = randomRef && randomRef.table ? randomRef.table : null;
         }
         renderWeaponRollField();
       });
@@ -1324,7 +1492,7 @@
         });
         panel.appendChild(itemResult);
 
-        var noteSkill = (st.item.skills || []).filter(function (s) {
+        var noteSkill = getItemSkillRefs(category, st.item).filter(function (s) {
           return s.kind === "note";
         })[0];
         if (noteSkill) {
@@ -1334,28 +1502,47 @@
           panel.appendChild(noteP);
         }
 
-        var needsSkillRoll = (st.item.skills || []).some(function (s) {
+        var needsSkillRoll = getItemSkillRefs(category, st.item).some(function (s) {
           return s.kind === "random";
         });
 
         if (needsSkillRoll) {
           var hasNamedTables = category.namedSkillTables && category.namedSkillTables.length;
-          var tableSelectRow = null;
-          if (hasNamedTables && category.namedSkillTables.length > 1 && !st.skillId) {
-            tableSelectRow = document.createElement("div");
+
+          if (hasNamedTables && !st.skillId) {
+            var tableIndexByLetter = {};
+            category.namedSkillTables.forEach(function (t, idx) {
+              var letter = (Weapons.localizedText(t.title).match(/[（(]([A-Z])[）)]/) || [])[1];
+              if (letter) tableIndexByLetter[letter] = idx;
+            });
+            if (st.skillTableLetter && !(st.skillTableLetter in tableIndexByLetter)) st.skillTableLetter = null;
+            if (!st.skillTableLetter) {
+              var firstLetter = Object.keys(tableIndexByLetter)[0];
+              st.skillTableLetter = firstLetter || null;
+            }
+
+            if (st.skillTableLetter) {
+              var tableNoteP = document.createElement("p");
+              tableNoteP.className = "threat-ref-body weapon-roll-result weapon-roll-note";
+              tableNoteP.textContent = window.I18N.t("weapon_roll_skill_table_auto_note", { table: st.skillTableLetter });
+              panel.appendChild(tableNoteP);
+            }
+
+            var tableSelectRow = document.createElement("div");
             tableSelectRow.className = "weapon-roll-row";
             var tblLabel = document.createElement("label");
             tblLabel.textContent = window.I18N.t("weapon_roll_skill_table_label");
             var tblSelect = document.createElement("select");
-            category.namedSkillTables.forEach(function (t, idx) {
+            category.namedSkillTables.forEach(function (t) {
+              var letter = (Weapons.localizedText(t.title).match(/[（(]([A-Z])[）)]/) || [])[1];
               var opt = document.createElement("option");
-              opt.value = String(idx);
+              opt.value = letter || Weapons.localizedText(t.title);
               opt.textContent = Weapons.localizedText(t.title);
-              if (idx === st.skillTableIndex) opt.selected = true;
+              if (opt.value === st.skillTableLetter) opt.selected = true;
               tblSelect.appendChild(opt);
             });
             tblSelect.addEventListener("change", function () {
-              st.skillTableIndex = parseInt(tblSelect.value, 10);
+              st.skillTableLetter = tblSelect.value;
             });
             tblLabel.appendChild(tblSelect);
             tableSelectRow.appendChild(tblLabel);
@@ -1372,7 +1559,13 @@
               var d1 = rollD6();
               var d2 = rollD6();
               st.skillDice = [d1, d2];
-              var table = category.namedSkillTables[st.skillTableIndex];
+              var tableIndexByLetter2 = {};
+              category.namedSkillTables.forEach(function (t, idx) {
+                var letter = (Weapons.localizedText(t.title).match(/[（(]([A-Z])[）)]/) || [])[1];
+                if (letter) tableIndexByLetter2[letter] = idx;
+              });
+              var idx = st.skillTableLetter !== null ? tableIndexByLetter2[st.skillTableLetter] : undefined;
+              var table = idx !== undefined ? category.namedSkillTables[idx] : null;
               var row = table ? resolveNamedTableRoll(table, d1, d2) : null;
               st.skillId = row ? row.id : null;
               st.skillMissMessage = !row;
@@ -1429,20 +1622,20 @@
         });
         panel.appendChild(confirmBtn);
       }
-
-      var resetBtn = document.createElement("button");
-      resetBtn.type = "button";
-      resetBtn.textContent = window.I18N.t("weapon_roll_reset_button");
-      resetBtn.addEventListener("click", function () {
-        var keepCategoryId = st.categoryId;
-        var keepStarCount = st.starCount;
-        resetWeaponRollState();
-        weaponRollState.categoryId = keepCategoryId;
-        weaponRollState.starCount = keepStarCount;
-        renderWeaponRollField();
-      });
-      panel.appendChild(resetBtn);
     }
+
+    var resetBtn = document.createElement("button");
+    resetBtn.type = "button";
+    resetBtn.textContent = window.I18N.t("weapon_roll_reset_button");
+    resetBtn.addEventListener("click", function () {
+      var keepCategoryId = st.categoryId;
+      var keepStarCount = st.starCount;
+      resetWeaponRollState();
+      weaponRollState.categoryId = keepCategoryId;
+      weaponRollState.starCount = keepStarCount;
+      renderWeaponRollField();
+    });
+    panel.appendChild(resetBtn);
 
     field.appendChild(panel);
   }
