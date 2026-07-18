@@ -4697,7 +4697,6 @@
       rarity: "L",
       roll: "1",
       skills: [
-        { kind: "element", element: C("聖", "聖") },
         { kind: "innate", id: "colossal_vengeance_grace" },
         { kind: "art", id: "colossal_vow_of_vengeance" },
       ],
@@ -4709,6 +4708,7 @@
       rarity: "L",
       roll: "2",
       skills: [
+        { kind: "element", element: C("魔", "魔") },
         { kind: "innate", id: "colossal_collapse_grace" },
         { kind: "art", id: "colossal_collapse_wave" },
       ],
@@ -5502,24 +5502,15 @@
       ],
     },
     {
-      id: "great_weapon_l_unconfirmed",
+      id: "great_weapon_godfrey",
       category: "great_weapon",
-      name: UNCONFIRMED,
+      name: C("ゴッドフレイ", "戈弗雷"),
       rarity: "L",
-      roll: "1〜4",
+      roll: "1〜6",
       skills: [
         { kind: "innate", id: "great_weapon_kings_roar" },
         { kind: "innate", id: "great_weapon_first_king_grace" },
-        { kind: "note", text: C("武器名未確認（写真未提供）。", "武器名稱未確認（尚未提供照片）。") },
       ],
-    },
-    {
-      id: "great_weapon_l_reroll",
-      category: "great_weapon",
-      name: C("（Lで出目⑤〜⑥）", "（L稀有度出目⑤～⑥）"),
-      rarity: "L",
-      roll: "5〜6",
-      skills: [{ kind: "note", text: C("Lで再抽選する。", "重新抽選L稀有度。") }],
     },
 
     // ▼槍（spear）／大槍（great_spear）
