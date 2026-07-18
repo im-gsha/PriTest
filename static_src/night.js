@@ -1314,6 +1314,69 @@
     });
   }
 
+  // 世界観タブ：イントロダクション・夜渡り概説・舞台設定・10体の夜の王ストーリーの参考資料。
+  // fields.js/event_rulebook.jsのカード階層とは形が異なる（title＋blocksの単純な並び）ため、
+  // renderFieldNav/renderFieldCardは流用せず専用の描画関数を用意する。
+  function renderWorldviewNav(container, sections, T) {
+    var nav = document.createElement("div");
+    nav.className = "field-nav";
+    sections.forEach(function (section) {
+      var entry = document.createElement("div");
+      entry.className = "field-nav-card";
+      var link = document.createElement("button");
+      link.type = "button";
+      link.className = "field-nav-card-link";
+      link.textContent = T(section.title);
+      link.addEventListener("click", function () {
+        var target = document.getElementById("worldview-section-" + section.id);
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      entry.appendChild(link);
+      nav.appendChild(entry);
+    });
+    container.appendChild(nav);
+  }
+
+  function renderWorldviewSection(container, section, T) {
+    var block = document.createElement("div");
+    block.className = "field-card-block worldview-section";
+    block.id = "worldview-section-" + section.id;
+
+    var h = document.createElement("h3");
+    h.className = "field-card-title";
+    h.textContent = T(section.title);
+    block.appendChild(h);
+
+    (section.blocks || []).forEach(function (entry) {
+      if (entry.kind === "label") {
+        var h4 = document.createElement("h4");
+        h4.className = "worldview-label";
+        h4.textContent = T(entry.body);
+        block.appendChild(h4);
+      } else {
+        var p = document.createElement("p");
+        p.className = "worldview-text";
+        p.textContent = T(entry.body);
+        block.appendChild(p);
+      }
+    });
+
+    container.appendChild(block);
+  }
+
+  function renderWorldviewRulebook() {
+    var container = document.getElementById("worldview-rulebook-list");
+    var Worldview = window.PriTestWorldview;
+    if (!container || !Worldview) return;
+    container.innerHTML = "";
+    var T = Worldview.localizedText;
+    var sections = Worldview.list();
+    renderWorldviewNav(container, sections, T);
+    sections.forEach(function (section) {
+      renderWorldviewSection(container, section, T);
+    });
+  }
+
   // 「得意武器：武器」時の抽選手順（レア度判定→大分類→小分類）の参考資料タブ
   function renderWeaponRulebook() {
     var container = document.getElementById("weapon-rulebook-list");
@@ -3139,6 +3202,7 @@
     renderEnemyRulebookAll();
     renderFieldRulebook();
     renderEventRulebook();
+    renderWorldviewRulebook();
 
     // クラウド保存ゲームのみ：Firebaseから最新状態を取得し（購読開始時に1回必ず呼ばれる）、
     // 以後は他端末からの変更を受信するたびに再描画する。ローカル専用ゲームでは何もしない。
@@ -3267,6 +3331,7 @@
       renderEnemyRulebookAll();
       renderFieldRulebook();
       renderEventRulebook();
+      renderWorldviewRulebook();
       renderSelectedEnemies();
     });
   });

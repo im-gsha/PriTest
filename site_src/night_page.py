@@ -130,6 +130,7 @@ BODY = """    <div class="night-header-row">
           <button type="button" class="rulebook-tab-btn" data-tab="consumable" data-i18n="rulebook_tab_consumable"></button>
           <button type="button" class="rulebook-tab-btn" data-tab="board" data-i18n="rulebook_tab_board"></button>
           <button type="button" class="rulebook-tab-btn" data-tab="event" data-i18n="rulebook_tab_event"></button>
+          <button type="button" class="rulebook-tab-btn" data-tab="worldview" data-i18n="rulebook_tab_worldview"></button>
         </div>
         <div class="rulebook-tab-panel" id="rulebook-panel-nightking">
           <div id="boss-rulebook-list"></div>
@@ -161,6 +162,9 @@ BODY = """    <div class="night-header-row">
         </div>
         <div class="rulebook-tab-panel" id="rulebook-panel-event" hidden>
           <div id="event-rulebook-list"></div>
+        </div>
+        <div class="rulebook-tab-panel" id="rulebook-panel-worldview" hidden>
+          <div id="worldview-rulebook-list"></div>
         </div>
         <div class="actions">
           <button type="button" id="btn-rulebook-close" class="primary-btn" data-i18n="close_button"></button>
@@ -632,6 +636,7 @@ def build_night_html() -> str:
             "enemies.js",
             "fields.js",
             "event_rulebook.js",
+            "worldview.js",
             "night.js",
         ),
     )
