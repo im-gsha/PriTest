@@ -5504,7 +5504,7 @@
     {
       id: "great_weapon_godfrey",
       category: "great_weapon",
-      name: C("ゴッドフレイ", "戈弗雷"),
+      name: C("ゴッドフレイの王斧", "戈弗雷的王斧"),
       rarity: "L",
       roll: "1〜6",
       skills: [
