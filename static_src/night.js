@@ -55,6 +55,8 @@
     if (game) GameStorage.pushCharacters(gameId, game.storageMode, rosterCharacters);
   }
 
+  var rosterDetailCollapsed = {};
+
   function renderCharacterRoster() {
     var tbody = document.getElementById("character-roster-tbody");
     var skillsWrap = document.getElementById("character-roster-skills");
@@ -104,6 +106,17 @@
         CharacterDrawer.open(c.id);
       });
       nameTd.appendChild(nameBtn);
+
+      var toggleBtn = document.createElement("button");
+      toggleBtn.type = "button";
+      toggleBtn.className = "roster-detail-toggle-btn";
+      var isCollapsed = !!rosterDetailCollapsed[c.id];
+      toggleBtn.textContent = window.I18N.t(isCollapsed ? "roster_detail_expand_button" : "roster_detail_collapse_button");
+      toggleBtn.addEventListener("click", function () {
+        rosterDetailCollapsed[c.id] = !rosterDetailCollapsed[c.id];
+        renderCharacterRoster();
+      });
+      nameTd.appendChild(toggleBtn);
       tr.appendChild(nameTd);
 
       var flaskText = c.flaskBase.used + "/" + c.flaskBase.max + (c.flaskExtra && c.flaskExtra.max > 0 ? "（+" + c.flaskExtra.used + "/" + c.flaskExtra.max + "）" : "");
@@ -120,9 +133,10 @@
       });
       tbody.appendChild(tr);
 
-      // 骰子池と武器欄は、この角色の情報行のすぐ下（同じ角色欄）に並べて表示する。
+      // 骰子池・武器欄・裝飾品・消耗品は、この角色の情報行のすぐ下（同じ角色欄）に並べて表示する。
       var detailTr = document.createElement("tr");
       detailTr.className = "roster-detail-row";
+      detailTr.hidden = isCollapsed;
       var detailTd = document.createElement("td");
       detailTd.colSpan = 7;
       var detailFlex = document.createElement("div");
@@ -148,8 +162,30 @@
       weaponCol.appendChild(weaponTitle);
       weaponCol.appendChild(weaponWrap);
 
+      var talismanCol = document.createElement("div");
+      talismanCol.className = "roster-detail-col";
+      var talismanTitle = document.createElement("h5");
+      talismanTitle.textContent = window.I18N.t("character_talismans_roster_label");
+      var talismanWrap = document.createElement("div");
+      talismanWrap.className = "roster-weapon-list";
+      CharacterDrawer.renderRosterTalismanList(c, talismanWrap);
+      talismanCol.appendChild(talismanTitle);
+      talismanCol.appendChild(talismanWrap);
+
+      var consumableCol = document.createElement("div");
+      consumableCol.className = "roster-detail-col";
+      var consumableTitle = document.createElement("h5");
+      consumableTitle.textContent = window.I18N.t("character_consumables_roster_label");
+      var consumableWrap = document.createElement("div");
+      consumableWrap.className = "roster-weapon-list";
+      CharacterDrawer.renderRosterConsumableList(c, consumableWrap);
+      consumableCol.appendChild(consumableTitle);
+      consumableCol.appendChild(consumableWrap);
+
       detailFlex.appendChild(diceCol);
       detailFlex.appendChild(weaponCol);
+      detailFlex.appendChild(talismanCol);
+      detailFlex.appendChild(consumableCol);
       detailTd.appendChild(detailFlex);
       detailTr.appendChild(detailTd);
       tbody.appendChild(detailTr);

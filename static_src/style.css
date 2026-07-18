@@ -976,6 +976,23 @@ button {
   flex: none;
 }
 
+.roster-detail-toggle-btn {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+}
+
+.roster-consumable-transfer-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: none;
+}
+
+.roster-consumable-transfer-qty {
+  width: 3.5rem;
+}
+
 .battle-areas {
   display: flex;
   gap: 1rem;

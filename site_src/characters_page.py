@@ -138,24 +138,6 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
           </div>
         </div>
 
-        <div class="tag-field" data-field="equipment">
-          <h3 data-i18n="character_equipment_label"></h3>
-          <div class="tag-list" id="tag-list-equipment"></div>
-          <div class="tag-add-row">
-            <input type="text" id="tag-input-equipment">
-            <button type="button" class="tag-add-btn" data-field="equipment" data-i18n="tag_add_button"></button>
-          </div>
-        </div>
-
-        <div class="tag-field" data-field="weapons">
-          <h3 data-i18n="character_weapons_label"></h3>
-          <div class="tag-list" id="tag-list-weapons"></div>
-          <div class="tag-add-row">
-            <input type="text" id="tag-input-weapons">
-            <button type="button" class="tag-add-btn" data-field="weapons" data-i18n="tag_add_button"></button>
-          </div>
-        </div>
-
         <div class="weapon-db-field">
           <h3 data-i18n="weapon_db_title"></h3>
           <div class="weapon-search-box">
@@ -182,6 +164,24 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
             <div class="weapon-search-results" id="consumable-search-results" hidden></div>
           </div>
           <div id="consumable-list"></div>
+        </div>
+
+        <div class="tag-field" data-field="equipment">
+          <h3 data-i18n="character_equipment_label"></h3>
+          <div class="tag-list" id="tag-list-equipment"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-equipment">
+            <button type="button" class="tag-add-btn" data-field="equipment" data-i18n="tag_add_button"></button>
+          </div>
+        </div>
+
+        <div class="tag-field" data-field="weapons">
+          <h3 data-i18n="character_weapons_label"></h3>
+          <div class="tag-list" id="tag-list-weapons"></div>
+          <div class="tag-add-row">
+            <input type="text" id="tag-input-weapons">
+            <button type="button" class="tag-add-btn" data-field="weapons" data-i18n="tag_add_button"></button>
+          </div>
         </div>
 
         <div class="tag-field" data-field="skills">

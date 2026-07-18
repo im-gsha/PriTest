@@ -701,9 +701,15 @@
       }
       var clearBtn = document.createElement("button");
       clearBtn.type = "button";
+      clearBtn.className = "danger-btn";
       clearBtn.textContent = window.I18N.t("weapon_random_skill_clear_button");
       clearBtn.addEventListener("click", function () {
+        var clearedName = resolved ? Weapons.localizedText(resolved.name) : resolvedId;
+        if (!window.confirm(window.I18N.t("weapon_random_skill_clear_confirm", { name: clearedName }))) return;
         delete c.weaponRandomSkills[weaponId];
+        if (!c.weaponNotes) c.weaponNotes = {};
+        var appended = window.I18N.t("weapon_cleared_skill_note", { name: clearedName });
+        c.weaponNotes[weaponId] = c.weaponNotes[weaponId] ? c.weaponNotes[weaponId] + "\n" + appended : appended;
         saveFn();
         renderWeaponList();
       });
@@ -915,8 +921,10 @@
 
     var removeBtn = document.createElement("button");
     removeBtn.type = "button";
+    removeBtn.className = "danger-btn";
     removeBtn.textContent = window.I18N.t("weapon_remove_button");
     removeBtn.addEventListener("click", function () {
+      if (!window.confirm(window.I18N.t("weapon_remove_confirm", { name: Weapons.localizedText(weapon.name) }))) return;
       c.weaponIds.splice(c.weaponIds.indexOf(weaponId), 1);
       if (c.weaponRandomSkills) delete c.weaponRandomSkills[weaponId];
       if (c.weaponNotes) delete c.weaponNotes[weaponId];
@@ -943,9 +951,16 @@
     });
   }
 
-  // 盤面ロスター用：戦技名だけを簡潔に取り出す（本文・ランダム決定表UIは含めない）
-  function weaponSkillRefName(ref) {
-    if (ref.kind === "random") return window.I18N.t("weapon_random_skill_label");
+  // 盤面ロスター用：戦技名だけを簡潔に取り出す（本文・ランダム決定表UIは含めない）。
+  // ランダム戦技は、既に抽出済み（c.weaponRandomSkills[weaponId]が設定済み）ならその
+  // 戦技名だけを表示し、未決定の間は何も表示しない（冗長な案内文を出さない）。
+  function weaponSkillRefName(ref, c, weaponId) {
+    if (ref.kind === "random") {
+      var resolvedId = c && c.weaponRandomSkills && c.weaponRandomSkills[weaponId];
+      if (!resolvedId) return null;
+      var resolved = Weapons.getSkill(resolvedId);
+      return resolved ? Weapons.localizedText(resolved.name) : resolvedId;
+    }
     if (ref.kind === "art") {
       var art = Weapons.getSkill(ref.id);
       return art ? Weapons.localizedText(art.name) : ref.id;
@@ -992,9 +1007,12 @@
 
       var attackCost =
         category && !category.isShield ? Weapons.localizedText(category.basicStats.attackCost) : category ? Weapons.localizedText(category.basicStats.guardCost) : "";
-      var skillRefs = category && category.isShield ? weapon.attachedEffect || [] : weapon.skills || [];
+      var skillRefs =
+        category && category.isShield ? (weapon.attachedEffect || []).concat(weapon.reverseArt || []) : weapon.skills || [];
       var skillNames = skillRefs
-        .map(weaponSkillRefName)
+        .map(function (ref) {
+          return weaponSkillRefName(ref, c, weaponId);
+        })
         .filter(function (n) {
           return n;
         });
@@ -1066,6 +1084,164 @@
       });
       row.appendChild(transferBtn);
       row.appendChild(transferSelect);
+
+      container.appendChild(row);
+    });
+  }
+
+  // 盤面ロスターに出す裝飾品（タリスマン）要約1行：[名前][転交]
+  function renderRosterTalismanList(c, container) {
+    container.innerHTML = "";
+    if (!c || !(c.talismanIds || []).length) return;
+    c.talismanIds.forEach(function (talismanId) {
+      var talisman = Talismans.get(talismanId);
+      if (!talisman) return;
+      var row = document.createElement("div");
+      row.className = "roster-weapon-row";
+
+      var nameSpan = document.createElement("span");
+      nameSpan.className = "roster-weapon-name-btn";
+      nameSpan.textContent = Talismans.localizedText(talisman.name);
+      row.appendChild(nameSpan);
+
+      var transferBtn = document.createElement("button");
+      transferBtn.type = "button";
+      transferBtn.className = "roster-weapon-transfer-btn";
+      transferBtn.textContent = window.I18N.t("weapon_transfer_button");
+      var transferSelect = document.createElement("select");
+      transferSelect.className = "roster-weapon-transfer-select";
+      transferSelect.hidden = true;
+      transferBtn.addEventListener("click", function () {
+        if (!transferSelect.hidden) {
+          transferSelect.hidden = true;
+          return;
+        }
+        transferSelect.innerHTML = "";
+        var placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = window.I18N.t("weapon_transfer_select_placeholder");
+        transferSelect.appendChild(placeholder);
+        characters
+          .filter(function (other) {
+            return other.entered && other.id !== c.id;
+          })
+          .forEach(function (other) {
+            var opt = document.createElement("option");
+            opt.value = other.id;
+            opt.textContent = other.name;
+            transferSelect.appendChild(opt);
+          });
+        transferSelect.hidden = false;
+      });
+      transferSelect.addEventListener("change", function () {
+        var targetId = transferSelect.value;
+        if (!targetId) return;
+        var target = findCharacter(targetId);
+        if (!target) return;
+        c.talismanIds.splice(c.talismanIds.indexOf(talismanId), 1);
+        if (!target.talismanIds) target.talismanIds = [];
+        if (target.talismanIds.indexOf(talismanId) === -1) target.talismanIds.push(talismanId);
+        saveFn();
+        renderRosterFn();
+        if (activeCharacterId === c.id || activeCharacterId === target.id) renderTalismanList();
+      });
+      row.appendChild(transferBtn);
+      row.appendChild(transferSelect);
+
+      container.appendChild(row);
+    });
+  }
+
+  // 盤面ロスターに出す消耗品要約1行：[名前(所持數)][転交数量][対象][確定]
+  function renderRosterConsumableList(c, container) {
+    container.innerHTML = "";
+    if (!c) return;
+    var ids = Object.keys(c.consumableCounts || {}).filter(function (id) {
+      return (c.consumableCounts[id] || 0) > 0;
+    });
+    if (!ids.length) return;
+    ids.forEach(function (consumableId) {
+      var consumable = Consumables.get(consumableId);
+      if (!consumable) return;
+      var row = document.createElement("div");
+      row.className = "roster-weapon-row";
+
+      var nameSpan = document.createElement("span");
+      nameSpan.className = "roster-weapon-name-btn";
+      nameSpan.textContent = Consumables.localizedText(consumable.name) + "（" + c.consumableCounts[consumableId] + "）";
+      row.appendChild(nameSpan);
+
+      var transferBtn = document.createElement("button");
+      transferBtn.type = "button";
+      transferBtn.className = "roster-weapon-transfer-btn";
+      transferBtn.textContent = window.I18N.t("weapon_transfer_button");
+      row.appendChild(transferBtn);
+
+      var transferWrap = document.createElement("span");
+      transferWrap.className = "roster-consumable-transfer-wrap";
+      transferWrap.hidden = true;
+
+      var qtyInput = document.createElement("input");
+      qtyInput.type = "number";
+      qtyInput.min = "1";
+      qtyInput.title = window.I18N.t("consumable_transfer_qty_label");
+      qtyInput.className = "roster-consumable-transfer-qty";
+
+      var transferSelect = document.createElement("select");
+      transferSelect.className = "roster-weapon-transfer-select";
+
+      var confirmBtn = document.createElement("button");
+      confirmBtn.type = "button";
+      confirmBtn.textContent = window.I18N.t("consumable_transfer_confirm_button");
+
+      transferBtn.addEventListener("click", function () {
+        if (!transferWrap.hidden) {
+          transferWrap.hidden = true;
+          return;
+        }
+        transferSelect.innerHTML = "";
+        var placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = window.I18N.t("weapon_transfer_select_placeholder");
+        transferSelect.appendChild(placeholder);
+        characters
+          .filter(function (other) {
+            return other.entered && other.id !== c.id;
+          })
+          .forEach(function (other) {
+            var opt = document.createElement("option");
+            opt.value = other.id;
+            opt.textContent = other.name;
+            transferSelect.appendChild(opt);
+          });
+        qtyInput.max = String(c.consumableCounts[consumableId] || 1);
+        qtyInput.value = "1";
+        transferWrap.hidden = false;
+      });
+
+      confirmBtn.addEventListener("click", function () {
+        var targetId = transferSelect.value;
+        if (!targetId) return;
+        var target = findCharacter(targetId);
+        if (!target) return;
+        var have = c.consumableCounts[consumableId] || 0;
+        var qty = parseInt(qtyInput.value, 10);
+        if (isNaN(qty) || qty < 1) qty = 1;
+        if (qty > have) qty = have;
+        if (qty <= 0) return;
+        c.consumableCounts[consumableId] = have - qty;
+        if (c.consumableCounts[consumableId] <= 0) delete c.consumableCounts[consumableId];
+        if (!target.consumableCounts) target.consumableCounts = {};
+        target.consumableCounts[consumableId] = (target.consumableCounts[consumableId] || 0) + qty;
+        saveFn();
+        renderRosterFn();
+        if (activeCharacterId === c.id || activeCharacterId === target.id) renderConsumableList();
+      });
+
+      transferWrap.appendChild(qtyInput);
+      transferWrap.appendChild(transferSelect);
+      transferWrap.appendChild(confirmBtn);
+      row.appendChild(transferWrap);
 
       container.appendChild(row);
     });
@@ -2360,5 +2536,7 @@
     renderDiceDisplay: renderDiceDisplay,
     MAX_DICE_POOL: MAX_DICE_POOL,
     renderRosterWeaponList: renderRosterWeaponList,
+    renderRosterTalismanList: renderRosterTalismanList,
+    renderRosterConsumableList: renderRosterConsumableList,
   };
 })();
