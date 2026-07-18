@@ -453,15 +453,6 @@
           ),
         },
         {
-          id: "heavy_rapier_chain_art",
-          name: C("連続戦技", "連續戰技"),
-          kind: "Action",
-          body: C(
-            "コスト：②（2個）／FP■　対象：エネミー　隊列：前衛のとき使用可能　威力：30",
-            "消耗：②（2個）／FP■　對象：敵人　編隊：前衛時可使用　威力：30"
-          ),
-        },
-        {
           id: "heavy_rapier_dynasty_art",
           name: C("王朝剣技", "王朝劍技"),
           kind: "Action",
@@ -4758,10 +4749,24 @@
       name: C("ロジェールのレイピア", "羅傑爾的西洋劍"),
       rarity: "U",
       roll: "4〜6",
-      skills: [{ kind: "status", status: C("腐敗", "腐敗") }, { kind: "status", status: C("凍傷", "凍傷") }],
+      skills: [{ kind: "random" }],
     },
-    { id: "rapier_ant_thread", category: "rapier", name: C("蟻線のレイピア", "蟻線的西洋劍"), rarity: "R", roll: "1〜3", skills: [{ kind: "random" }] },
-    { id: "rapier_ice_needle", category: "rapier", name: C("氷結の針", "冰結之針"), rarity: "R", roll: "4〜6", skills: [{ kind: "random" }] },
+    {
+      id: "rapier_ant_thread",
+      category: "rapier",
+      name: C("蟻棘のレイピア", "蟻棘的西洋劍"),
+      rarity: "R",
+      roll: "1〜3",
+      skills: [{ kind: "status", status: C("腐敗", "腐敗") }, { kind: "random" }],
+    },
+    {
+      id: "rapier_ice_needle",
+      category: "rapier",
+      name: C("氷結の針", "冰結之針"),
+      rarity: "R",
+      roll: "4〜6",
+      skills: [{ kind: "status", status: C("凍傷", "凍傷") }, { kind: "random" }],
+    },
     {
       id: "rapier_none_l",
       category: "rapier",
@@ -4771,7 +4776,7 @@
       skills: [{ kind: "note", text: C("この表には存在しない。Rの表で再抽選する。", "此稀有度不存在此武器，改於R表重新抽選。") }],
     },
 
-    { id: "heavy_rapier_great_eva", category: "heavy_rapier", name: C("グレート・エバ", "偉大・伊娃"), rarity: "C", roll: "1〜6", skills: [{ kind: "random" }] },
+    { id: "heavy_rapier_great_eva", category: "heavy_rapier", name: C("グレート・エバ", "偉大・伊娃"), rarity: "C", roll: "1〜6", skills: [{ kind: "art", id: "art_piercing_thrust" }] },
     { id: "heavy_rapier_god_skin_stitcher", category: "heavy_rapier", name: C("神肌繍い", "神肌縫合"), rarity: "U", roll: "1〜6", skills: [{ kind: "random" }] },
     {
       id: "heavy_rapier_bloody_helice",
@@ -4790,6 +4795,7 @@
       skills: [
         { kind: "element", element: C("雷", "雷") },
         { kind: "innate", id: "heavy_rapier_thunderclad" },
+        { kind: "innate", id: "heavy_rapier_dragon_grace" },
         { kind: "special", target: C("竜", "龍") },
       ],
     },
