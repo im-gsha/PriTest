@@ -625,19 +625,25 @@
     renderUndoButton();
   }
 
-  // 第三天（最終夜）到達時のみ、管理員が設定した夜の王画像を盤面右側に表示する
+  // 第三天（最終夜）到達時のみ、管理員が設定した夜の王画像を盤面右側に表示する。
+  // 画像の下には、他のエネミーHPグリッドと同じstate.battle.enemyHpを参照する
+  // 簡易グリッドも合わせて表示し、夜の王のHPもその場でチェックできるようにする。
   function renderNight3BossImage() {
     var img = document.getElementById("night3-boss-image");
+    var hpBlock = document.getElementById("night3-boss-hp");
     if (!img) return;
     var boss = game && game.night3BossId ? window.PriTestNightBosses.get(game.night3BossId) : null;
-    if (!boss || state.dayNumber < 3) {
+    var visible = !!boss && state.dayNumber >= 3;
+    if (!visible) {
       img.hidden = true;
       img.removeAttribute("src");
+      if (hpBlock) hpBlock.hidden = true;
       return;
     }
     img.src = window.PriTestNightBosses.imagePath(boss);
     img.alt = boss.title + " - " + boss.subtitle;
     img.hidden = false;
+    if (hpBlock) hpBlock.hidden = false;
   }
 
   // --- 夜の王 規則書（管理員閲覧用の参考資料。紀錄の下に常時表示） ---
@@ -2100,13 +2106,14 @@
     buildBattleToggleGrid("battle-back-grid", state.battle.back, state.battle.aggro);
   }
 
-  // エネミーHPチェックグリッドは、戦場面板（battle-drawer）内のフル表示と、
-  // 盤面左側の共用パネル（board-side-enemies直下）の簡易表示の2箇所に同じ
-  // state.battle.enemyHpを描画する。どちらのチェックボックスを操作しても
-  // 両方に即時反映される。
+  // エネミーHPチェックグリッドは、戦場面板（battle-drawer）内のフル表示、
+  // 盤面左側の共用パネル（board-side-enemies直下）の簡易表示、そして第三夜の
+  // 夜の王画像の下（night3-boss-hp-grid）の3箇所に同じstate.battle.enemyHpを
+  // 描画する。いずれかのチェックボックスを操作しても全箇所に即時反映される。
   var ENEMY_HP_GRID_TARGETS = [
     { containerId: "battle-enemy-hp-grid", idPrefix: "battle-enemy-hp-" },
     { containerId: "board-side-enemy-hp-grid", idPrefix: "board-enemy-hp-" },
+    { containerId: "night3-boss-hp-grid", idPrefix: "night3-boss-hp-" },
   ];
 
   function buildEnemyHpGrid() {
@@ -2145,38 +2152,56 @@
     }
   }
 
+  // 雑魚HPリストも、エネミーHPグリッドと同様に戦場面板内のフル表示（削除ボタン付き）と、
+  // 盤面左側の共用パネル（board-side-mob-hp-list、削除ボタンなしの簡易表示）の2箇所に
+  // 同じstate.battle.mobHpRowsを描画する。どちらのチェックボックスを操作しても両方に
+  // 即時反映される。共用パネル側は雑魚が1行も無いときは非表示にする。
+  var MOB_HP_LIST_TARGETS = [
+    { containerId: "battle-mob-hp-list", withRemove: true },
+    { containerId: "board-side-mob-hp-list", withRemove: false },
+  ];
+
   function renderMobHpList() {
-    var container = document.getElementById("battle-mob-hp-list");
-    container.innerHTML = "";
-    state.battle.mobHpRows.forEach(function (row, rowIndex) {
-      var rowWrap = document.createElement("div");
-      rowWrap.className = "battle-hp-row-wrap";
-      var rowDiv = document.createElement("div");
-      rowDiv.className = "battle-hp-row";
-      row.forEach(function (checked, col) {
-        var cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.checked = checked;
-        cb.addEventListener("change", function (e) {
-          state.battle.mobHpRows[rowIndex][col] = e.target.checked;
-          saveState();
+    MOB_HP_LIST_TARGETS.forEach(function (target) {
+      var container = document.getElementById(target.containerId);
+      if (!container) return;
+      container.innerHTML = "";
+      state.battle.mobHpRows.forEach(function (row, rowIndex) {
+        var rowWrap = document.createElement("div");
+        rowWrap.className = "battle-hp-row-wrap";
+        var rowDiv = document.createElement("div");
+        rowDiv.className = "battle-hp-row";
+        row.forEach(function (checked, col) {
+          var cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = checked;
+          cb.addEventListener("change", function (e) {
+            state.battle.mobHpRows[rowIndex][col] = e.target.checked;
+            renderMobHpList();
+            saveState();
+          });
+          rowDiv.appendChild(cb);
         });
-        rowDiv.appendChild(cb);
+        rowWrap.appendChild(rowDiv);
+        if (target.withRemove) {
+          var removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "tag-remove battle-row-remove";
+          removeBtn.textContent = "×";
+          removeBtn.title = window.I18N.t("battle_remove_row_button");
+          removeBtn.addEventListener("click", function () {
+            state.battle.mobHpRows.splice(rowIndex, 1);
+            renderMobHpList();
+            saveState();
+          });
+          rowWrap.appendChild(removeBtn);
+        }
+        container.appendChild(rowWrap);
       });
-      var removeBtn = document.createElement("button");
-      removeBtn.type = "button";
-      removeBtn.className = "tag-remove battle-row-remove";
-      removeBtn.textContent = "×";
-      removeBtn.title = window.I18N.t("battle_remove_row_button");
-      removeBtn.addEventListener("click", function () {
-        state.battle.mobHpRows.splice(rowIndex, 1);
-        saveState();
-        renderMobHpList();
-      });
-      rowWrap.appendChild(rowDiv);
-      rowWrap.appendChild(removeBtn);
-      container.appendChild(rowWrap);
     });
+
+    var boardSideMobHp = document.getElementById("board-side-mob-hp");
+    if (boardSideMobHp) boardSideMobHp.hidden = state.battle.mobHpRows.length === 0;
   }
 
   function handleAddMobRow() {
