@@ -2037,32 +2037,48 @@
     buildBattleToggleGrid("battle-back-grid", state.battle.back, state.battle.aggro);
   }
 
+  // エネミーHPチェックグリッドは、戦場面板（battle-drawer）内のフル表示と、
+  // 盤面左側の共用パネル（board-side-enemies直下）の簡易表示の2箇所に同じ
+  // state.battle.enemyHpを描画する。どちらのチェックボックスを操作しても
+  // 両方に即時反映される。
+  var ENEMY_HP_GRID_TARGETS = [
+    { containerId: "battle-enemy-hp-grid", idPrefix: "battle-enemy-hp-" },
+    { containerId: "board-side-enemy-hp-grid", idPrefix: "board-enemy-hp-" },
+  ];
+
   function buildEnemyHpGrid() {
-    var container = document.getElementById("battle-enemy-hp-grid");
-    container.innerHTML = "";
-    for (var row = 0; row < ENEMY_HP_ROWS; row++) {
-      var rowDiv = document.createElement("div");
-      rowDiv.className = "battle-hp-row";
-      for (var col = 0; col < ENEMY_HP_COLS; col++) {
-        (function (idx) {
-          var cb = document.createElement("input");
-          cb.type = "checkbox";
-          cb.id = "battle-enemy-hp-" + idx;
-          cb.addEventListener("change", function (e) {
-            state.battle.enemyHp[idx] = e.target.checked;
-            saveState();
-          });
-          rowDiv.appendChild(cb);
-        })(row * ENEMY_HP_COLS + col);
+    ENEMY_HP_GRID_TARGETS.forEach(function (target) {
+      var container = document.getElementById(target.containerId);
+      if (!container) return;
+      container.innerHTML = "";
+      for (var row = 0; row < ENEMY_HP_ROWS; row++) {
+        var rowDiv = document.createElement("div");
+        rowDiv.className = "battle-hp-row";
+        for (var col = 0; col < ENEMY_HP_COLS; col++) {
+          (function (idx) {
+            var cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.id = target.idPrefix + idx;
+            cb.addEventListener("change", function (e) {
+              state.battle.enemyHp[idx] = e.target.checked;
+              renderEnemyHpGrid();
+              saveState();
+            });
+            rowDiv.appendChild(cb);
+          })(row * ENEMY_HP_COLS + col);
+        }
+        container.appendChild(rowDiv);
       }
-      container.appendChild(rowDiv);
-    }
+    });
   }
 
   function renderEnemyHpGrid() {
     for (var i = 0; i < ENEMY_HP_ROWS * ENEMY_HP_COLS; i++) {
-      var cb = document.getElementById("battle-enemy-hp-" + i);
-      if (cb) cb.checked = !!state.battle.enemyHp[i];
+      var checked = !!state.battle.enemyHp[i];
+      ENEMY_HP_GRID_TARGETS.forEach(function (target) {
+        var cb = document.getElementById(target.idPrefix + i);
+        if (cb) cb.checked = checked;
+      });
     }
   }
 
@@ -2309,6 +2325,9 @@
         return info ? { key: key, info: info, level: level } : null;
       })
       .filter(Boolean);
+
+    var boardSideHp = document.getElementById("board-side-enemy-hp");
+    if (boardSideHp) boardSideHp.hidden = resolved.length === 0;
 
     [
       { containerId: "battle-selected-enemies", withRemove: true },

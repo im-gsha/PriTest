@@ -42,6 +42,10 @@ BODY = """    <div class="night-header-row">
     <section id="screen-board" class="screen">
       <div class="board-area" id="board-area">
         <div id="board-side-enemies" class="selected-enemy-list board-side-enemies" hidden></div>
+        <div id="board-side-enemy-hp" class="board-side-enemy-hp" hidden>
+          <h4 data-i18n="battle_enemy_hp_title"></h4>
+          <div class="battle-hp-grid battle-hp-grid-compact" id="board-side-enemy-hp-grid"></div>
+        </div>
         <div class="board-grid" id="board-grid">
           <div class="field-level field-level-0" id="field-level-0"></div>
           <div class="field-level field-level-1" id="field-level-1"></div>

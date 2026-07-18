@@ -1831,6 +1831,39 @@ button {
   overflow-wrap: break-word;
 }
 
+/* 戦場面板のエネミーHPグリッドを、盤面左側の共用パネルにもミラー表示する。
+   battle-enemy-hp-grid（ドロワー内）と同じstateを描画し、どちらを操作しても
+   即時に両方へ反映される（night.js の buildEnemyHpGrid/renderEnemyHpGrid 参照）。 */
+.board-side-enemy-hp {
+  min-width: 150px;
+  max-width: 190px;
+  margin-top: 0.75rem;
+}
+
+.board-side-enemy-hp[hidden] {
+  display: none;
+}
+
+.board-side-enemy-hp h4 {
+  margin: 0 0 0.3rem;
+  font-size: 0.78rem;
+  color: #777;
+}
+
+.battle-hp-grid-compact {
+  gap: 3px;
+}
+
+.battle-hp-grid-compact .battle-hp-row {
+  gap: 2px;
+}
+
+.battle-hp-grid-compact input[type="checkbox"] {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+}
+
 /* 規則書モーダルは文章量が多いため、通常のギャラリーモーダルより大幅に大きく・
    ドラッグでさらに拡大できるようにする（ブラウザ既定のresize、右下角をドラッグ）。 */
 .rulebook-modal-box {
