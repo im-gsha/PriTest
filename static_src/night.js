@@ -2356,6 +2356,12 @@
       container.appendChild(weaknessLine);
     }
 
+    var levelDetails = document.createElement("details");
+    levelDetails.className = "ability-entry";
+    var levelSummary = document.createElement("summary");
+    levelSummary.textContent = window.I18N.t("enemy_level_table_toggle_label");
+    levelDetails.appendChild(levelSummary);
+
     var table = document.createElement("table");
     table.className = "boss-action-table";
     var thead = document.createElement("thead");
@@ -2389,14 +2395,15 @@
     var wrap = document.createElement("div");
     wrap.className = "boss-table-scroll";
     wrap.appendChild(table);
-    container.appendChild(wrap);
+    levelDetails.appendChild(wrap);
 
     if (!hasHp) {
       var note = document.createElement("p");
       note.className = "threat-ref-body";
       note.textContent = window.I18N.t("enemy_hp_unavailable_note");
-      container.appendChild(note);
+      levelDetails.appendChild(note);
     }
+    container.appendChild(levelDetails);
 
     var addRow = document.createElement("div");
     addRow.className = "wb-row";
@@ -2493,7 +2500,7 @@
         if (lvRow && lvRow.hp) {
           statParts.push(window.I18N.t("enemy_hp_label") + window.I18N.t("colon_separator") + lvRow.hp);
         }
-        if (lvRow && lvRow.dmg != null) {
+        if (target.withRemove && lvRow && lvRow.dmg != null) {
           statParts.push(window.I18N.t("enemy_melee_damage_label") + window.I18N.t("colon_separator") + lvRow.dmg);
         }
         var weakness = extractWeakness(item.info.enemy.special, T);
