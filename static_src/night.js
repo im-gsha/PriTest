@@ -2360,7 +2360,9 @@
     table.className = "boss-action-table";
     var thead = document.createElement("thead");
     var headRow = document.createElement("tr");
-    [window.I18N.t("enemy_level_label"), window.I18N.t("enemy_hp_label")].forEach(function (label) {
+    [window.I18N.t("enemy_level_label"), window.I18N.t("enemy_hp_label"), window.I18N.t("enemy_melee_damage_label")].forEach(function (
+      label
+    ) {
       var th = document.createElement("th");
       th.textContent = label;
       headRow.appendChild(th);
@@ -2378,6 +2380,9 @@
       var tdHp = document.createElement("td");
       tdHp.textContent = lv.hp || "—";
       tr.appendChild(tdHp);
+      var tdDmg = document.createElement("td");
+      tdDmg.textContent = lv.dmg != null ? lv.dmg : "—";
+      tr.appendChild(tdDmg);
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
@@ -2487,6 +2492,9 @@
         ];
         if (lvRow && lvRow.hp) {
           statParts.push(window.I18N.t("enemy_hp_label") + window.I18N.t("colon_separator") + lvRow.hp);
+        }
+        if (lvRow && lvRow.dmg != null) {
+          statParts.push(window.I18N.t("enemy_melee_damage_label") + window.I18N.t("colon_separator") + lvRow.dmg);
         }
         var weakness = extractWeakness(item.info.enemy.special, T);
         if (weakness) {
