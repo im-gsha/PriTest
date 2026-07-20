@@ -162,12 +162,26 @@
     return base + "#import=" + encoded;
   }
 
+  // クラウド保存ゲームは実際のgameIdへの直リンクを共有する（他端末はcharacters.js/night.jsの
+  // 「未知のgameIdならFirebaseからmeta取得して登録」フローに乗り、以後はリアルタイム同期される）。
+  // ローカル専用ゲームは同期先のサーバーが無いため、従来通り現在のセーブ内容を1回限りのJSON
+  // スナップショットとして#import=リンクに埋め込む（互いの変更は自動で反映されない）。
   function openShareModal(gameId) {
-    var bundle = Games.exportGame(gameId);
-    if (!bundle) return;
-    var url = shareUrlFor(bundle);
+    var game = Games.get(gameId);
+    if (!game) return;
+    var isCloud = game.storageMode === "cloud";
+    var url;
+    if (isCloud) {
+      url = new URL("../characters/index.html?game=" + encodeURIComponent(gameId), window.location.href).href;
+    } else {
+      var bundle = Games.exportGame(gameId);
+      if (!bundle) return;
+      url = shareUrlFor(bundle);
+    }
 
     document.getElementById("share-url-input").value = url;
+    document.getElementById("share-cloud-note").hidden = !isCloud;
+    document.getElementById("share-local-note").hidden = isCloud;
 
     var canvas = document.getElementById("share-qr-canvas");
     var note = document.getElementById("share-oversize-note");

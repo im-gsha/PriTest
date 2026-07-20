@@ -3223,10 +3223,6 @@
   }
 
   document.addEventListener("DOMContentLoaded", async function () {
-    if (!Games.checkAdminPassword(window.I18N.t("admin_password_prompt"))) {
-      window.location.href = "../admin/index.html";
-      return;
-    }
     // この端末がまだ知らないgameId（他端末で作成されたクラウドゲームのリンクを初めて開いた場合）
     // なら、Firebaseからメタ情報を取得してローカルにも登録を試みる。
     if (!game) {
@@ -3235,6 +3231,13 @@
         game = Games.registerCloudGame(gameId, remoteMeta);
         scenario = game && game.scenarioId ? Scenarios.get(game.scenarioId) : null;
       }
+    }
+    // クラウド保存ゲームはgameId（推測困難な長いID）自体がアクセス制御の鍵なので、
+    // 管理員パスワードは不要（他端末から共有リンクだけでそのまま入場できる）。
+    // ローカル専用ゲーム・存在しないgameIdの場合は、従来通り管理員パスワードで保護する。
+    if (!(game && game.storageMode === "cloud") && !Games.checkAdminPassword(window.I18N.t("admin_password_prompt"))) {
+      window.location.href = "../admin/index.html";
+      return;
     }
     if (!game) {
       document.getElementById("screen-missing-game").hidden = false;

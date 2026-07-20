@@ -27,6 +27,8 @@ BODY = """    <a class="back-link" href="../index.html" data-i18n="back_home"></
     <div id="share-modal" class="modal" hidden>
       <div class="modal-box share-modal-box">
         <h2 data-i18n="share_title"></h2>
+        <p id="share-cloud-note" class="threat-ref-body" hidden data-i18n="share_cloud_note"></p>
+        <p id="share-local-note" class="threat-ref-body" hidden data-i18n="share_local_note"></p>
         <p id="share-oversize-note" class="threat-ref-body" hidden data-i18n="share_qr_too_large"></p>
         <canvas id="share-qr-canvas"></canvas>
         <div class="field-row-block">
