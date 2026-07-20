@@ -11,6 +11,46 @@
   var TAG_FIELDS = ["notes", "status", "equipment", "weapons", "skills", "items", "talismans", "buildup"];
   var MAX_DICE_POOL = 20;
 
+  // 共通武器スキル（規則書154-155頁、カテゴリを問わず武器に付与され得る汎用テンプレート）。
+  // 抽選のランダム戦技枠でも、武器カード上の追加戦技欄でも、同じ候補一覧から選べるようにする。
+  var COMMON_SKILL_ELEMENT_OPTIONS = [
+    { ja: "炎", zh: "火" },
+    { ja: "雷", zh: "雷" },
+    { ja: "聖", zh: "聖" },
+    { ja: "魔", zh: "魔" },
+  ];
+  var COMMON_SKILL_STATUS_OPTIONS = [
+    { ja: "猛毒", zh: "猛毒" },
+    { ja: "腐敗", zh: "腐敗" },
+    { ja: "出血", zh: "出血" },
+    { ja: "凍傷", zh: "凍傷" },
+    { ja: "発狂", zh: "發狂" },
+    { ja: "睡眠", zh: "睡眠" },
+    { ja: "呪死", zh: "呪死" },
+  ];
+  var COMMON_SKILL_SPECIAL_TARGET_OPTIONS = [
+    { ja: "死に生きる者", zh: "死而復生者" },
+    { ja: "竜", zh: "龍" },
+    { ja: "星の眷属", zh: "星之眷屬" },
+  ];
+  var COMMON_SKILL_TYPES = [
+    { kind: "element", field: "element", labelKey: "weapon_common_skill_type_element", options: COMMON_SKILL_ELEMENT_OPTIONS },
+    { kind: "status", field: "status", labelKey: "weapon_common_skill_type_status", options: COMMON_SKILL_STATUS_OPTIONS },
+    {
+      kind: "element_minus5",
+      field: "element",
+      labelKey: "weapon_common_skill_type_element_minus5",
+      options: COMMON_SKILL_ELEMENT_OPTIONS,
+    },
+    {
+      kind: "status_minus5",
+      field: "status",
+      labelKey: "weapon_common_skill_type_status_minus5",
+      options: COMMON_SKILL_STATUS_OPTIONS,
+    },
+    { kind: "special", field: "target", labelKey: "weapon_common_skill_type_special", options: COMMON_SKILL_SPECIAL_TARGET_OPTIONS },
+  ];
+
   function rollD6() {
     return 1 + Math.floor(Math.random() * 6);
   }
@@ -681,22 +721,34 @@
 
   // --- 武器データベース検索＆選択（武器欄に既存の自由記述タグとは別枠で追加する） ---
   // ※ランダム戦技: 決定表が未確認のため、既知の戦技一覧から検索して手動で割り当てる
+  // ランダム戦技枠（c.weaponRandomSkills[weaponId]）の解決済み値は、名称武器戦技を検索して
+  // 決めた場合は文字列（SKILLSのid）、共通戦技を直接選んだ場合はskill ref（オブジェクト）になる。
+  // どちらの形でも表示できるようにする。
+  function resolveRandomSkillDisplay(resolvedValue) {
+    if (!resolvedValue) return null;
+    if (typeof resolvedValue === "string") {
+      var resolved = Weapons.getSkill(resolvedValue);
+      return resolved
+        ? { name: Weapons.localizedText(resolved.name), body: Weapons.localizedText(resolved.body), kind: resolved.kind }
+        : { name: resolvedValue, body: "", kind: null };
+    }
+    return resolveWeaponSkillDisplay(resolvedValue);
+  }
+
   function renderRandomSkillPicker(container, weaponId, c) {
-    var resolvedId = c.weaponRandomSkills && c.weaponRandomSkills[weaponId];
-    if (resolvedId) {
-      var resolved = Weapons.getSkill(resolvedId);
+    var resolvedValue = c.weaponRandomSkills && c.weaponRandomSkills[weaponId];
+    if (resolvedValue) {
+      var display = resolveRandomSkillDisplay(resolvedValue);
       var details = document.createElement("details");
       details.className = "ability-entry";
       var summary = document.createElement("summary");
       summary.textContent =
-        window.I18N.t("weapon_random_skill_label") +
-        "　→　" +
-        (resolved ? Weapons.localizedText(resolved.name) + (resolved.kind ? "［" + resolved.kind + "］" : "") : resolvedId);
+        window.I18N.t("weapon_random_skill_label") + "　→　" + display.name + (display.kind ? "［" + display.kind + "］" : "");
       details.appendChild(summary);
-      if (resolved && resolved.body) {
+      if (display.body) {
         var p = document.createElement("p");
         p.className = "threat-ref-body";
-        p.textContent = Weapons.localizedText(resolved.body);
+        p.textContent = display.body;
         details.appendChild(p);
       }
       var clearBtn = document.createElement("button");
@@ -704,7 +756,7 @@
       clearBtn.className = "danger-btn";
       clearBtn.textContent = window.I18N.t("weapon_random_skill_clear_button");
       clearBtn.addEventListener("click", function () {
-        var clearedName = resolved ? Weapons.localizedText(resolved.name) : resolvedId;
+        var clearedName = display.name;
         if (!window.confirm(window.I18N.t("weapon_random_skill_clear_confirm", { name: clearedName }))) return;
         delete c.weaponRandomSkills[weaponId];
         if (!c.weaponNotes) c.weaponNotes = {};
@@ -767,14 +819,25 @@
     searchBox.appendChild(input);
     searchBox.appendChild(results);
     wrap.appendChild(searchBox);
+
+    var orLabel = document.createElement("p");
+    orLabel.className = "threat-ref-body";
+    orLabel.textContent = window.I18N.t("weapon_common_skill_or_label");
+    wrap.appendChild(orLabel);
+
+    renderCommonSkillPicker(wrap, function (ref) {
+      if (!c.weaponRandomSkills) c.weaponRandomSkills = {};
+      c.weaponRandomSkills[weaponId] = ref;
+      saveFn();
+      renderWeaponList();
+    });
+
     container.appendChild(wrap);
   }
 
-  function renderWeaponSkillEntry(container, ref, weaponId, c) {
-    if (ref.kind === "random") {
-      renderRandomSkillPicker(container, weaponId, c);
-      return;
-    }
+  // skill ref（weapon.skills／attachedEffect／reverseArt／共通戦技いずれも同じ形）から
+  // 表示用の{name, body, kind}を求める。ランダム枠（kind:"random"）はここでは扱わない。
+  function resolveWeaponSkillDisplay(ref) {
     var body;
     var name;
     var kind = null;
@@ -801,6 +864,18 @@
       name = window.I18N.t("weapon_element_skill_label", { element: Weapons.localizedText(ref.element) });
       body = Weapons.localizedText(Weapons.elementSkillBody(ref.element));
       kind = "Passive";
+    } else if (ref.kind === "element_minus5") {
+      name = window.I18N.t("weapon_element_minus5_skill_label", { element: Weapons.localizedText(ref.element) });
+      body = Weapons.localizedText(Weapons.elementMinus5SkillBody(ref.element));
+      kind = "Passive";
+    } else if (ref.kind === "status_minus5") {
+      name = window.I18N.t("weapon_status_minus5_skill_label", { status: Weapons.localizedText(ref.status) });
+      body = Weapons.localizedText(Weapons.statusMinus5SkillBody(ref.status));
+      kind = "Passive";
+    } else if (ref.kind === "special") {
+      name = window.I18N.t("weapon_special_skill_label", { target: Weapons.localizedText(ref.target) });
+      body = Weapons.localizedText(Weapons.specialEffectSkillBody(ref.target));
+      kind = "Passive";
     } else if (ref.kind === "bonus") {
       name = Weapons.localizedText(ref.text);
       body = "";
@@ -808,19 +883,79 @@
       name = window.I18N.t("weapon_note_label");
       body = Weapons.localizedText(ref.text);
     }
+    return { name: name, body: body, kind: kind };
+  }
 
+  function renderWeaponSkillEntry(container, ref, weaponId, c) {
+    if (ref.kind === "random") {
+      renderRandomSkillPicker(container, weaponId, c);
+      return;
+    }
+    var display = resolveWeaponSkillDisplay(ref);
     var details = document.createElement("details");
     details.className = "ability-entry";
     var summary = document.createElement("summary");
-    summary.textContent = name + (kind ? "［" + kind + "］" : "");
+    summary.textContent = display.name + (display.kind ? "［" + display.kind + "］" : "");
     details.appendChild(summary);
-    if (body) {
+    if (display.body) {
       var p = document.createElement("p");
       p.className = "threat-ref-body";
-      p.textContent = body;
+      p.textContent = display.body;
       details.appendChild(p);
     }
     container.appendChild(details);
+  }
+
+  // 共通戦技（規則書154-155頁）を選ぶ2段階ピッカー：①種類（属性／状態異常／各々の威力-5版／特効）
+  // ②その種類内の具体的な対象（魔／炎／雷／聖、猛毒／腐敗…等）。決定したskill refをonPickへ渡す。
+  function renderCommonSkillPicker(container, onPick) {
+    var wrap = document.createElement("div");
+    wrap.className = "weapon-common-skill-picker";
+
+    var typeLabel = document.createElement("label");
+    typeLabel.textContent = window.I18N.t("weapon_common_skill_type_label");
+    var typeSelect = document.createElement("select");
+    COMMON_SKILL_TYPES.forEach(function (t, idx) {
+      var opt = document.createElement("option");
+      opt.value = String(idx);
+      opt.textContent = window.I18N.t(t.labelKey);
+      typeSelect.appendChild(opt);
+    });
+    typeLabel.appendChild(typeSelect);
+    wrap.appendChild(typeLabel);
+
+    var valueLabel = document.createElement("label");
+    valueLabel.textContent = window.I18N.t("weapon_common_skill_value_label");
+    var valueSelect = document.createElement("select");
+    valueLabel.appendChild(valueSelect);
+    wrap.appendChild(valueLabel);
+
+    function renderValueOptions() {
+      var t = COMMON_SKILL_TYPES[Number(typeSelect.value)];
+      valueSelect.innerHTML = "";
+      t.options.forEach(function (opt, idx) {
+        var o = document.createElement("option");
+        o.value = String(idx);
+        o.textContent = Weapons.localizedText(opt);
+        valueSelect.appendChild(o);
+      });
+    }
+    renderValueOptions();
+    typeSelect.addEventListener("change", renderValueOptions);
+
+    var addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.textContent = window.I18N.t("weapon_common_skill_add_button");
+    addBtn.addEventListener("click", function () {
+      var t = COMMON_SKILL_TYPES[Number(typeSelect.value)];
+      var value = t.options[Number(valueSelect.value)];
+      var ref = { kind: t.kind };
+      ref[t.field] = value;
+      onPick(ref);
+    });
+    wrap.appendChild(addBtn);
+
+    container.appendChild(wrap);
   }
 
   function renderWeaponCard(container, weaponId, c, onRemoved) {
@@ -904,6 +1039,45 @@
       });
     }
 
+    // 共通戦技（規則書154-155頁）：抽選や検索での直接追加後に、プレイヤーが手動で
+    // 属性／状態異常／特効などを1つずつ追加していける（シナリオイベント等での後天的な習得を想定）。
+    var commonTitle = document.createElement("p");
+    commonTitle.className = "boss-subheading";
+    commonTitle.textContent = window.I18N.t("weapon_common_skill_section_title");
+    card.appendChild(commonTitle);
+    (c.weaponExtraSkills && c.weaponExtraSkills[weaponId] ? c.weaponExtraSkills[weaponId] : []).forEach(function (ref, idx) {
+      var display = resolveWeaponSkillDisplay(ref);
+      var details = document.createElement("details");
+      details.className = "ability-entry";
+      var summary = document.createElement("summary");
+      summary.textContent = display.name + (display.kind ? "［" + display.kind + "］" : "");
+      details.appendChild(summary);
+      if (display.body) {
+        var p = document.createElement("p");
+        p.className = "threat-ref-body";
+        p.textContent = display.body;
+        details.appendChild(p);
+      }
+      var removeExtraBtn = document.createElement("button");
+      removeExtraBtn.type = "button";
+      removeExtraBtn.className = "danger-btn";
+      removeExtraBtn.textContent = window.I18N.t("weapon_remove_button");
+      removeExtraBtn.addEventListener("click", function () {
+        c.weaponExtraSkills[weaponId].splice(idx, 1);
+        saveFn();
+        renderWeaponList();
+      });
+      details.appendChild(removeExtraBtn);
+      card.appendChild(details);
+    });
+    renderCommonSkillPicker(card, function (ref) {
+      if (!c.weaponExtraSkills) c.weaponExtraSkills = {};
+      if (!c.weaponExtraSkills[weaponId]) c.weaponExtraSkills[weaponId] = [];
+      c.weaponExtraSkills[weaponId].push(ref);
+      saveFn();
+      renderWeaponList();
+    });
+
     var noteLabel = document.createElement("p");
     noteLabel.className = "boss-subheading";
     noteLabel.textContent = window.I18N.t("weapon_note_label");
@@ -928,6 +1102,7 @@
       c.weaponIds.splice(c.weaponIds.indexOf(weaponId), 1);
       if (c.weaponRandomSkills) delete c.weaponRandomSkills[weaponId];
       if (c.weaponNotes) delete c.weaponNotes[weaponId];
+      if (c.weaponExtraSkills) delete c.weaponExtraSkills[weaponId];
       if (c.equippedWeaponIds) {
         var eqIdx = c.equippedWeaponIds.indexOf(weaponId);
         if (eqIdx !== -1) c.equippedWeaponIds.splice(eqIdx, 1);
@@ -956,10 +1131,10 @@
   // 戦技名だけを表示し、未決定の間は何も表示しない（冗長な案内文を出さない）。
   function weaponSkillRefName(ref, c, weaponId) {
     if (ref.kind === "random") {
-      var resolvedId = c && c.weaponRandomSkills && c.weaponRandomSkills[weaponId];
-      if (!resolvedId) return null;
-      var resolved = Weapons.getSkill(resolvedId);
-      return resolved ? Weapons.localizedText(resolved.name) : resolvedId;
+      var resolvedValue = c && c.weaponRandomSkills && c.weaponRandomSkills[weaponId];
+      if (!resolvedValue) return null;
+      var display = resolveRandomSkillDisplay(resolvedValue);
+      return display ? display.name : null;
     }
     if (ref.kind === "art") {
       var art = Weapons.getSkill(ref.id);
@@ -976,6 +1151,11 @@
     }
     if (ref.kind === "status") return window.I18N.t("weapon_status_skill_label", { status: Weapons.localizedText(ref.status) });
     if (ref.kind === "element") return window.I18N.t("weapon_element_skill_label", { element: Weapons.localizedText(ref.element) });
+    if (ref.kind === "element_minus5")
+      return window.I18N.t("weapon_element_minus5_skill_label", { element: Weapons.localizedText(ref.element) });
+    if (ref.kind === "status_minus5")
+      return window.I18N.t("weapon_status_minus5_skill_label", { status: Weapons.localizedText(ref.status) });
+    if (ref.kind === "special") return window.I18N.t("weapon_special_skill_label", { target: Weapons.localizedText(ref.target) });
     if (ref.kind === "bonus") return Weapons.localizedText(ref.text);
     return null; // "note" 等、要約に含める意味のないもの
   }
@@ -1007,8 +1187,9 @@
 
       var attackCost =
         category && !category.isShield ? Weapons.localizedText(category.basicStats.attackCost) : category ? Weapons.localizedText(category.basicStats.guardCost) : "";
-      var skillRefs =
-        category && category.isShield ? (weapon.attachedEffect || []).concat(weapon.reverseArt || []) : weapon.skills || [];
+      var skillRefs = (
+        category && category.isShield ? (weapon.attachedEffect || []).concat(weapon.reverseArt || []) : weapon.skills || []
+      ).concat((c.weaponExtraSkills && c.weaponExtraSkills[weaponId]) || []);
       var skillNames = skillRefs
         .map(function (ref) {
           return weaponSkillRefName(ref, c, weaponId);
@@ -1081,6 +1262,11 @@
           if (!target.weaponNotes) target.weaponNotes = {};
           target.weaponNotes[newWeaponId] = c.weaponNotes[weaponId];
           delete c.weaponNotes[weaponId];
+        }
+        if (c.weaponExtraSkills && c.weaponExtraSkills[weaponId] !== undefined) {
+          if (!target.weaponExtraSkills) target.weaponExtraSkills = {};
+          target.weaponExtraSkills[newWeaponId] = c.weaponExtraSkills[weaponId];
+          delete c.weaponExtraSkills[weaponId];
         }
         saveFn();
         renderRosterFn();
@@ -2073,6 +2259,7 @@
       weaponIds: [],
       weaponRandomSkills: {},
       weaponNotes: {},
+      weaponExtraSkills: {},
       equippedWeaponIds: [],
       talismanIds: [],
       consumableCounts: {},

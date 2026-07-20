@@ -1481,6 +1481,21 @@ button {
   padding: 0.5rem;
 }
 
+.weapon-common-skill-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.6rem;
+  margin: 0.4rem 0 0.6rem;
+}
+
+.weapon-common-skill-picker label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+}
+
 .weapon-roll-field {
   margin: 0.5rem 0;
 }
