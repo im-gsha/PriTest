@@ -824,7 +824,7 @@
   }
 
   function renderWeaponCard(container, weaponId, c, onRemoved) {
-    var weapon = Weapons.get(weaponId);
+    var weapon = Weapons.get(baseWeaponId(weaponId));
     if (!weapon) return;
     var category = Weapons.getCategory(weapon.category);
 
@@ -986,7 +986,7 @@
     if (!c || !(c.weaponIds || []).length) return;
     if (!c.equippedWeaponIds) c.equippedWeaponIds = [];
     c.weaponIds.forEach(function (weaponId) {
-      var weapon = Weapons.get(weaponId);
+      var weapon = Weapons.get(baseWeaponId(weaponId));
       if (!weapon) return;
       var category = Weapons.getCategory(weapon.category);
       var row = document.createElement("div");
@@ -1067,15 +1067,19 @@
         var eqIdx = c.equippedWeaponIds.indexOf(weaponId);
         if (eqIdx !== -1) c.equippedWeaponIds.splice(eqIdx, 1);
         if (!target.weaponIds) target.weaponIds = [];
-        if (target.weaponIds.indexOf(weaponId) === -1) target.weaponIds.push(weaponId);
+        // 移転先が既に同じid（枝番込み）の武器を持っている場合のみ、衝突を避けるため
+        // 新しい枝番付きidへ振り直す（通常はそのままのidで移転する）。
+        var newWeaponId =
+          target.weaponIds.indexOf(weaponId) === -1 ? weaponId : makeWeaponInstanceId(baseWeaponId(weaponId), target);
+        target.weaponIds.push(newWeaponId);
         if (c.weaponRandomSkills && c.weaponRandomSkills[weaponId] !== undefined) {
           if (!target.weaponRandomSkills) target.weaponRandomSkills = {};
-          target.weaponRandomSkills[weaponId] = c.weaponRandomSkills[weaponId];
+          target.weaponRandomSkills[newWeaponId] = c.weaponRandomSkills[weaponId];
           delete c.weaponRandomSkills[weaponId];
         }
         if (c.weaponNotes && c.weaponNotes[weaponId] !== undefined) {
           if (!target.weaponNotes) target.weaponNotes = {};
-          target.weaponNotes[weaponId] = c.weaponNotes[weaponId];
+          target.weaponNotes[newWeaponId] = c.weaponNotes[weaponId];
           delete c.weaponNotes[weaponId];
         }
         saveFn();
@@ -1266,7 +1270,7 @@
         var c = findCharacter(activeCharacterId);
         if (!c) return;
         if (!c.weaponIds) c.weaponIds = [];
-        if (c.weaponIds.indexOf(w.id) === -1) c.weaponIds.push(w.id);
+        c.weaponIds.push(makeWeaponInstanceId(w.id, c));
         saveFn();
         renderWeaponList();
         var input = document.getElementById("weapon-search-input");
@@ -1310,6 +1314,7 @@
       itemDie: null,
       item: null,
       itemMissMessage: false,
+      itemMissNote: null,
 
       skillTableLetter: null,
       skillDice: null,
@@ -1352,13 +1357,27 @@
   }
 
   function pickWeaponByRoll(categoryId, rarity, dieValue) {
-    var matches = Weapons.list().filter(function (w) {
-      if (w.category !== categoryId || w.rarity !== rarity) return false;
-      var range = parseRollRange(w.roll);
-      if (!range) return false;
-      return dieValue >= range[0] && dieValue <= range[1];
+    var candidates = Weapons.list().filter(function (w) {
+      return w.category === categoryId && w.rarity === rarity;
     });
-    return matches[0] || null;
+    var ranged = candidates.filter(function (w) {
+      var range = parseRollRange(w.roll);
+      return range && dieValue >= range[0] && dieValue <= range[1];
+    });
+    if (ranged.length) return ranged[0];
+    // この区分にダイス範囲を持つ武器が1つも無い場合（例:大弓の各稀有度のように、そもそも
+    // その稀有度に武器が1種類しか無くロール自体が不要な区分）は、ノート専用のプレースホルダー
+    // （「該当武器なし」等）を除いた唯一の実武器があれば、それをそのまま自動選出する。
+    var hasAnyRangedWeapon = candidates.some(function (w) {
+      return !!parseRollRange(w.roll);
+    });
+    if (!hasAnyRangedWeapon) {
+      var realCandidates = candidates.filter(function (w) {
+        return !isNotePlaceholderWeapon(w);
+      });
+      if (realCandidates.length === 1) return realCandidates[0];
+    }
+    return null;
   }
 
   function resolveSimpleTableRoll(category, d1) {
@@ -1402,6 +1421,37 @@
       return (item.attachedEffect || []).concat(item.reverseArt || []);
     }
     return item.skills || [];
+  }
+
+  // 1人が同じ武器を複数所持できるように、c.weaponIdsの要素はカタログid（例:"rapier_x"）そのもの
+  // か、2つ目以降の複製に付けた枝番付きid（例:"rapier_x::2"）のどちらかになる。カタログ参照時は
+  // baseWeaponIdで枝番を取り除き、ランダム戦技／備考／装備状態のキーには常に完全なid（枝番込み）
+  // を使うことで、複製ごとに独立した状態を持たせる（既存セーブの枝番なしidともそのまま互換）。
+  function baseWeaponId(weaponId) {
+    var idx = String(weaponId || "").indexOf("::");
+    return idx === -1 ? weaponId : weaponId.slice(0, idx);
+  }
+
+  function makeWeaponInstanceId(catalogId, target) {
+    var existing = (target.weaponIds || []).filter(function (id) {
+      return id === catalogId || id.indexOf(catalogId + "::") === 0;
+    });
+    return existing.length === 0 ? catalogId : catalogId + "::" + (existing.length + 1);
+  }
+
+  // ノート専用（kind:"note"のみ）のプレースホルダー武器（例:「該当武器なし」）かどうか。
+  // 実際に入手可能な武器（スキル無しの物も含む）と区別するために使う。
+  function isNotePlaceholderWeapon(w) {
+    var skills = (w && w.skills) || [];
+    return skills.length === 1 && skills[0].kind === "note";
+  }
+
+  function findNotePlaceholderWeapon(categoryId, rarity) {
+    return (
+      Weapons.list().filter(function (w) {
+        return w.category === categoryId && w.rarity === rarity && isNotePlaceholderWeapon(w);
+      })[0] || null
+    );
   }
 
   function renderWeaponRollField() {
@@ -1637,9 +1687,12 @@
         if (!picked) {
           st.item = null;
           st.itemMissMessage = true;
+          var placeholder = findNotePlaceholderWeapon(st.categoryId, st.rarity);
+          st.itemMissNote = placeholder ? Weapons.localizedText(placeholder.skills[0].text) : null;
         } else {
           st.item = picked;
           st.itemMissMessage = false;
+          st.itemMissNote = null;
           st.skillId = null;
           st.skillDice = null;
           var randomRef = getItemSkillRefs(category, picked).filter(function (s) {
@@ -1654,7 +1707,7 @@
       if (st.itemMissMessage) {
         var missMsg = document.createElement("p");
         missMsg.className = "threat-ref-body weapon-roll-result";
-        missMsg.textContent = window.I18N.t("weapon_roll_item_none");
+        missMsg.textContent = st.itemMissNote || window.I18N.t("weapon_roll_item_none");
         panel.appendChild(missMsg);
       }
 
@@ -1785,10 +1838,11 @@
           var c = findCharacter(activeCharacterId);
           if (!c) return;
           if (!c.weaponIds) c.weaponIds = [];
-          if (c.weaponIds.indexOf(st.item.id) === -1) c.weaponIds.push(st.item.id);
+          var newInstanceId = makeWeaponInstanceId(st.item.id, c);
+          c.weaponIds.push(newInstanceId);
           if (st.skillId) {
             if (!c.weaponRandomSkills) c.weaponRandomSkills = {};
-            c.weaponRandomSkills[st.item.id] = st.skillId;
+            c.weaponRandomSkills[newInstanceId] = st.skillId;
           }
           saveFn();
           resetWeaponRollState();
