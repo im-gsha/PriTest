@@ -107,6 +107,7 @@ BODY = """    <div class="night-header-row">
                 <th data-i18n="record_level_label"></th>
                 <th data-i18n="character_hp_label"></th>
                 <th data-i18n="character_fp_label"></th>
+                <th data-i18n="character_blessing_slots_label"></th>
                 <th data-i18n="record_flask_base_label"></th>
               </tr>
             </thead>

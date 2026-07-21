@@ -70,7 +70,7 @@
     if (entered.length === 0) {
       var emptyRow = document.createElement("tr");
       var td = document.createElement("td");
-      td.colSpan = 7;
+      td.colSpan = 8;
       td.className = "character-roster-empty";
       td.textContent = window.I18N.t("character_roster_empty");
       emptyRow.appendChild(td);
@@ -120,11 +120,13 @@
       tr.appendChild(nameTd);
 
       var flaskText = c.flaskBase.used + "/" + c.flaskBase.max + (c.flaskExtra && c.flaskExtra.max > 0 ? "（+" + c.flaskExtra.used + "/" + c.flaskExtra.max + "）" : "");
+      var blessingText = c.blessingSlots ? c.blessingSlots.current + "/" + c.blessingSlots.max : "-";
       [
         type ? CharacterTypes.localizedName(type.name) : "-",
         c.level,
         c.hp.current + "/" + c.hp.max,
         c.fp.current + "/" + c.fp.max,
+        blessingText,
         flaskText,
       ].forEach(function (val) {
         var cell = document.createElement("td");
@@ -138,7 +140,7 @@
       detailTr.className = "roster-detail-row";
       detailTr.hidden = isCollapsed;
       var detailTd = document.createElement("td");
-      detailTd.colSpan = 7;
+      detailTd.colSpan = 8;
       var detailFlex = document.createElement("div");
       detailFlex.className = "roster-detail-flex";
 
