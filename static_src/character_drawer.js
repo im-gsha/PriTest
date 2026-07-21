@@ -2468,6 +2468,37 @@
     });
   }
 
+  // タイプの基本数値（体力骰・リソース枠数・判定値・威力補正・得意武器＋任意で初期装備）を、
+  // 本体ドロワーの参照欄と、画像クリックで開くスキル発動ウィンドウの両方から使う共通の行配列。
+  function buildTypeStatLines(type, includeStartingEquipment) {
+    var lines = [
+      window.I18N.t("stat_stamina_dice") + window.I18N.t("colon_separator") + type.staminaDice.action + "／" + type.staminaDice.defense,
+      window.I18N.t("stat_resource_slots") +
+        window.I18N.t("colon_separator") +
+        type.resourceSlots.hp + "／" + type.resourceSlots.fp + "／" + type.resourceSlots.blessing,
+      window.I18N.t("stat_check_values") +
+        window.I18N.t("colon_separator") +
+        type.checkValues.luck + "／" + type.checkValues.physical + "／" + type.checkValues.mental,
+      window.I18N.t("stat_power_mod") +
+        window.I18N.t("colon_separator") +
+        [
+          type.powerMod.strength,
+          type.powerMod.dex,
+          type.powerMod.balance,
+          type.powerMod.intelligence,
+          type.powerMod.faith,
+          type.powerMod.arcane,
+        ].join("／"),
+      window.I18N.t("stat_favored_weapons") + window.I18N.t("colon_separator") + CharacterTypes.localizedText(type.favoredWeapons),
+    ];
+    if (includeStartingEquipment) {
+      lines.push(
+        window.I18N.t("stat_starting_equipment") + window.I18N.t("colon_separator") + CharacterTypes.localizedText(type.startingEquipment)
+      );
+    }
+    return lines;
+  }
+
   function renderTypeReference(c) {
     var block = document.getElementById("type-reference-block");
     var type = c.typeId ? CharacterTypes.get(c.typeId) : null;
@@ -2497,29 +2528,7 @@
     }
     block.hidden = false;
     document.getElementById("type-reference-title").textContent = CharacterTypes.localizedName(type.name);
-
-    var lines = [
-      window.I18N.t("stat_stamina_dice") + window.I18N.t("colon_separator") + type.staminaDice.action + "／" + type.staminaDice.defense,
-      window.I18N.t("stat_resource_slots") +
-        window.I18N.t("colon_separator") +
-        type.resourceSlots.hp + "／" + type.resourceSlots.fp + "／" + type.resourceSlots.blessing,
-      window.I18N.t("stat_check_values") +
-        window.I18N.t("colon_separator") +
-        type.checkValues.luck + "／" + type.checkValues.physical + "／" + type.checkValues.mental,
-      window.I18N.t("stat_power_mod") +
-        window.I18N.t("colon_separator") +
-        [
-          type.powerMod.strength,
-          type.powerMod.dex,
-          type.powerMod.balance,
-          type.powerMod.intelligence,
-          type.powerMod.faith,
-          type.powerMod.arcane,
-        ].join("／"),
-      window.I18N.t("stat_favored_weapons") + window.I18N.t("colon_separator") + CharacterTypes.localizedText(type.favoredWeapons),
-      window.I18N.t("stat_starting_equipment") + window.I18N.t("colon_separator") + CharacterTypes.localizedText(type.startingEquipment),
-    ];
-    document.getElementById("type-reference-stats").textContent = lines.join("\n");
+    document.getElementById("type-reference-stats").textContent = buildTypeStatLines(type, true).join("\n");
 
     renderAbilitySections(c, type, document.getElementById("type-active-skills"), document.getElementById("type-passives"));
   }
@@ -2627,6 +2636,16 @@
     var type = c.typeId ? CharacterTypes.get(c.typeId) : null;
     document.getElementById("skills-drawer-name").textContent =
       c.name + (type ? "（" + CharacterTypes.localizedName(type.name) + "）" : "");
+    var statsBlock = document.getElementById("skills-drawer-stats-block");
+    if (statsBlock) {
+      if (type) {
+        statsBlock.hidden = false;
+        document.getElementById("skills-drawer-stats-title").textContent = window.I18N.t("stat_block_title");
+        document.getElementById("skills-drawer-stats").textContent = buildTypeStatLines(type, false).join("\n");
+      } else {
+        statsBlock.hidden = true;
+      }
+    }
     renderTagList("notes");
     renderAbilitySections(c, type, document.getElementById("skills-drawer-active"), document.getElementById("skills-drawer-passive"));
     document.getElementById("skills-drawer").classList.add("open");

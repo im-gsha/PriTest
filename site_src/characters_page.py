@@ -270,6 +270,10 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
       <div class="drawer-backdrop" id="skills-drawer-backdrop"></div>
       <div class="drawer-panel">
         <h2 id="skills-drawer-name"></h2>
+        <div class="threat-ref-block" id="skills-drawer-stats-block" hidden>
+          <h3 id="skills-drawer-stats-title"></h3>
+          <p class="threat-ref-body" id="skills-drawer-stats"></p>
+        </div>
         <div class="tag-field" data-field="notes">
           <h3 data-i18n="character_notes_label"></h3>
           <div class="tag-list" id="tag-list-notes"></div>
