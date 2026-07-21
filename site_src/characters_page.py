@@ -242,6 +242,7 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
           </div>
           <div class="dice-pool-list" id="relic-dice-display"></div>
           <div id="relic-candidates"></div>
+          <div id="relic-learned-list"></div>
           <div id="relic-all-list" hidden></div>
         </div>
 

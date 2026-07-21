@@ -538,6 +538,62 @@
     return out;
   }
 
+  function relicEffectForKey(type, key) {
+    var groups = type.relicEffectGroups || [];
+    for (var gi = 0; gi < groups.length; gi++) {
+      for (var ei = 0; ei < groups[gi].effects.length; ei++) {
+        if (relicEffectKey(type.id, gi, ei) === key) return groups[gi].effects[ei];
+      }
+    }
+    return null;
+  }
+
+  // 誤クリックで習得してしまった遺物効果を、個別に未習得の状態へ戻せるようにする一覧。
+  function renderRelicLearnedList() {
+    var c = findCharacter(activeCharacterId);
+    var type = c && c.typeId ? CharacterTypes.get(c.typeId) : null;
+    var container = document.getElementById("relic-learned-list");
+    if (!container) return;
+    container.innerHTML = "";
+    if (!c || !type || !(c.learnedRelicEffects || []).length) return;
+
+    var title = document.createElement("p");
+    title.className = "boss-subheading";
+    title.textContent = window.I18N.t("relic_learned_list_title");
+    container.appendChild(title);
+
+    c.learnedRelicEffects.forEach(function (key) {
+      var effect = relicEffectForKey(type, key);
+      if (!effect) return;
+      var details = document.createElement("details");
+      details.className = "ability-entry";
+      var summary = document.createElement("summary");
+      summary.textContent = CharacterTypes.localizedText(effect.name) + "［" + effect.kind + "］";
+      details.appendChild(summary);
+      var body = document.createElement("p");
+      body.className = "threat-ref-body";
+      body.textContent = CharacterTypes.localizedText(effect.body);
+      details.appendChild(body);
+
+      var resetBtn = document.createElement("button");
+      resetBtn.type = "button";
+      resetBtn.className = "danger-btn";
+      resetBtn.textContent = window.I18N.t("relic_reset_button");
+      resetBtn.addEventListener("click", function () {
+        if (!window.confirm(window.I18N.t("relic_reset_confirm", { name: CharacterTypes.localizedText(effect.name) }))) return;
+        var idx = c.learnedRelicEffects.indexOf(key);
+        if (idx !== -1) c.learnedRelicEffects.splice(idx, 1);
+        saveFn();
+        relicRolledDice = null;
+        renderRelicSection();
+        renderTypeReference(c);
+      });
+      details.appendChild(resetBtn);
+
+      container.appendChild(details);
+    });
+  }
+
   function renderRelicCandidateCard(container, candidate, c) {
     var card = document.createElement("div");
     card.className = "relic-candidate-card";
@@ -612,6 +668,8 @@
       if (rollBtn) rollBtn.disabled = true;
       if (diceEl) diceEl.innerHTML = "";
       document.getElementById("relic-candidates").innerHTML = "";
+      var learnedListEl = document.getElementById("relic-learned-list");
+      if (learnedListEl) learnedListEl.innerHTML = "";
       return;
     }
 
@@ -624,6 +682,7 @@
       else diceEl.innerHTML = "";
     }
     renderRelicCandidates();
+    renderRelicLearnedList();
     renderRelicAllList();
   }
 
