@@ -8,7 +8,10 @@
   var WeaponRulebook = window.PriTestWeaponRulebook;
   var Talismans = window.PriTestTalismans;
   var Consumables = window.PriTestConsumables;
-  var TAG_FIELDS = ["notes", "status", "equipment", "weapons", "skills", "items", "talismans", "buildup"];
+  // 「狀態／裝備欄／武器欄／技能／道具欄／護符」の自由記述タグ欄は廃止済み
+  // （武器・タリスマン・消耗品データベース機能に置き換わったため）。今も残るのは
+  // notes（スキル発動ウィンドウの補足説明）とbuildup（属性／異常蓄積値）のみ。
+  var TAG_FIELDS = ["notes", "buildup"];
   var MAX_DICE_POOL = 20;
 
   // 共通武器スキル（規則書154-155頁、カテゴリを問わず武器に付与され得る汎用テンプレート）。
@@ -87,6 +90,28 @@
       die.textContent = v;
       listEl.appendChild(die);
     });
+  }
+
+  // 骰子池の現況判定：プール内の最大値が偶数なら前衛、奇数なら後衛。プール内に「6」が
+  // 1つでもあれば敵視+1（複数出ていても+1のまま、出目6の有無だけを見る）。
+  // night.js（盤面ロスター）・character_drawer.js（個人情報ドロワー）の両方で共有する。
+  function computeDiceStatus(pool) {
+    if (!pool || !pool.length) return null;
+    var max = Math.max.apply(null, pool);
+    var position = max % 2 === 0 ? "front" : "back";
+    var aggroIncrease = pool.indexOf(6) !== -1 ? 1 : 0;
+    return { position: position, aggroIncrease: aggroIncrease };
+  }
+
+  function renderDiceStatusLabel(el, pool) {
+    if (!el) return;
+    var status = computeDiceStatus(pool);
+    if (!status) {
+      el.textContent = "";
+      return;
+    }
+    var positionText = window.I18N.t(status.position === "front" ? "dice_status_front" : "dice_status_back");
+    el.textContent = window.I18N.t("dice_status_label", { position: positionText, aggro: status.aggroIncrease });
   }
 
   // --- 附帯効果（装備品から獲得する、キャラクタータイプに依存しない共通の付帯効果） ---
@@ -1741,6 +1766,12 @@
   function resetWeaponRollState() {
     var firstCat = Weapons.categories()[0];
     weaponRollState = {
+      potentialPower: null, // null=未選択／true=潜在する力／false=それ以外の装備品獲得
+      favoredDie: null,
+      favoredIndex: null,
+      favoredResult: null,
+      favoredNonWeaponNote: null,
+
       categoryId: firstCat ? firstCat.id : null,
       categoryResolved: true,
       majorDie: null,
@@ -1748,7 +1779,7 @@
       minorDie: null,
       minorRerollNote: false,
 
-      starCount: 2,
+      starCount: 1,
       rarityDice: null,
       raritySum: null,
       rarity: null,
@@ -1920,38 +1951,153 @@
     var panel = document.createElement("div");
     panel.className = "weapon-roll-panel";
 
-    // カテゴリ選択（「武器」を選ぶと大分類→小分類の抽選が挟まる／個別カテゴリなら即決定）
-    var configRow = document.createElement("div");
-    configRow.className = "weapon-roll-row";
-    var catLabel = document.createElement("label");
-    catLabel.textContent = window.I18N.t("weapon_roll_category_label");
-    var catSelect = document.createElement("select");
-    var anyOpt = document.createElement("option");
-    anyOpt.value = ANY_WEAPON_CATEGORY;
-    anyOpt.textContent = window.I18N.t("weapon_roll_category_any_option");
-    catSelect.appendChild(anyOpt);
-    Weapons.categories().forEach(function (cat) {
+    // 潜在する力（Yes/No）：規則書154頁のACQUISITION_NOTEにある通り、潜在する力での獲得
+    // だけ「得意武器のダイスを振る」手順が入る。それ以外（シナリオでカテゴリ指定済みの
+    // 装備品獲得等）は従来通り手動でカテゴリを選ぶ。
+    var potentialRow = document.createElement("div");
+    potentialRow.className = "weapon-roll-row";
+    var potentialLabel = document.createElement("label");
+    potentialLabel.textContent = window.I18N.t("weapon_roll_potential_power_label");
+    var potentialSelect = document.createElement("select");
+    [
+      { value: "", label: window.I18N.t("weapon_roll_potential_power_unset") },
+      { value: "yes", label: window.I18N.t("yes_button") },
+      { value: "no", label: window.I18N.t("no_button") },
+    ].forEach(function (optDef) {
       var opt = document.createElement("option");
-      opt.value = cat.id;
-      opt.textContent = Weapons.localizedText(cat.name);
-      catSelect.appendChild(opt);
+      opt.value = optDef.value;
+      opt.textContent = optDef.label;
+      if (
+        (st.potentialPower === true && optDef.value === "yes") ||
+        (st.potentialPower === false && optDef.value === "no") ||
+        (st.potentialPower === null && optDef.value === "")
+      ) {
+        opt.selected = true;
+      }
+      potentialSelect.appendChild(opt);
     });
-    catSelect.value = st.categoryId === null ? ANY_WEAPON_CATEGORY : st.categoryId;
-    catSelect.addEventListener("change", function () {
-      var newValue = catSelect.value;
+    potentialSelect.addEventListener("change", function () {
+      var newValue = potentialSelect.value === "yes" ? true : potentialSelect.value === "no" ? false : null;
       resetWeaponRollState();
-      if (newValue === ANY_WEAPON_CATEGORY) {
+      weaponRollState.potentialPower = newValue;
+      if (newValue === true) {
         weaponRollState.categoryId = null;
         weaponRollState.categoryResolved = false;
-      } else {
-        weaponRollState.categoryId = newValue;
-        weaponRollState.categoryResolved = true;
       }
       renderWeaponRollField();
     });
-    catLabel.appendChild(catSelect);
-    configRow.appendChild(catLabel);
-    panel.appendChild(configRow);
+    potentialLabel.appendChild(potentialSelect);
+    potentialRow.appendChild(potentialLabel);
+    panel.appendChild(potentialRow);
+
+    if (st.potentialPower === true) {
+      var potentialChar = findCharacter(activeCharacterId);
+      var potentialType = potentialChar && potentialChar.typeId ? CharacterTypes.get(potentialChar.typeId) : null;
+      if (!potentialType) {
+        var noTypeNote = document.createElement("p");
+        noTypeNote.className = "threat-ref-body weapon-roll-result";
+        noTypeNote.textContent = window.I18N.t("weapon_roll_potential_power_no_type");
+        panel.appendChild(noTypeNote);
+        field.appendChild(panel);
+        return;
+      }
+      var favoredNames = CharacterTypes.localizedText(potentialType.favoredWeapons)
+        .split("・")
+        .map(function (s) {
+          return s.trim();
+        })
+        .filter(Boolean);
+
+      if (st.favoredIndex === null) {
+        var favoredBtn = document.createElement("button");
+        favoredBtn.type = "button";
+        favoredBtn.className = "primary-btn";
+        favoredBtn.textContent = window.I18N.t("weapon_roll_favored_button");
+        favoredBtn.addEventListener("click", function () {
+          var die = rollD6();
+          st.favoredDie = die;
+          var idx = die <= 3 ? 0 : die <= 5 ? 1 : 2;
+          st.favoredIndex = idx;
+          var name = favoredNames[idx] || null;
+          st.favoredResult = name;
+          if (name === "武器") {
+            st.categoryId = null;
+            st.categoryResolved = false;
+            st.favoredNonWeaponNote = null;
+          } else {
+            var resolvedId = name ? findCategoryIdByMinorLabel(name) : null;
+            if (resolvedId) {
+              st.categoryId = resolvedId;
+              st.categoryResolved = true;
+              st.favoredNonWeaponNote = null;
+            } else {
+              st.categoryId = null;
+              st.categoryResolved = false;
+              st.favoredNonWeaponNote = name;
+            }
+          }
+          renderWeaponRollField();
+        });
+        panel.appendChild(favoredBtn);
+        field.appendChild(panel);
+        return;
+      }
+
+      var favoredResultMsg = document.createElement("p");
+      favoredResultMsg.className = "threat-ref-body weapon-roll-result";
+      favoredResultMsg.textContent = window.I18N.t("weapon_roll_favored_result", {
+        die: st.favoredDie,
+        name: st.favoredResult || "-",
+      });
+      panel.appendChild(favoredResultMsg);
+
+      if (st.favoredNonWeaponNote) {
+        var nonWeaponMsg = document.createElement("p");
+        nonWeaponMsg.className = "threat-ref-body weapon-roll-result";
+        nonWeaponMsg.textContent = window.I18N.t("weapon_roll_favored_non_weapon_note", { name: st.favoredNonWeaponNote });
+        panel.appendChild(nonWeaponMsg);
+        field.appendChild(panel);
+        return;
+      }
+    }
+
+    // カテゴリ選択（「武器」を選ぶと大分類→小分類の抽選が挟まる／個別カテゴリなら即決定）。
+    // 潜在する力＝はいで既にカテゴリが決まっている場合はこの手動選択欄自体を出さない。
+    if (st.potentialPower !== true) {
+      var configRow = document.createElement("div");
+      configRow.className = "weapon-roll-row";
+      var catLabel = document.createElement("label");
+      catLabel.textContent = window.I18N.t("weapon_roll_category_label");
+      var catSelect = document.createElement("select");
+      var anyOpt = document.createElement("option");
+      anyOpt.value = ANY_WEAPON_CATEGORY;
+      anyOpt.textContent = window.I18N.t("weapon_roll_category_any_option");
+      catSelect.appendChild(anyOpt);
+      Weapons.categories().forEach(function (cat) {
+        var opt = document.createElement("option");
+        opt.value = cat.id;
+        opt.textContent = Weapons.localizedText(cat.name);
+        catSelect.appendChild(opt);
+      });
+      catSelect.value = st.categoryId === null ? ANY_WEAPON_CATEGORY : st.categoryId;
+      catSelect.addEventListener("change", function () {
+        var newValue = catSelect.value;
+        var prevPotentialPower = st.potentialPower;
+        resetWeaponRollState();
+        weaponRollState.potentialPower = prevPotentialPower;
+        if (newValue === ANY_WEAPON_CATEGORY) {
+          weaponRollState.categoryId = null;
+          weaponRollState.categoryResolved = false;
+        } else {
+          weaponRollState.categoryId = newValue;
+          weaponRollState.categoryResolved = true;
+        }
+        renderWeaponRollField();
+      });
+      catLabel.appendChild(catSelect);
+      configRow.appendChild(catLabel);
+      panel.appendChild(configRow);
+    }
 
     // 〔4-1〕〔4-2〕カテゴリ自体の抽選（「武器」を選んだときのみ）
     if (!st.categoryResolved) {
@@ -2078,6 +2224,19 @@
         rarity: st.rarity,
       });
       panel.appendChild(rarityResult);
+
+      if (!st.rarityConfirmed) {
+        var rarityRerollBtn = document.createElement("button");
+        rarityRerollBtn.type = "button";
+        rarityRerollBtn.textContent = window.I18N.t("weapon_roll_star_reroll_button");
+        rarityRerollBtn.addEventListener("click", function () {
+          st.rarityDice = null;
+          st.raritySum = null;
+          st.rarity = null;
+          renderWeaponRollField();
+        });
+        panel.appendChild(rarityRerollBtn);
+      }
     }
 
     if (st.rarity && !st.rarityConfirmed) {
@@ -2477,6 +2636,341 @@
     });
   }
 
+  // "4-5"や"1-3（基本アイテム）"のような、先頭の数字（範囲）だけを取り出す共通パーサー。
+  // タリスマン・消耗品どちらの決定表も同じ表記規則（ハイフン区切り＋任意の説明文）を使う。
+  function parseDashRange(text) {
+    var m = String(text || "").match(/^(\d+)(?:-(\d+))?/);
+    if (!m) return null;
+    var lo = parseInt(m[1], 10);
+    var hi = m[2] ? parseInt(m[2], 10) : lo;
+    return [lo, hi];
+  }
+
+  // --- 裝飾品（タリスマン）抽選：規則書200-202頁。①1D6で表A(1-3)/表B(4-6)を決定、
+  // ②表内の6グループから1D6でグループを直接選び（groupIndex=die-1）、③グループ内の
+  // アイテムをさらに1D6で決定する（各アイテムのroll欄の範囲表記に出目が収まる行を採用）。
+  var talismanRollState = null;
+
+  function resetTalismanRollState() {
+    talismanRollState = {
+      tableDie: null,
+      tableLetter: null,
+      groupDie: null,
+      groupIndex: null,
+      itemDie: null,
+      item: null,
+      itemMissMessage: false,
+    };
+  }
+
+  function renderTalismanRollField() {
+    var field = document.getElementById("talisman-roll-field");
+    if (!field) return;
+    if (!talismanRollState) resetTalismanRollState();
+    var st = talismanRollState;
+
+    field.innerHTML = "";
+
+    var toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = "weapon-roll-toggle-btn";
+    toggleBtn.textContent = window.I18N.t(field.dataset.open === "1" ? "talisman_roll_toggle_hide" : "talisman_roll_toggle_button");
+    toggleBtn.addEventListener("click", function () {
+      field.dataset.open = field.dataset.open === "1" ? "0" : "1";
+      renderTalismanRollField();
+    });
+    field.appendChild(toggleBtn);
+
+    if (field.dataset.open !== "1") return;
+
+    var panel = document.createElement("div");
+    panel.className = "weapon-roll-panel";
+
+    var step1Btn = document.createElement("button");
+    step1Btn.type = "button";
+    step1Btn.className = "primary-btn";
+    step1Btn.textContent = window.I18N.t("talisman_roll_step1_button");
+    step1Btn.disabled = st.tableLetter !== null;
+    step1Btn.addEventListener("click", function () {
+      var die = rollD6();
+      st.tableDie = die;
+      st.tableLetter = die <= 3 ? "A" : "B";
+      renderTalismanRollField();
+    });
+    panel.appendChild(step1Btn);
+
+    if (st.tableLetter) {
+      var step1Result = document.createElement("p");
+      step1Result.className = "threat-ref-body weapon-roll-result";
+      step1Result.textContent = window.I18N.t("talisman_roll_step1_result", { die: st.tableDie, table: st.tableLetter });
+      panel.appendChild(step1Result);
+    } else {
+      field.appendChild(panel);
+      return;
+    }
+
+    var tables = Talismans.acquisitionTables();
+    var group = (st.tableLetter === "A" ? tables.groupsA : tables.groupsB)[st.groupIndex !== null ? st.groupIndex : -1];
+
+    var step2Btn = document.createElement("button");
+    step2Btn.type = "button";
+    step2Btn.className = "primary-btn";
+    step2Btn.textContent = window.I18N.t("talisman_roll_step2_button");
+    step2Btn.disabled = st.groupIndex !== null;
+    step2Btn.addEventListener("click", function () {
+      var die = rollD6();
+      st.groupDie = die;
+      st.groupIndex = die - 1;
+      renderTalismanRollField();
+    });
+    panel.appendChild(step2Btn);
+
+    if (st.groupIndex !== null) {
+      var step2Result = document.createElement("p");
+      step2Result.className = "threat-ref-body weapon-roll-result";
+      step2Result.textContent = window.I18N.t("talisman_roll_step2_result", { die: st.groupDie, group: st.groupIndex + 1 });
+      panel.appendChild(step2Result);
+      group = (st.tableLetter === "A" ? tables.groupsA : tables.groupsB)[st.groupIndex] || [];
+    } else {
+      field.appendChild(panel);
+      return;
+    }
+
+    var step3Btn = document.createElement("button");
+    step3Btn.type = "button";
+    step3Btn.className = "primary-btn";
+    step3Btn.textContent = window.I18N.t("talisman_roll_step3_button");
+    step3Btn.disabled = !!st.item;
+    step3Btn.addEventListener("click", function () {
+      var die = rollD6();
+      st.itemDie = die;
+      var row = group.filter(function (r) {
+        var range = parseDashRange(r.roll);
+        return range && die >= range[0] && die <= range[1];
+      })[0];
+      if (row) {
+        st.item = Talismans.get(row.id);
+        st.itemMissMessage = !st.item;
+      } else {
+        st.item = null;
+        st.itemMissMessage = true;
+      }
+      renderTalismanRollField();
+    });
+    panel.appendChild(step3Btn);
+
+    if (st.itemMissMessage) {
+      var missMsg = document.createElement("p");
+      missMsg.className = "threat-ref-body weapon-roll-result";
+      missMsg.textContent = window.I18N.t("talisman_roll_item_none");
+      panel.appendChild(missMsg);
+    }
+
+    if (st.item) {
+      var itemResult = document.createElement("p");
+      itemResult.className = "threat-ref-body weapon-roll-result";
+      itemResult.textContent = window.I18N.t("talisman_roll_item_result", {
+        die: st.itemDie,
+        name: Talismans.localizedText(st.item.name),
+      });
+      panel.appendChild(itemResult);
+
+      var confirmBtn = document.createElement("button");
+      confirmBtn.type = "button";
+      confirmBtn.className = "primary-btn";
+      confirmBtn.textContent = window.I18N.t("weapon_roll_confirm_button");
+      confirmBtn.addEventListener("click", function () {
+        var c = findCharacter(activeCharacterId);
+        if (!c) return;
+        if (!c.talismanIds) c.talismanIds = [];
+        if (c.talismanIds.indexOf(st.item.id) === -1) c.talismanIds.push(st.item.id);
+        saveFn();
+        resetTalismanRollState();
+        field.dataset.open = "0";
+        renderTalismanRollField();
+        renderTalismanList();
+      });
+      panel.appendChild(confirmBtn);
+    }
+
+    var resetBtn = document.createElement("button");
+    resetBtn.type = "button";
+    resetBtn.textContent = window.I18N.t("weapon_roll_reset_button");
+    resetBtn.addEventListener("click", function () {
+      resetTalismanRollState();
+      renderTalismanRollField();
+    });
+    panel.appendChild(resetBtn);
+
+    field.appendChild(panel);
+  }
+
+  // --- 消耗品抽選：この頁の決定表。①1D6で分類（1-3=基本アイテム／4-5=投擲系／6=調香瓶系）を、
+  // ②1D6で分類内の具体的なアイテムを決定する。調香瓶系×出目6は表の注記通り「同じ分類内で
+  // 再抽選」が必要なため、②のボタンを無効化せずそのまま振り直せるようにする。
+  var consumableRollState = null;
+
+  function resetConsumableRollState() {
+    consumableRollState = {
+      groupDie: null,
+      groupLabel: null,
+      itemDie: null,
+      item: null,
+      itemMissMessage: false,
+      needsReroll: false,
+    };
+  }
+
+  function resolveConsumableTableRow(d1, d2) {
+    var table = Consumables.determineTable();
+    for (var i = 0; i < table.rows.length; i++) {
+      var row = table.rows[i];
+      var groupRange = parseDashRange(row[0].ja);
+      var dieRange = parseDashRange(row[1].ja);
+      if (groupRange && dieRange && d1 >= groupRange[0] && d1 <= groupRange[1] && d2 >= dieRange[0] && d2 <= dieRange[1]) {
+        return row;
+      }
+    }
+    return null;
+  }
+
+  function renderConsumableRollField() {
+    var field = document.getElementById("consumable-roll-field");
+    if (!field) return;
+    if (!consumableRollState) resetConsumableRollState();
+    var st = consumableRollState;
+
+    field.innerHTML = "";
+
+    var toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = "weapon-roll-toggle-btn";
+    toggleBtn.textContent = window.I18N.t(field.dataset.open === "1" ? "consumable_roll_toggle_hide" : "consumable_roll_toggle_button");
+    toggleBtn.addEventListener("click", function () {
+      field.dataset.open = field.dataset.open === "1" ? "0" : "1";
+      renderConsumableRollField();
+    });
+    field.appendChild(toggleBtn);
+
+    if (field.dataset.open !== "1") return;
+
+    var panel = document.createElement("div");
+    panel.className = "weapon-roll-panel";
+    var table = Consumables.determineTable();
+
+    var step1Btn = document.createElement("button");
+    step1Btn.type = "button";
+    step1Btn.className = "primary-btn";
+    step1Btn.textContent = window.I18N.t("consumable_roll_step1_button");
+    step1Btn.disabled = st.groupDie !== null;
+    step1Btn.addEventListener("click", function () {
+      var die = rollD6();
+      st.groupDie = die;
+      var row = table.rows.filter(function (r) {
+        var range = parseDashRange(r[0].ja);
+        return range && die >= range[0] && die <= range[1];
+      })[0];
+      st.groupLabel = row ? Consumables.localizedText(row[0]) : null;
+      renderConsumableRollField();
+    });
+    panel.appendChild(step1Btn);
+
+    if (st.groupDie !== null) {
+      var step1Result = document.createElement("p");
+      step1Result.className = "threat-ref-body weapon-roll-result";
+      step1Result.textContent = window.I18N.t("consumable_roll_step1_result", { die: st.groupDie, group: st.groupLabel || "-" });
+      panel.appendChild(step1Result);
+    } else {
+      field.appendChild(panel);
+      return;
+    }
+
+    var step2Btn = document.createElement("button");
+    step2Btn.type = "button";
+    step2Btn.className = "primary-btn";
+    step2Btn.textContent = window.I18N.t("consumable_roll_step2_button");
+    step2Btn.disabled = !!st.item;
+    step2Btn.addEventListener("click", function () {
+      var die = rollD6();
+      st.itemDie = die;
+      var row = resolveConsumableTableRow(st.groupDie, die);
+      if (!row) {
+        st.item = null;
+        st.itemMissMessage = true;
+        st.needsReroll = false;
+      } else {
+        var nameField = row[2];
+        var nameText = Consumables.localizedText(nameField);
+        if (nameText.indexOf("※") !== -1) {
+          st.item = null;
+          st.itemMissMessage = false;
+          st.needsReroll = true;
+        } else {
+          var found = Consumables.list().filter(function (it) {
+            return it.name.ja === nameField.ja || it.name.ja.indexOf(nameField.ja) !== -1;
+          })[0];
+          st.item = found || null;
+          st.itemMissMessage = !found;
+          st.needsReroll = false;
+        }
+      }
+      renderConsumableRollField();
+    });
+    panel.appendChild(step2Btn);
+
+    if (st.needsReroll) {
+      var rerollNote = document.createElement("p");
+      rerollNote.className = "threat-ref-body weapon-roll-result";
+      rerollNote.textContent = window.I18N.t("consumable_roll_reroll_note");
+      panel.appendChild(rerollNote);
+    }
+
+    if (st.itemMissMessage) {
+      var consumableMissMsg = document.createElement("p");
+      consumableMissMsg.className = "threat-ref-body weapon-roll-result";
+      consumableMissMsg.textContent = window.I18N.t("weapon_roll_item_none");
+      panel.appendChild(consumableMissMsg);
+    }
+
+    if (st.item) {
+      var consumableItemResult = document.createElement("p");
+      consumableItemResult.className = "threat-ref-body weapon-roll-result";
+      consumableItemResult.textContent = window.I18N.t("consumable_roll_item_result", {
+        die: st.itemDie,
+        name: Consumables.localizedText(st.item.name),
+      });
+      panel.appendChild(consumableItemResult);
+
+      var consumableConfirmBtn = document.createElement("button");
+      consumableConfirmBtn.type = "button";
+      consumableConfirmBtn.className = "primary-btn";
+      consumableConfirmBtn.textContent = window.I18N.t("weapon_roll_confirm_button");
+      consumableConfirmBtn.addEventListener("click", function () {
+        var c = findCharacter(activeCharacterId);
+        if (!c) return;
+        if (!c.consumableCounts) c.consumableCounts = {};
+        c.consumableCounts[st.item.id] = (c.consumableCounts[st.item.id] || 0) + 1;
+        saveFn();
+        resetConsumableRollState();
+        field.dataset.open = "0";
+        renderConsumableRollField();
+        renderConsumableList();
+      });
+      panel.appendChild(consumableConfirmBtn);
+    }
+
+    var consumableResetBtn = document.createElement("button");
+    consumableResetBtn.type = "button";
+    consumableResetBtn.textContent = window.I18N.t("weapon_roll_reset_button");
+    consumableResetBtn.addEventListener("click", function () {
+      resetConsumableRollState();
+      renderConsumableRollField();
+    });
+    panel.appendChild(consumableResetBtn);
+
+    field.appendChild(panel);
+  }
+
   var characters = [];
   var activeCharacterId = null;
   var activeSkillsCharacterId = null;
@@ -2753,6 +3247,7 @@
       },
       document.getElementById("btn-char-dice-add")
     );
+    renderDiceStatusLabel(document.getElementById("char-dice-pool-status"), c.dicePool);
   }
 
   function openDrawer(id) {
@@ -2765,17 +3260,12 @@
     document.getElementById("char-entered").checked = c.entered;
     document.getElementById("char-hp-value").value = c.hpValue;
     renderAllStatSteppers(c);
-    var enteredCheckbox = document.getElementById("char-entered");
+    // 盤面（night.js）から開いた場合、已入場・刪除角色は副本管理ページ専用の操作として
+    // 完全に非表示にする（無効化ではなく、そもそも見えない状態にする）。
+    var enteredRow = document.getElementById("char-entered-row");
     var deleteBtn = document.getElementById("btn-delete-character");
-    var restrictNote = restrictEnteredAndDelete ? window.I18N.t("entered_delete_restricted_note") : "";
-    if (enteredCheckbox) {
-      enteredCheckbox.disabled = restrictEnteredAndDelete;
-      enteredCheckbox.title = restrictNote;
-    }
-    if (deleteBtn) {
-      deleteBtn.disabled = restrictEnteredAndDelete;
-      deleteBtn.title = restrictNote;
-    }
+    if (enteredRow) enteredRow.hidden = restrictEnteredAndDelete;
+    if (deleteBtn) deleteBtn.hidden = restrictEnteredAndDelete;
     TAG_FIELDS.forEach(renderTagList);
     relicRolledDice = null;
     relicShowAll = false;
@@ -2810,6 +3300,10 @@
     }
     var talismanSearchResults = document.getElementById("talisman-search-results");
     if (talismanSearchResults) talismanSearchResults.hidden = true;
+    resetTalismanRollState();
+    var talismanRollField = document.getElementById("talisman-roll-field");
+    if (talismanRollField) talismanRollField.dataset.open = "0";
+    renderTalismanRollField();
 
     renderConsumableList();
     var consumableSearchInput = document.getElementById("consumable-search-input");
@@ -2819,6 +3313,10 @@
     }
     var consumableSearchResults = document.getElementById("consumable-search-results");
     if (consumableSearchResults) consumableSearchResults.hidden = true;
+    resetConsumableRollState();
+    var consumableRollField = document.getElementById("consumable-roll-field");
+    if (consumableRollField) consumableRollField.dataset.open = "0";
+    renderConsumableRollField();
 
     document.getElementById("character-drawer").classList.add("open");
   }
@@ -3055,6 +3553,18 @@
       });
     });
 
+    var buildupClearBtn = document.getElementById("btn-buildup-clear-all");
+    if (buildupClearBtn) {
+      buildupClearBtn.addEventListener("click", function () {
+        var c = findCharacter(activeCharacterId);
+        if (!c || !c.buildup || !c.buildup.length) return;
+        if (!window.confirm(window.I18N.t("buildup_clear_all_confirm"))) return;
+        c.buildup = [];
+        saveFn();
+        renderTagList("buildup");
+      });
+    }
+
     bindFieldSave("char-entered", function (c, el) {
       c.entered = el.checked;
     });
@@ -3107,5 +3617,7 @@
     renderRosterWeaponList: renderRosterWeaponList,
     renderRosterTalismanList: renderRosterTalismanList,
     renderRosterConsumableList: renderRosterConsumableList,
+    computeDiceStatus: computeDiceStatus,
+    renderDiceStatusLabel: renderDiceStatusLabel,
   };
 })();

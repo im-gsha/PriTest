@@ -51,6 +51,19 @@ BODY = """    <div class="night-header-row">
             <h4 data-i18n="battle_enemy_hp_title"></h4>
             <div class="battle-hp-grid battle-hp-grid-compact" id="board-side-enemy-hp-grid"></div>
           </div>
+          <div id="board-side-position" class="board-side-enemy-hp" hidden>
+            <h4 data-i18n="battle_areas_title"></h4>
+            <div class="battle-areas">
+              <div class="battle-area">
+                <h5 data-i18n="battle_front_area_label"></h5>
+                <div class="battle-toggle-grid" id="board-side-position-front"></div>
+              </div>
+              <div class="battle-area">
+                <h5 data-i18n="battle_back_area_label"></h5>
+                <div class="battle-toggle-grid" id="board-side-position-back"></div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="board-grid" id="board-grid">
           <div class="field-level field-level-0" id="field-level-0"></div>
@@ -296,8 +309,8 @@ BODY = """    <div class="night-header-row">
       <div class="drawer-backdrop" id="character-drawer-backdrop"></div>
       <div class="drawer-panel">
         <button type="button" class="drawer-close-tab" data-close-btn="btn-character-close">&rsaquo;</button>
+        <div class="drawer-panel-scroll">
         <h2 id="character-drawer-name"></h2>
-        <p id="char-drawer-error" class="error-banner" hidden></p>
         <p id="character-type-badge" class="character-type-badge"></p>
         <img id="character-portrait" class="character-portrait" hidden>
 
@@ -384,7 +397,9 @@ BODY = """    <div class="night-header-row">
           </label>
         </div>
 
-        <label class="field-row">
+        <p id="char-drawer-error" class="error-banner" hidden></p>
+
+        <label class="field-row" id="char-entered-row">
           <input type="checkbox" id="char-entered">
           <span data-i18n="character_entered_label"></span>
         </label>
@@ -428,15 +443,7 @@ BODY = """    <div class="night-header-row">
             <button type="button" class="dice-add-btn" id="btn-char-dice-add">&#127922;</button>
           </div>
           <div class="dice-pool-list" id="char-dice-pool-list"></div>
-        </div>
-
-        <div class="tag-field" data-field="status">
-          <h3 data-i18n="character_status_label"></h3>
-          <div class="tag-list" id="tag-list-status"></div>
-          <div class="tag-add-row">
-            <input type="text" id="tag-input-status">
-            <button type="button" class="tag-add-btn" data-field="status" data-i18n="tag_add_button"></button>
-          </div>
+          <p id="char-dice-pool-status" class="dice-status-label"></p>
         </div>
 
         <div class="weapon-db-field">
@@ -455,6 +462,7 @@ BODY = """    <div class="night-header-row">
             <input type="text" id="talisman-search-input">
             <div class="weapon-search-results" id="talisman-search-results" hidden></div>
           </div>
+          <div class="weapon-roll-field" id="talisman-roll-field"></div>
           <div id="talisman-list"></div>
         </div>
 
@@ -464,52 +472,8 @@ BODY = """    <div class="night-header-row">
             <input type="text" id="consumable-search-input">
             <div class="weapon-search-results" id="consumable-search-results" hidden></div>
           </div>
+          <div class="weapon-roll-field" id="consumable-roll-field"></div>
           <div id="consumable-list"></div>
-        </div>
-
-        <div class="tag-field" data-field="equipment">
-          <h3 data-i18n="character_equipment_label"></h3>
-          <div class="tag-list" id="tag-list-equipment"></div>
-          <div class="tag-add-row">
-            <input type="text" id="tag-input-equipment">
-            <button type="button" class="tag-add-btn" data-field="equipment" data-i18n="tag_add_button"></button>
-          </div>
-        </div>
-
-        <div class="tag-field" data-field="weapons">
-          <h3 data-i18n="character_weapons_label"></h3>
-          <div class="tag-list" id="tag-list-weapons"></div>
-          <div class="tag-add-row">
-            <input type="text" id="tag-input-weapons">
-            <button type="button" class="tag-add-btn" data-field="weapons" data-i18n="tag_add_button"></button>
-          </div>
-        </div>
-
-        <div class="tag-field" data-field="skills">
-          <h3 data-i18n="character_skills_label"></h3>
-          <div class="tag-list" id="tag-list-skills"></div>
-          <div class="tag-add-row">
-            <input type="text" id="tag-input-skills">
-            <button type="button" class="tag-add-btn" data-field="skills" data-i18n="tag_add_button"></button>
-          </div>
-        </div>
-
-        <div class="tag-field" data-field="items">
-          <h3 data-i18n="character_items_label"></h3>
-          <div class="tag-list" id="tag-list-items"></div>
-          <div class="tag-add-row">
-            <input type="text" id="tag-input-items">
-            <button type="button" class="tag-add-btn" data-field="items" data-i18n="tag_add_button"></button>
-          </div>
-        </div>
-
-        <div class="tag-field" data-field="talismans">
-          <h3 data-i18n="record_talismans_label"></h3>
-          <div class="tag-list" id="tag-list-talismans"></div>
-          <div class="tag-add-row">
-            <input type="text" id="tag-input-talismans">
-            <button type="button" class="tag-add-btn" data-field="talismans" data-i18n="tag_add_button"></button>
-          </div>
         </div>
 
         <div class="tag-field" data-field="buildup">
@@ -518,6 +482,7 @@ BODY = """    <div class="night-header-row">
           <div class="tag-add-row">
             <input type="text" id="tag-input-buildup">
             <button type="button" class="tag-add-btn" data-field="buildup" data-i18n="tag_add_button"></button>
+            <button type="button" class="danger-btn" id="btn-buildup-clear-all" data-i18n="buildup_clear_all_button"></button>
           </div>
         </div>
 
@@ -564,6 +529,7 @@ BODY = """    <div class="night-header-row">
           <button id="btn-delete-character" type="button" class="danger-btn" data-i18n="delete_character_button"></button>
           <button id="btn-character-close" type="button" class="primary-btn" data-i18n="close_button"></button>
         </div>
+        </div>
       </div>
     </div>
 
@@ -571,6 +537,7 @@ BODY = """    <div class="night-header-row">
       <div class="drawer-backdrop" id="skills-drawer-backdrop"></div>
       <div class="drawer-panel">
         <button type="button" class="drawer-close-tab" data-close-btn="btn-skills-drawer-close">&lsaquo;</button>
+        <div class="drawer-panel-scroll">
         <h2 id="skills-drawer-name"></h2>
         <div class="threat-ref-block" id="skills-drawer-stats-block" hidden>
           <h3 id="skills-drawer-stats-title"></h3>
@@ -595,6 +562,7 @@ BODY = """    <div class="night-header-row">
         <div class="actions">
           <button id="btn-skills-drawer-close" type="button" class="primary-btn" data-i18n="close_button"></button>
         </div>
+        </div>
       </div>
     </div>
 
@@ -602,10 +570,12 @@ BODY = """    <div class="night-header-row">
       <div class="drawer-backdrop" id="weapon-detail-drawer-backdrop"></div>
       <div class="drawer-panel">
         <button type="button" class="drawer-close-tab" data-close-btn="btn-weapon-detail-drawer-close">&lsaquo;</button>
+        <div class="drawer-panel-scroll">
         <h2 data-i18n="weapon_detail_drawer_title"></h2>
         <div id="weapon-detail-drawer-body"></div>
         <div class="actions">
           <button id="btn-weapon-detail-drawer-close" type="button" class="primary-btn" data-i18n="close_button"></button>
+        </div>
         </div>
       </div>
     </div>
@@ -614,10 +584,12 @@ BODY = """    <div class="night-header-row">
       <div class="drawer-backdrop" id="talisman-detail-drawer-backdrop"></div>
       <div class="drawer-panel">
         <button type="button" class="drawer-close-tab" data-close-btn="btn-talisman-detail-drawer-close">&lsaquo;</button>
+        <div class="drawer-panel-scroll">
         <h2 data-i18n="talisman_detail_drawer_title"></h2>
         <div id="talisman-detail-drawer-body"></div>
         <div class="actions">
           <button id="btn-talisman-detail-drawer-close" type="button" class="primary-btn" data-i18n="close_button"></button>
+        </div>
         </div>
       </div>
     </div>
@@ -626,10 +598,12 @@ BODY = """    <div class="night-header-row">
       <div class="drawer-backdrop" id="consumable-detail-drawer-backdrop"></div>
       <div class="drawer-panel">
         <button type="button" class="drawer-close-tab" data-close-btn="btn-consumable-detail-drawer-close">&lsaquo;</button>
+        <div class="drawer-panel-scroll">
         <h2 data-i18n="consumable_detail_drawer_title"></h2>
         <div id="consumable-detail-drawer-body"></div>
         <div class="actions">
           <button id="btn-consumable-detail-drawer-close" type="button" class="primary-btn" data-i18n="close_button"></button>
+        </div>
         </div>
       </div>
     </div>

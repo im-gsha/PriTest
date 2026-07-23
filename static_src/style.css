@@ -208,13 +208,21 @@ button {
   right: 0;
   height: 100%;
   width: min(420px, 90vw);
-  overflow-y: auto;
   background: #fff;
   color: #111;
-  padding: 1.25rem;
   box-shadow: -4px 0 16px rgba(0, 0, 0, 0.35);
   transform: translateX(100%);
   transition: transform 0.25s ease;
+}
+
+/* パネル本体（.drawer-panel）自体はスクロールさせず、中身だけをこの内側の
+   ラッパーでスクロールさせる。こうすることで、スクロールしても兄弟要素の
+   .drawer-close-tab（クイッククローズタブ）は中身の巻き込みを受けず、
+   パネルの高さの中央に固定され続ける。 */
+.drawer-panel-scroll {
+  height: 100%;
+  overflow-y: auto;
+  padding: 1.25rem;
 }
 
 .drawer.open {
@@ -1047,13 +1055,19 @@ button {
 
 .battle-toggle-square {
   flex: 0 0 auto;
-  width: 2rem;
+  min-width: 2rem;
   height: 2rem;
+  padding: 0 0.4rem;
   border: 1px solid #bbb;
   border-radius: 6px;
   background: none;
   color: inherit;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 6rem;
   cursor: pointer;
 }
 
@@ -1071,15 +1085,17 @@ button {
   gap: 3px;
 }
 
-.battle-aggro-input {
-  width: 2rem;
-  padding: 0.1rem 0.2rem;
-  border: 1px solid #bbb;
-  border-radius: 4px;
-  background: none;
-  color: inherit;
-  font-size: 0.75rem;
+.battle-aggro-stepper {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.battle-aggro-value {
+  min-width: 1.4em;
   text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .battle-hp-grid {
@@ -1154,6 +1170,13 @@ button {
 .level-bonus-marker {
   font-size: 0.8rem;
   color: #d9822b;
+  font-weight: 600;
+}
+
+.dice-status-label {
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  color: #2d6cdf;
   font-weight: 600;
 }
 
@@ -1601,6 +1624,12 @@ button {
 
 .weapon-roll-toggle-btn {
   width: 100%;
+  border: 1px solid #bbb;
+  background: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+  color: inherit;
 }
 
 .weapon-roll-panel {

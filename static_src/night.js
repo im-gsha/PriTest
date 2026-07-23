@@ -75,6 +75,7 @@
       td.textContent = window.I18N.t("character_roster_empty");
       emptyRow.appendChild(td);
       tbody.appendChild(emptyRow);
+      if (typeof renderBattlePositionAreas === "function") renderBattlePositionAreas();
       return;
     }
 
@@ -167,6 +168,10 @@
       CharacterDrawer.renderDiceDisplay(diceWrap, c.dicePool || []);
       diceCol.appendChild(diceTitle);
       diceCol.appendChild(diceWrap);
+      var diceStatus = document.createElement("p");
+      diceStatus.className = "dice-status-label";
+      CharacterDrawer.renderDiceStatusLabel(diceStatus, c.dicePool || []);
+      diceCol.appendChild(diceStatus);
       if ((c.dicePool || []).length) {
         var diceResetBtn = document.createElement("button");
         diceResetBtn.type = "button";
@@ -241,6 +246,8 @@
       block.appendChild(passiveWrap);
       skillsWrap.appendChild(block);
     });
+
+    if (typeof renderBattlePositionAreas === "function") renderBattlePositionAreas();
   }
 
   function buildDeck() {
@@ -705,12 +712,14 @@
       img.hidden = true;
       img.removeAttribute("src");
       if (hpBlock) hpBlock.hidden = true;
+      if (typeof renderBattlePositionAreas === "function") renderBattlePositionAreas();
       return;
     }
     img.src = window.PriTestNightBosses.imagePath(boss);
     img.alt = boss.title + " - " + boss.subtitle;
     img.hidden = false;
     if (hpBlock) hpBlock.hidden = false;
+    if (typeof renderBattlePositionAreas === "function") renderBattlePositionAreas();
   }
 
   // --- 夜の王 規則書（管理員閲覧用の参考資料。紀錄の下に常時表示） ---
@@ -2109,17 +2118,27 @@
 
   // --- 戦場シート ---
   // PC番号（1〜6）は前衛／後衛どちらのマスにいても同じPCを指すため、敵視の値は両エリアで共有する。
-  // 片方の入力を変更したら、もう片方の同じ番号の入力欄にも同じ値を反映する。
-  function syncAggroInputs(idx, value) {
-    ["battle-front-grid", "battle-back-grid"].forEach(function (containerId) {
-      var input = document.getElementById(containerId + "-aggro-" + idx);
-      if (input && input.value !== String(value)) input.value = value;
-    });
+  // 戦場面板（battle-drawer）と盤面共用パネル（board-side-position）の両方に同じ内容を描画し、
+  // どちらを操作しても即座に両方へ反映される（毎回フルリビルドする単純な方式）。
+  // 番号ラベルは、現在入場しているPCの名前（順番どおり最大6人）に置き換える。
+  var BATTLE_POSITION_TARGETS = [
+    { front: "battle-front-grid", back: "battle-back-grid" },
+    { front: "board-side-position-front", back: "board-side-position-back" },
+  ];
+
+  function battlePositionNames() {
+    return rosterCharacters
+      .filter(function (c) {
+        return c.entered;
+      })
+      .map(function (c) {
+        return c.name;
+      });
   }
 
-  // 前衛／後衛エリア: 1〜6の目に対応する6個のマス（クリックでON/OFFトグル）＋各PCの敵視入力欄
-  function buildBattleToggleGrid(containerId, valuesArray, aggroArray) {
+  function buildBattlePositionGrid(containerId, valuesArray, names) {
     var container = document.getElementById(containerId);
+    if (!container) return;
     container.innerHTML = "";
     for (var i = 0; i < 6; i++) {
       (function (idx) {
@@ -2128,49 +2147,70 @@
 
         var btn = document.createElement("button");
         btn.type = "button";
-        btn.id = containerId + "-" + idx;
         btn.className = "battle-toggle-square";
-        btn.textContent = idx + 1;
+        var label = names[idx] || String(idx + 1);
+        btn.textContent = label;
+        btn.title = label;
         if (valuesArray[idx]) btn.classList.add("active");
         btn.addEventListener("click", function () {
           valuesArray[idx] = !valuesArray[idx];
-          btn.classList.toggle("active", valuesArray[idx]);
           saveState();
+          renderBattlePositionAreas();
         });
         cell.appendChild(btn);
 
-        var aggroInput = document.createElement("input");
-        aggroInput.type = "number";
-        aggroInput.id = containerId + "-aggro-" + idx;
-        aggroInput.className = "battle-aggro-input";
-        aggroInput.min = "0";
-        aggroInput.title = window.I18N.t("battle_aggro_label") + " (PC" + (idx + 1) + ")";
-        aggroInput.value = (aggroArray && aggroArray[idx]) || 0;
-        aggroInput.addEventListener("input", function () {
-          var v = Math.max(0, Number(aggroInput.value) || 0);
-          state.battle.aggro[idx] = v;
-          syncAggroInputs(idx, v);
+        var stepper = document.createElement("div");
+        stepper.className = "battle-aggro-stepper";
+        var aggroTitle = window.I18N.t("battle_aggro_label") + " (" + label + ")";
+        var minus = document.createElement("button");
+        minus.type = "button";
+        minus.className = "level-btn";
+        minus.title = aggroTitle;
+        minus.textContent = "−";
+        minus.addEventListener("click", function () {
+          state.battle.aggro[idx] = Math.max(0, (state.battle.aggro[idx] || 0) - 1);
           saveState();
+          renderBattlePositionAreas();
         });
-        cell.appendChild(aggroInput);
+        var value = document.createElement("span");
+        value.className = "level-value battle-aggro-value";
+        value.textContent = state.battle.aggro[idx] || 0;
+        var plus = document.createElement("button");
+        plus.type = "button";
+        plus.className = "level-btn";
+        plus.title = aggroTitle;
+        plus.textContent = "＋";
+        plus.addEventListener("click", function () {
+          state.battle.aggro[idx] = (state.battle.aggro[idx] || 0) + 1;
+          saveState();
+          renderBattlePositionAreas();
+        });
+        stepper.appendChild(minus);
+        stepper.appendChild(value);
+        stepper.appendChild(plus);
+        cell.appendChild(stepper);
 
         container.appendChild(cell);
       })(i);
     }
   }
 
-  function renderBattleToggleValues(containerId, valuesArray, aggroArray) {
-    valuesArray.forEach(function (value, idx) {
-      var btn = document.getElementById(containerId + "-" + idx);
-      if (btn) btn.classList.toggle("active", !!value);
-      var input = document.getElementById(containerId + "-aggro-" + idx);
-      if (input) input.value = (aggroArray && aggroArray[idx]) || 0;
-    });
+  // 地図面板上に敵人・夜の王のいずれかがいる場合のみ、共用パネル側の前衛／後衛表を表示する。
+  function hasActiveBattleContext() {
+    var hasEnemies = !!(state.battle && state.battle.selectedEnemyIds && state.battle.selectedEnemyIds.length);
+    var bossImg = document.getElementById("night3-boss-image");
+    var hasBoss = !!(bossImg && !bossImg.hidden);
+    return hasEnemies || hasBoss;
   }
 
-  function buildBattleAreas() {
-    buildBattleToggleGrid("battle-front-grid", state.battle.front, state.battle.aggro);
-    buildBattleToggleGrid("battle-back-grid", state.battle.back, state.battle.aggro);
+  function renderBattlePositionAreas() {
+    var names = battlePositionNames();
+    BATTLE_POSITION_TARGETS.forEach(function (t) {
+      buildBattlePositionGrid(t.front, state.battle.front, names);
+      buildBattlePositionGrid(t.back, state.battle.back, names);
+    });
+    var boardSidePosition = document.getElementById("board-side-position");
+    if (boardSidePosition) boardSidePosition.hidden = !hasActiveBattleContext();
   }
 
   // エネミーHPチェックグリッドは、戦場面板（battle-drawer）内のフル表示、
@@ -2294,8 +2334,7 @@
     if (!window.confirm(window.I18N.t("battle_clear_confirm"))) return;
     state.battle = defaultBattleState();
     addLog("log_battle_clear");
-    renderBattleToggleValues("battle-front-grid", state.battle.front, state.battle.aggro);
-    renderBattleToggleValues("battle-back-grid", state.battle.back, state.battle.aggro);
+    renderBattlePositionAreas();
     renderEnemyHpGrid();
     renderMobHpList();
     renderSelectedEnemies();
@@ -2495,6 +2534,7 @@
 
     var boardSideHp = document.getElementById("board-side-enemy-hp");
     if (boardSideHp) boardSideHp.hidden = resolved.length === 0;
+    if (typeof renderBattlePositionAreas === "function") renderBattlePositionAreas();
 
     [
       { containerId: "battle-selected-enemies", withRemove: true },
@@ -3294,7 +3334,7 @@
       restrictEnteredAndDelete: true,
     });
     loadState();
-    buildBattleAreas();
+    renderBattlePositionAreas();
     buildEnemyHpGrid();
     renderEnemyHpGrid();
     renderMobHpList();
