@@ -249,6 +249,8 @@ BODY = """    <div class="night-header-row">
     <div id="threat-drawer" class="drawer">
       <div class="drawer-backdrop" id="threat-drawer-backdrop"></div>
       <div class="drawer-panel">
+        <button type="button" class="drawer-close-tab" data-close-btn="btn-threat-drawer-close">&rsaquo;</button>
+        <div class="drawer-panel-scroll">
         <h2 data-i18n="threat_sheet_title"></h2>
 
         <h3 id="tl-day1-title"></h3>
@@ -301,6 +303,7 @@ BODY = """    <div class="night-header-row">
 
         <div class="actions">
           <button id="btn-threat-drawer-close" type="button" class="primary-btn" data-i18n="close_button"></button>
+        </div>
         </div>
       </div>
     </div>
@@ -611,6 +614,8 @@ BODY = """    <div class="night-header-row">
     <div id="battle-drawer" class="drawer">
       <div class="drawer-backdrop" id="battle-drawer-backdrop"></div>
       <div class="drawer-panel">
+        <button type="button" class="drawer-close-tab" data-close-btn="btn-battle-drawer-close">&rsaquo;</button>
+        <div class="drawer-panel-scroll">
         <h2 data-i18n="battle_sheet_title"></h2>
 
         <div class="threat-ref-block">
@@ -680,6 +685,7 @@ BODY = """    <div class="night-header-row">
         <div class="actions">
           <button id="btn-battle-clear" type="button" class="danger-btn" data-i18n="battle_clear_button"></button>
           <button id="btn-battle-drawer-close" type="button" class="primary-btn" data-i18n="close_button"></button>
+        </div>
         </div>
       </div>
     </div>

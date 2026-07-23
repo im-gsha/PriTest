@@ -6,6 +6,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif;
   max-width: 900px;
@@ -1111,6 +1115,31 @@ button {
   gap: 4px;
 }
 
+.battle-hp-stepper-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.battle-hp-stepper-label {
+  min-width: 3.4em;
+  color: #888;
+}
+
+.battle-hp-stepper-value {
+  min-width: 3em;
+}
+
+.battle-hp-grid-compact .battle-hp-stepper-row {
+  font-size: 0.75rem;
+  gap: 4px;
+}
+
+.battle-hp-grid-compact .battle-hp-stepper-label {
+  min-width: 2.6em;
+}
+
 .battle-hp-row-wrap {
   display: flex;
   align-items: center;
@@ -1624,8 +1653,8 @@ button {
 
 .weapon-roll-toggle-btn {
   width: 100%;
-  border: 1px solid #bbb;
-  background: none;
+  border: 1px solid #a7c6f5;
+  background: #e3edfd;
   border-radius: 8px;
   padding: 0.6rem 1.2rem;
   cursor: pointer;
@@ -2097,6 +2126,11 @@ button {
   .tag-chip {
     background: #1c2a42;
     color: #7ea6f2;
+  }
+  .weapon-roll-toggle-btn {
+    background: #1c2a42;
+    border-color: #35507e;
+    color: #cfe0fb;
   }
   .drawer-panel {
     background: #1c1c1c;

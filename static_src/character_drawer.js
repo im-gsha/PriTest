@@ -537,6 +537,38 @@
     return 2;
   }
 
+  // 遺物効果の本文が「自身を『敵視：+N』する」のような単純な常時加算効果だけを表す場合に、
+  // そのNを取り出す。条件付き・複合効果の文章（他の語句を含む）にはマッチしない、
+  // 純粋な数値調整のみの受動効果を検出するための厳密な正規表現。
+  var AGGRO_PASSIVE_RE_ZH = /^將自身「敵視：([+－\-]\d+)」。$/;
+  var AGGRO_PASSIVE_RE_JA = /^自身を「敵視：([+＋－\-]\d+)」する。$/;
+
+  function parseAggroDelta(text) {
+    var m = AGGRO_PASSIVE_RE_ZH.exec(text || "") || AGGRO_PASSIVE_RE_JA.exec(text || "");
+    if (!m) return 0;
+    var normalized = m[1].replace(/－/g, "-").replace(/＋/g, "+");
+    return parseInt(normalized, 10) || 0;
+  }
+
+  // 角色が習得済みの遺物効果の中に、常時「敵視」を加減する受動効果があれば合計値を返す。
+  // 新しい戦闘（雑魚・敵人が0体の状態から追加）の開始時に、初期敵視へ自動反映するために使う。
+  function getPassiveAggroBonus(c) {
+    var type = c && c.typeId ? CharacterTypes.get(c.typeId) : null;
+    if (!type) return 0;
+    var learned = c.learnedRelicEffects || [];
+    var total = 0;
+    (type.relicEffectGroups || []).forEach(function (g, gi) {
+      g.effects.forEach(function (e, ei) {
+        if (learned.indexOf(relicEffectKey(type.id, gi, ei)) === -1) return;
+        if (e.kind !== "Passive") return;
+        var delta = parseAggroDelta(e.body && e.body.zh);
+        if (!delta) delta = parseAggroDelta(e.body && e.body.ja);
+        total += delta;
+      });
+    });
+    return total;
+  }
+
   function relicMaxLearnable(level) {
     return Math.max(0, Math.min(level - (RELIC_LEVEL_START - 1), RELIC_LEVEL_END - RELIC_LEVEL_START + 1));
   }
@@ -3243,6 +3275,7 @@
       function (index) {
         c.dicePool.splice(index, 1);
         saveFn();
+        onChangeFn();
         renderCharacterDicePool();
       },
       document.getElementById("btn-char-dice-add")
@@ -3506,6 +3539,7 @@
       if (!c || c.dicePool.length >= MAX_DICE_POOL) return;
       c.dicePool.push(rollD6());
       saveFn();
+      onChangeFn();
       renderCharacterDicePool();
     });
     document.getElementById("btn-relic-roll").addEventListener("click", handleRelicRoll);
@@ -3619,5 +3653,6 @@
     renderRosterConsumableList: renderRosterConsumableList,
     computeDiceStatus: computeDiceStatus,
     renderDiceStatusLabel: renderDiceStatusLabel,
+    getPassiveAggroBonus: getPassiveAggroBonus,
   };
 })();

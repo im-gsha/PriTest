@@ -247,6 +247,7 @@
       skillsWrap.appendChild(block);
     });
 
+    if (typeof syncDiceStatusToBattle === "function") syncDiceStatusToBattle();
     if (typeof renderBattlePositionAreas === "function") renderBattlePositionAreas();
   }
 
@@ -2213,6 +2214,75 @@
     if (boardSidePosition) boardSidePosition.hidden = !hasActiveBattleContext();
   }
 
+  // 骰子池の判定結果（前衛/後衛、6の目による敵視+1）を、戦場シートの対応するPCスロットへ
+  // 自動反映する。前衛/後衛の点灯は常に最新の骰子池内容で上書き（べき等）するが、敵視+1は
+  // 「6が出た」という1回のロールセッションにつき一度だけ加算するフラグ方式にする（骰子池の
+  // キー文字列で比較すると、6を含んだまま骰子を追加するたびに毎回+1されてしまうため）。
+  // このフラグは骰子池が空になった（＝重置骰子が押された）ときにのみ解除する。
+  function syncDiceStatusToBattle() {
+    var entered = rosterCharacters.filter(function (c) {
+      return c.entered;
+    });
+    var stateChanged = false;
+    var flagsChanged = false;
+    entered.forEach(function (c, idx) {
+      if (idx >= 6) return;
+      var pool = c.dicePool || [];
+      var status = CharacterDrawer.computeDiceStatus(pool);
+      if (status) {
+        var wantFront = status.position === "front";
+        if (!!state.battle.front[idx] !== wantFront) {
+          state.battle.front[idx] = wantFront;
+          stateChanged = true;
+        }
+        if (!!state.battle.back[idx] !== !wantFront) {
+          state.battle.back[idx] = !wantFront;
+          stateChanged = true;
+        }
+      }
+      if (!pool.length) {
+        if (c._diceAggroApplied) {
+          c._diceAggroApplied = false;
+          flagsChanged = true;
+        }
+        return;
+      }
+      if (status && status.aggroIncrease && !c._diceAggroApplied) {
+        state.battle.aggro[idx] = (state.battle.aggro[idx] || 0) + 1;
+        c._diceAggroApplied = true;
+        stateChanged = true;
+        flagsChanged = true;
+      }
+    });
+    if (stateChanged) saveState();
+    if (flagsChanged) saveRosterCharacters();
+  }
+
+  // 敵人を除去した、または戦場を初期化したときは、前衛/後衛の点灯と敵視を全て解除する。
+  function resetBattlePositionsAndAggro() {
+    for (var i = 0; i < 6; i++) {
+      state.battle.front[i] = false;
+      state.battle.back[i] = false;
+      state.battle.aggro[i] = 0;
+    }
+    saveState();
+    renderBattlePositionAreas();
+  }
+
+  // 敵が0体の状態から新たに敵を加える＝新しい戦闘の開始とみなし、入場中PCの習得済み遺物効果に
+  // 「敵視」を常時加減する受動効果があれば、その分を初期敵視として自動反映する。
+  function applyInitialPassiveAggro() {
+    var entered = rosterCharacters.filter(function (c) {
+      return c.entered;
+    });
+    entered.forEach(function (c, idx) {
+      if (idx >= 6) return;
+      state.battle.aggro[idx] = CharacterDrawer.getPassiveAggroBonus ? CharacterDrawer.getPassiveAggroBonus(c) : 0;
+    });
+    saveState();
+    renderBattlePositionAreas();
+  }
+
   // エネミーHPチェックグリッドは、戦場面板（battle-drawer）内のフル表示、
   // 盤面左側の共用パネル（board-side-enemies直下）の簡易表示、そして第三夜の
   // 夜の王画像の下（night3-boss-hp-grid）の3箇所に同じstate.battle.enemyHpを
@@ -2223,40 +2293,85 @@
     { containerId: "night3-boss-hp-grid", idPrefix: "night3-boss-hp-" },
   ];
 
-  function buildEnemyHpGrid() {
+  // チェックボックスを1つずつ押す方式は箱数が多い（4段×20＝80）と操作が煩雑なため、
+  // 段ごとに現在の被弾数（＝チェック済みの数）を+/-ボタンで増減する方式にする。
+  // 内部データは引き続き真偽値の平坦配列のまま（左詰めで埋める・右から空ける）なので、
+  // 既存の保存データともそのまま互換する。
+  function countRowChecked(arr, start, len) {
+    var n = 0;
+    for (var i = 0; i < len; i++) if (arr[start + i]) n++;
+    return n;
+  }
+
+  function adjustEnemyHpRow(rowIdx, delta) {
+    var start = rowIdx * ENEMY_HP_COLS;
+    var current = countRowChecked(state.battle.enemyHp, start, ENEMY_HP_COLS);
+    var target = Math.max(0, Math.min(ENEMY_HP_COLS, current + delta));
+    if (target === current) return;
+    if (target > current) {
+      var need = target - current;
+      for (var i = 0; i < ENEMY_HP_COLS && need > 0; i++) {
+        if (!state.battle.enemyHp[start + i]) {
+          state.battle.enemyHp[start + i] = true;
+          need--;
+        }
+      }
+    } else {
+      var remove = current - target;
+      for (var j = ENEMY_HP_COLS - 1; j >= 0 && remove > 0; j--) {
+        if (state.battle.enemyHp[start + j]) {
+          state.battle.enemyHp[start + j] = false;
+          remove--;
+        }
+      }
+    }
+    renderEnemyHpGrid();
+    saveState();
+  }
+
+  function renderEnemyHpGrid() {
     ENEMY_HP_GRID_TARGETS.forEach(function (target) {
       var container = document.getElementById(target.containerId);
       if (!container) return;
       container.innerHTML = "";
       for (var row = 0; row < ENEMY_HP_ROWS; row++) {
-        var rowDiv = document.createElement("div");
-        rowDiv.className = "battle-hp-row";
-        for (var col = 0; col < ENEMY_HP_COLS; col++) {
-          (function (idx) {
-            var cb = document.createElement("input");
-            cb.type = "checkbox";
-            cb.id = target.idPrefix + idx;
-            cb.addEventListener("change", function (e) {
-              state.battle.enemyHp[idx] = e.target.checked;
-              renderEnemyHpGrid();
-              saveState();
-            });
-            rowDiv.appendChild(cb);
-          })(row * ENEMY_HP_COLS + col);
-        }
-        container.appendChild(rowDiv);
+        (function (rowIdx) {
+          var count = countRowChecked(state.battle.enemyHp, rowIdx * ENEMY_HP_COLS, ENEMY_HP_COLS);
+          var rowDiv = document.createElement("div");
+          rowDiv.className = "battle-hp-stepper-row";
+
+          var label = document.createElement("span");
+          label.className = "battle-hp-stepper-label";
+          label.textContent = window.I18N.t("battle_hp_row_label", { row: rowIdx + 1 });
+          rowDiv.appendChild(label);
+
+          var minus = document.createElement("button");
+          minus.type = "button";
+          minus.className = "level-btn";
+          minus.textContent = "−";
+          minus.addEventListener("click", function () {
+            adjustEnemyHpRow(rowIdx, -1);
+          });
+          rowDiv.appendChild(minus);
+
+          var value = document.createElement("span");
+          value.className = "level-value battle-hp-stepper-value";
+          value.textContent = count + "/" + ENEMY_HP_COLS;
+          rowDiv.appendChild(value);
+
+          var plus = document.createElement("button");
+          plus.type = "button";
+          plus.className = "level-btn";
+          plus.textContent = "＋";
+          plus.addEventListener("click", function () {
+            adjustEnemyHpRow(rowIdx, 1);
+          });
+          rowDiv.appendChild(plus);
+
+          container.appendChild(rowDiv);
+        })(row);
       }
     });
-  }
-
-  function renderEnemyHpGrid() {
-    for (var i = 0; i < ENEMY_HP_ROWS * ENEMY_HP_COLS; i++) {
-      var checked = !!state.battle.enemyHp[i];
-      ENEMY_HP_GRID_TARGETS.forEach(function (target) {
-        var cb = document.getElementById(target.idPrefix + i);
-        if (cb) cb.checked = checked;
-      });
-    }
   }
 
   // 雑魚HPリストも、エネミーHPグリッドと同様に戦場面板内のフル表示（削除ボタン付き）と、
@@ -2268,6 +2383,35 @@
     { containerId: "board-side-mob-hp-list", withRemove: false },
   ];
 
+  var MOB_HP_COLS = 10;
+
+  function adjustMobHpRow(rowIndex, delta) {
+    var row = state.battle.mobHpRows[rowIndex];
+    if (!row) return;
+    var current = countRowChecked(row, 0, MOB_HP_COLS);
+    var target = Math.max(0, Math.min(MOB_HP_COLS, current + delta));
+    if (target === current) return;
+    if (target > current) {
+      var need = target - current;
+      for (var i = 0; i < MOB_HP_COLS && need > 0; i++) {
+        if (!row[i]) {
+          row[i] = true;
+          need--;
+        }
+      }
+    } else {
+      var remove = current - target;
+      for (var j = MOB_HP_COLS - 1; j >= 0 && remove > 0; j--) {
+        if (row[j]) {
+          row[j] = false;
+          remove--;
+        }
+      }
+    }
+    renderMobHpList();
+    saveState();
+  }
+
   function renderMobHpList() {
     MOB_HP_LIST_TARGETS.forEach(function (target) {
       var container = document.getElementById(target.containerId);
@@ -2277,18 +2421,33 @@
         var rowWrap = document.createElement("div");
         rowWrap.className = "battle-hp-row-wrap";
         var rowDiv = document.createElement("div");
-        rowDiv.className = "battle-hp-row";
-        row.forEach(function (checked, col) {
-          var cb = document.createElement("input");
-          cb.type = "checkbox";
-          cb.checked = checked;
-          cb.addEventListener("change", function (e) {
-            state.battle.mobHpRows[rowIndex][col] = e.target.checked;
-            renderMobHpList();
-            saveState();
-          });
-          rowDiv.appendChild(cb);
+        rowDiv.className = "battle-hp-stepper-row";
+
+        var count = countRowChecked(row, 0, MOB_HP_COLS);
+
+        var minus = document.createElement("button");
+        minus.type = "button";
+        minus.className = "level-btn";
+        minus.textContent = "−";
+        minus.addEventListener("click", function () {
+          adjustMobHpRow(rowIndex, -1);
         });
+        rowDiv.appendChild(minus);
+
+        var value = document.createElement("span");
+        value.className = "level-value battle-hp-stepper-value";
+        value.textContent = count + "/" + MOB_HP_COLS;
+        rowDiv.appendChild(value);
+
+        var plus = document.createElement("button");
+        plus.type = "button";
+        plus.className = "level-btn";
+        plus.textContent = "＋";
+        plus.addEventListener("click", function () {
+          adjustMobHpRow(rowIndex, 1);
+        });
+        rowDiv.appendChild(plus);
+
         rowWrap.appendChild(rowDiv);
         if (target.withRemove) {
           var removeBtn = document.createElement("button");
@@ -2312,7 +2471,7 @@
   }
 
   function handleAddMobRow() {
-    state.battle.mobHpRows.push(new Array(10).fill(false));
+    state.battle.mobHpRows.push(new Array(MOB_HP_COLS).fill(false));
     saveState();
     renderMobHpList();
   }
@@ -2333,6 +2492,7 @@
   function handleBattleClear() {
     if (!window.confirm(window.I18N.t("battle_clear_confirm"))) return;
     state.battle = defaultBattleState();
+    saveState();
     addLog("log_battle_clear");
     renderBattlePositionAreas();
     renderEnemyHpGrid();
@@ -2497,7 +2657,9 @@
       var level = Math.max(1, Math.min(maxLevel, Number(levelInput.value) || 1));
       var key = row.familyId + "|" + row.enemy.id + "|" + level;
       if (state.battle.selectedEnemyIds.indexOf(key) === -1) {
+        var isFreshEncounter = state.battle.selectedEnemyIds.length === 0;
         state.battle.selectedEnemyIds.push(key);
+        if (isFreshEncounter) applyInitialPassiveAggro();
         renderSelectedEnemies();
         addLog("log_battle_enemy_add", { enemy: T(row.enemy.name), level: level });
       }
@@ -2590,6 +2752,7 @@
             var idx = state.battle.selectedEnemyIds.indexOf(item.key);
             if (idx !== -1) {
               state.battle.selectedEnemyIds.splice(idx, 1);
+              resetBattlePositionsAndAggro();
               renderSelectedEnemies();
               addLog("log_battle_enemy_remove", { enemy: T(item.info.enemy.name), level: item.level });
             }
@@ -3335,7 +3498,6 @@
     });
     loadState();
     renderBattlePositionAreas();
-    buildEnemyHpGrid();
     renderEnemyHpGrid();
     renderMobHpList();
     renderSelectedEnemies();
