@@ -48,6 +48,7 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
     <div id="character-drawer" class="drawer">
       <div class="drawer-backdrop" id="character-drawer-backdrop"></div>
       <div class="drawer-panel">
+        <button type="button" class="drawer-close-tab" data-close-btn="btn-character-close">&rsaquo;</button>
         <h2 id="character-drawer-name"></h2>
         <p id="character-type-badge" class="character-type-badge"></p>
         <img id="character-portrait" class="character-portrait" hidden>
@@ -269,6 +270,7 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
     <div id="skills-drawer" class="drawer drawer-left">
       <div class="drawer-backdrop" id="skills-drawer-backdrop"></div>
       <div class="drawer-panel">
+        <button type="button" class="drawer-close-tab" data-close-btn="btn-skills-drawer-close">&lsaquo;</button>
         <h2 id="skills-drawer-name"></h2>
         <div class="threat-ref-block" id="skills-drawer-stats-block" hidden>
           <h3 id="skills-drawer-stats-title"></h3>

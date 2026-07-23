@@ -295,6 +295,7 @@ BODY = """    <div class="night-header-row">
     <div id="character-drawer" class="drawer">
       <div class="drawer-backdrop" id="character-drawer-backdrop"></div>
       <div class="drawer-panel">
+        <button type="button" class="drawer-close-tab" data-close-btn="btn-character-close">&rsaquo;</button>
         <h2 id="character-drawer-name"></h2>
         <p id="character-type-badge" class="character-type-badge"></p>
         <img id="character-portrait" class="character-portrait" hidden>
@@ -516,6 +517,7 @@ BODY = """    <div class="night-header-row">
     <div id="skills-drawer" class="drawer drawer-left">
       <div class="drawer-backdrop" id="skills-drawer-backdrop"></div>
       <div class="drawer-panel">
+        <button type="button" class="drawer-close-tab" data-close-btn="btn-skills-drawer-close">&lsaquo;</button>
         <h2 id="skills-drawer-name"></h2>
         <div class="threat-ref-block" id="skills-drawer-stats-block" hidden>
           <h3 id="skills-drawer-stats-title"></h3>
@@ -546,6 +548,7 @@ BODY = """    <div class="night-header-row">
     <div id="weapon-detail-drawer" class="drawer drawer-left">
       <div class="drawer-backdrop" id="weapon-detail-drawer-backdrop"></div>
       <div class="drawer-panel">
+        <button type="button" class="drawer-close-tab" data-close-btn="btn-weapon-detail-drawer-close">&lsaquo;</button>
         <h2 data-i18n="weapon_detail_drawer_title"></h2>
         <div id="weapon-detail-drawer-body"></div>
         <div class="actions">
@@ -557,6 +560,7 @@ BODY = """    <div class="night-header-row">
     <div id="talisman-detail-drawer" class="drawer drawer-left">
       <div class="drawer-backdrop" id="talisman-detail-drawer-backdrop"></div>
       <div class="drawer-panel">
+        <button type="button" class="drawer-close-tab" data-close-btn="btn-talisman-detail-drawer-close">&lsaquo;</button>
         <h2 data-i18n="talisman_detail_drawer_title"></h2>
         <div id="talisman-detail-drawer-body"></div>
         <div class="actions">
@@ -568,6 +572,7 @@ BODY = """    <div class="night-header-row">
     <div id="consumable-detail-drawer" class="drawer drawer-left">
       <div class="drawer-backdrop" id="consumable-detail-drawer-backdrop"></div>
       <div class="drawer-panel">
+        <button type="button" class="drawer-close-tab" data-close-btn="btn-consumable-detail-drawer-close">&lsaquo;</button>
         <h2 data-i18n="consumable_detail_drawer_title"></h2>
         <div id="consumable-detail-drawer-body"></div>
         <div class="actions">

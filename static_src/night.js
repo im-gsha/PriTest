@@ -98,14 +98,28 @@
       tr.appendChild(thumbTd);
 
       var nameTd = document.createElement("td");
-      var nameBtn = document.createElement("button");
-      nameBtn.type = "button";
-      nameBtn.className = "character-name-btn";
-      nameBtn.textContent = c.name;
-      nameBtn.addEventListener("click", function () {
+      var nameLabel = document.createElement("span");
+      nameLabel.className = "character-name-label";
+      nameLabel.textContent = c.name;
+      nameTd.appendChild(nameLabel);
+
+      var detailBtn = document.createElement("button");
+      detailBtn.type = "button";
+      detailBtn.className = "roster-char-action-btn";
+      detailBtn.textContent = window.I18N.t("roster_char_detail_button");
+      detailBtn.addEventListener("click", function () {
         CharacterDrawer.open(c.id);
       });
-      nameTd.appendChild(nameBtn);
+      nameTd.appendChild(detailBtn);
+
+      var abilityBtn = document.createElement("button");
+      abilityBtn.type = "button";
+      abilityBtn.className = "roster-char-action-btn";
+      abilityBtn.textContent = window.I18N.t("roster_char_ability_button");
+      abilityBtn.addEventListener("click", function () {
+        CharacterDrawer.openSkills(c.id);
+      });
+      nameTd.appendChild(abilityBtn);
 
       var toggleBtn = document.createElement("button");
       toggleBtn.type = "button";

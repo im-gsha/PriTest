@@ -236,6 +236,35 @@ button {
   transform: translateX(-100%);
 }
 
+/* パネル中央の高さに付く、細長い折りたたみ（クイッククローズ）タブ。
+   標準（右からスライド）は内側＝左端、drawer-leftは内側＝右端に付く。 */
+.drawer-close-tab {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 56px;
+  border: 1px solid #ccc;
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  background: #eee;
+  color: #666;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0;
+  z-index: 2;
+}
+
+.drawer-left .drawer-close-tab {
+  left: auto;
+  right: 0;
+  border-left: 1px solid #ccc;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+}
+
 .night-header-row {
   display: flex;
   justify-content: space-between;
@@ -1409,6 +1438,17 @@ button {
   font-weight: 600;
   cursor: pointer;
   padding: 0.4rem 0;
+}
+
+.character-name-label {
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.roster-char-action-btn {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.6rem;
+  margin-right: 0.35rem;
 }
 
 .character-badge {

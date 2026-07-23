@@ -2784,6 +2784,12 @@
   }
 
   function bindEvents() {
+    // 各ドロワー中央の細長い折りたたみタブ：data-close-btnが指す既存の閉じるボタンを
+    // クリックしたことにして、状態リセットを含む既存のクローズ処理をそのまま再利用する。
+    document.querySelectorAll(".drawer-close-tab[data-close-btn]").forEach(function (tab) {
+      var targetBtn = document.getElementById(tab.dataset.closeBtn);
+      if (targetBtn) tab.addEventListener("click", targetBtn.click.bind(targetBtn));
+    });
     document.getElementById("btn-character-close").addEventListener("click", closeDrawer);
     document.getElementById("character-drawer-backdrop").addEventListener("click", closeDrawer);
     document.getElementById("btn-delete-character").addEventListener("click", handleDeleteCharacter);
