@@ -1348,10 +1348,14 @@
       var row = document.createElement("div");
       row.className = "roster-weapon-row";
 
-      var nameSpan = document.createElement("span");
-      nameSpan.className = "roster-weapon-name-btn";
-      nameSpan.textContent = Talismans.localizedText(talisman.name);
-      row.appendChild(nameSpan);
+      var nameBtn = document.createElement("button");
+      nameBtn.type = "button";
+      nameBtn.className = "roster-weapon-name-btn";
+      nameBtn.textContent = Talismans.localizedText(talisman.name);
+      nameBtn.addEventListener("click", function () {
+        openTalismanDetailDrawer(c.id, talismanId);
+      });
+      row.appendChild(nameBtn);
 
       var transferBtn = document.createElement("button");
       transferBtn.type = "button";
@@ -1415,10 +1419,14 @@
       var row = document.createElement("div");
       row.className = "roster-weapon-row";
 
-      var nameSpan = document.createElement("span");
-      nameSpan.className = "roster-weapon-name-btn";
-      nameSpan.textContent = Consumables.localizedText(consumable.name) + "（" + c.consumableCounts[consumableId] + "）";
-      row.appendChild(nameSpan);
+      var nameBtn = document.createElement("button");
+      nameBtn.type = "button";
+      nameBtn.className = "roster-weapon-name-btn";
+      nameBtn.textContent = Consumables.localizedText(consumable.name) + "（" + c.consumableCounts[consumableId] + "）";
+      nameBtn.addEventListener("click", function () {
+        openConsumableDetailDrawer(c.id, consumableId);
+      });
+      row.appendChild(nameBtn);
 
       var transferBtn = document.createElement("button");
       transferBtn.type = "button";
@@ -2116,7 +2124,7 @@
   }
 
   // タリスマン（装飾品）：武器と異なり単体でPassive効果を1つ持つだけの単純な構造。
-  function renderTalismanCard(container, talismanId, c) {
+  function renderTalismanCard(container, talismanId, c, onRemoved) {
     var talisman = Talismans.get(talismanId);
     if (!talisman) return;
 
@@ -2139,7 +2147,7 @@
     removeBtn.addEventListener("click", function () {
       c.talismanIds.splice(c.talismanIds.indexOf(talismanId), 1);
       saveFn();
-      renderTalismanList();
+      (onRemoved || renderTalismanList)();
     });
     card.appendChild(removeBtn);
 
@@ -2189,7 +2197,7 @@
   }
 
   // 消耗品：タリスマンと似た単純な構造だが、持有數（所持数）を持つ点が異なる。
-  function renderConsumableCard(container, consumableId, c) {
+  function renderConsumableCard(container, consumableId, c, onRemoved) {
     var consumable = Consumables.get(consumableId);
     if (!consumable) return;
 
@@ -2230,7 +2238,7 @@
     removeBtn.addEventListener("click", function () {
       delete c.consumableCounts[consumableId];
       saveFn();
-      renderConsumableList();
+      (onRemoved || renderConsumableList)();
     });
     card.appendChild(removeBtn);
 
@@ -2284,6 +2292,10 @@
   var activeSkillsCharacterId = null;
   var activeWeaponDetailCharacterId = null;
   var activeWeaponDetailWeaponId = null;
+  var activeTalismanDetailCharacterId = null;
+  var activeTalismanDetailTalismanId = null;
+  var activeConsumableDetailCharacterId = null;
+  var activeConsumableDetailConsumableId = null;
   var saveFn = function () {};
   var onChangeFn = function () {};
   var renderRosterFn = function () {};
@@ -2685,6 +2697,64 @@
     activeWeaponDetailWeaponId = null;
   }
 
+  // 盤面ロスターの裝飾品要約をクリックすると左からスライドインする、単一タリスマンの詳細閲覧パネル
+  function openTalismanDetailDrawer(characterId, talismanId) {
+    var c = findCharacter(characterId);
+    if (!c) return;
+    activeTalismanDetailCharacterId = characterId;
+    activeTalismanDetailTalismanId = talismanId;
+    renderTalismanDetailDrawer();
+    document.getElementById("talisman-detail-drawer").classList.add("open");
+  }
+
+  function renderTalismanDetailDrawer() {
+    var c = findCharacter(activeTalismanDetailCharacterId);
+    var container = document.getElementById("talisman-detail-drawer-body");
+    if (!container) return;
+    container.innerHTML = "";
+    if (!c || !activeTalismanDetailTalismanId) return;
+    renderTalismanCard(container, activeTalismanDetailTalismanId, c, function () {
+      closeTalismanDetailDrawer();
+      renderTalismanList();
+      if (renderRosterFn) renderRosterFn();
+    });
+  }
+
+  function closeTalismanDetailDrawer() {
+    document.getElementById("talisman-detail-drawer").classList.remove("open");
+    activeTalismanDetailCharacterId = null;
+    activeTalismanDetailTalismanId = null;
+  }
+
+  // 盤面ロスターの消耗品要約をクリックすると左からスライドインする、単一消耗品の詳細閲覧パネル
+  function openConsumableDetailDrawer(characterId, consumableId) {
+    var c = findCharacter(characterId);
+    if (!c) return;
+    activeConsumableDetailCharacterId = characterId;
+    activeConsumableDetailConsumableId = consumableId;
+    renderConsumableDetailDrawer();
+    document.getElementById("consumable-detail-drawer").classList.add("open");
+  }
+
+  function renderConsumableDetailDrawer() {
+    var c = findCharacter(activeConsumableDetailCharacterId);
+    var container = document.getElementById("consumable-detail-drawer-body");
+    if (!container) return;
+    container.innerHTML = "";
+    if (!c || !activeConsumableDetailConsumableId) return;
+    renderConsumableCard(container, activeConsumableDetailConsumableId, c, function () {
+      closeConsumableDetailDrawer();
+      renderConsumableList();
+      if (renderRosterFn) renderRosterFn();
+    });
+  }
+
+  function closeConsumableDetailDrawer() {
+    document.getElementById("consumable-detail-drawer").classList.remove("open");
+    activeConsumableDetailCharacterId = null;
+    activeConsumableDetailConsumableId = null;
+  }
+
   function bindFieldSave(elId, apply) {
     var el = document.getElementById(elId);
     if (!el) return;
@@ -2726,6 +2796,14 @@
     var weaponDetailBackdrop = document.getElementById("weapon-detail-drawer-backdrop");
     if (weaponDetailCloseBtn) weaponDetailCloseBtn.addEventListener("click", closeWeaponDetailDrawer);
     if (weaponDetailBackdrop) weaponDetailBackdrop.addEventListener("click", closeWeaponDetailDrawer);
+    var talismanDetailCloseBtn = document.getElementById("btn-talisman-detail-drawer-close");
+    var talismanDetailBackdrop = document.getElementById("talisman-detail-drawer-backdrop");
+    if (talismanDetailCloseBtn) talismanDetailCloseBtn.addEventListener("click", closeTalismanDetailDrawer);
+    if (talismanDetailBackdrop) talismanDetailBackdrop.addEventListener("click", closeTalismanDetailDrawer);
+    var consumableDetailCloseBtn = document.getElementById("btn-consumable-detail-drawer-close");
+    var consumableDetailBackdrop = document.getElementById("consumable-detail-drawer-backdrop");
+    if (consumableDetailCloseBtn) consumableDetailCloseBtn.addEventListener("click", closeConsumableDetailDrawer);
+    if (consumableDetailBackdrop) consumableDetailBackdrop.addEventListener("click", closeConsumableDetailDrawer);
     document.getElementById("btn-char-dice-add").addEventListener("click", function () {
       var c = findCharacter(activeCharacterId);
       if (!c || c.dicePool.length >= MAX_DICE_POOL) return;
@@ -2830,6 +2908,8 @@
       if (activeCharacterId) openDrawer(activeCharacterId);
       if (activeSkillsCharacterId) openSkillsDrawer(activeSkillsCharacterId);
       if (activeWeaponDetailCharacterId && activeWeaponDetailWeaponId) renderWeaponDetailDrawer();
+      if (activeTalismanDetailCharacterId && activeTalismanDetailTalismanId) renderTalismanDetailDrawer();
+      if (activeConsumableDetailCharacterId && activeConsumableDetailConsumableId) renderConsumableDetailDrawer();
     });
   }
 

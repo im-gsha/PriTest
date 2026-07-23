@@ -554,6 +554,28 @@ BODY = """    <div class="night-header-row">
       </div>
     </div>
 
+    <div id="talisman-detail-drawer" class="drawer drawer-left">
+      <div class="drawer-backdrop" id="talisman-detail-drawer-backdrop"></div>
+      <div class="drawer-panel">
+        <h2 data-i18n="talisman_detail_drawer_title"></h2>
+        <div id="talisman-detail-drawer-body"></div>
+        <div class="actions">
+          <button id="btn-talisman-detail-drawer-close" type="button" class="primary-btn" data-i18n="close_button"></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="consumable-detail-drawer" class="drawer drawer-left">
+      <div class="drawer-backdrop" id="consumable-detail-drawer-backdrop"></div>
+      <div class="drawer-panel">
+        <h2 data-i18n="consumable_detail_drawer_title"></h2>
+        <div id="consumable-detail-drawer-body"></div>
+        <div class="actions">
+          <button id="btn-consumable-detail-drawer-close" type="button" class="primary-btn" data-i18n="close_button"></button>
+        </div>
+      </div>
+    </div>
+
     <div id="battle-drawer" class="drawer">
       <div class="drawer-backdrop" id="battle-drawer-backdrop"></div>
       <div class="drawer-panel">
