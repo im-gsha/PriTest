@@ -1466,9 +1466,15 @@ button {
 
 .field-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   margin: 0.75rem 0;
+  min-height: 2rem;
+}
+
+.field-row > span {
+  white-space: nowrap;
 }
 
 .field-row-block {
@@ -1499,6 +1505,52 @@ button {
   border-radius: 6px;
   background: none;
   color: inherit;
+}
+
+.stat-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.flask-extra-inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid #ddd;
+  white-space: nowrap;
+}
+
+.error-banner {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d64545;
+  border-radius: 6px;
+  background: rgba(214, 69, 69, 0.1);
+  color: #d64545;
+  font-size: 0.85rem;
+}
+
+.dice-add-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.dice-add-btn:active {
+  background: #eee;
 }
 
 .tag-field {

@@ -50,6 +50,7 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
       <div class="drawer-panel">
         <button type="button" class="drawer-close-tab" data-close-btn="btn-character-close">&rsaquo;</button>
         <h2 id="character-drawer-name"></h2>
+        <p id="char-drawer-error" class="error-banner" hidden></p>
         <p id="character-type-badge" class="character-type-badge"></p>
         <img id="character-portrait" class="character-portrait" hidden>
 
@@ -58,12 +59,20 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
           <div class="field-grid">
             <label class="field-row">
               <span data-i18n="record_level_label"></span>
-              <input type="number" id="char-level" class="stat-input" min="1" max="15">
+              <span class="stat-stepper">
+                <button type="button" class="level-btn" data-stepper="char-level" data-delta="-1">&minus;</button>
+                <span class="level-value" id="char-level-value"></span>
+                <button type="button" class="level-btn" data-stepper="char-level" data-delta="1">&plus;</button>
+              </span>
               <span id="char-level-next-cost" class="level-bonus-marker"></span>
             </label>
             <label class="field-row">
               <span data-i18n="record_runes_label"></span>
-              <input type="number" id="char-runes" class="stat-input">
+              <span class="stat-stepper">
+                <button type="button" class="level-btn" data-stepper="char-runes" data-delta="-1">&minus;</button>
+                <span class="level-value" id="char-runes-value"></span>
+                <button type="button" class="level-btn" data-stepper="char-runes" data-delta="1">&plus;</button>
+              </span>
             </label>
             <label class="field-row">
               <span data-i18n="record_hp_value_label"></span>
@@ -73,29 +82,57 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
           <div class="field-grid">
             <label class="field-row">
               <span data-i18n="character_blessing_slots_label"></span>
-              <input type="number" id="char-blessing-current" class="stat-input">
+              <span class="stat-stepper">
+                <button type="button" class="level-btn" data-stepper="char-blessing-current" data-delta="-1">&minus;</button>
+                <span class="level-value" id="char-blessing-current-value"></span>
+                <button type="button" class="level-btn" data-stepper="char-blessing-current" data-delta="1">&plus;</button>
+              </span>
               <span>/</span>
-              <input type="number" id="char-blessing-max" class="stat-input">
+              <span class="stat-stepper">
+                <button type="button" class="level-btn" data-stepper="char-blessing-max" data-delta="-1">&minus;</button>
+                <span class="level-value" id="char-blessing-max-value"></span>
+                <button type="button" class="level-btn" data-stepper="char-blessing-max" data-delta="1">&plus;</button>
+              </span>
               <span id="char-blessing-level-bonus" class="level-bonus-marker"></span>
             </label>
           </div>
           <div class="field-grid">
             <label class="field-row">
               <span data-i18n="record_flask_base_label"></span>
-              <input type="number" id="char-flask-base-used" class="stat-input">
+              <span class="stat-stepper">
+                <button type="button" class="level-btn" data-stepper="char-flask-base-used" data-delta="-1">&minus;</button>
+                <span class="level-value" id="char-flask-base-used-value"></span>
+                <button type="button" class="level-btn" data-stepper="char-flask-base-used" data-delta="1">&plus;</button>
+              </span>
               <span>/</span>
-              <input type="number" id="char-flask-base-max" class="stat-input">
-            </label>
-            <label class="field-row">
-              <span data-i18n="record_flask_extra_label"></span>
-              <input type="number" id="char-flask-extra-used" class="stat-input">
-              <span>/</span>
-              <input type="number" id="char-flask-extra-max" class="stat-input">
+              <span class="stat-stepper">
+                <button type="button" class="level-btn" data-stepper="char-flask-base-max" data-delta="-1">&minus;</button>
+                <span class="level-value" id="char-flask-base-max-value"></span>
+                <button type="button" class="level-btn" data-stepper="char-flask-base-max" data-delta="1">&plus;</button>
+              </span>
+              <span class="flask-extra-inline">
+                <span data-i18n="record_flask_extra_label"></span>
+                <span class="stat-stepper">
+                  <button type="button" class="level-btn" data-stepper="char-flask-extra-used" data-delta="-1">&minus;</button>
+                  <span class="level-value" id="char-flask-extra-used-value"></span>
+                  <button type="button" class="level-btn" data-stepper="char-flask-extra-used" data-delta="1">&plus;</button>
+                </span>
+                <span>/</span>
+                <span class="stat-stepper">
+                  <button type="button" class="level-btn" data-stepper="char-flask-extra-max" data-delta="-1">&minus;</button>
+                  <span class="level-value" id="char-flask-extra-max-value"></span>
+                  <button type="button" class="level-btn" data-stepper="char-flask-extra-max" data-delta="1">&plus;</button>
+                </span>
+              </span>
             </label>
           </div>
           <label class="field-row">
             <span data-i18n="record_revival_label"></span>
-            <input type="number" id="char-revival-count" class="stat-input" min="0">
+            <span class="stat-stepper">
+              <button type="button" class="level-btn" data-stepper="char-revival-count" data-delta="-1">&minus;</button>
+              <span class="level-value" id="char-revival-count-value"></span>
+              <button type="button" class="level-btn" data-stepper="char-revival-count" data-delta="1">&plus;</button>
+            </span>
             <span id="char-revival-bonus-marker" class="level-bonus-marker"></span>
           </label>
         </div>
@@ -108,16 +145,32 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
         <div class="field-grid">
           <label class="field-row">
             <span data-i18n="character_hp_label"></span>
-            <input type="number" id="char-hp-current" class="stat-input">
+            <span class="stat-stepper">
+              <button type="button" class="level-btn" data-stepper="char-hp-current" data-delta="-1">&minus;</button>
+              <span class="level-value" id="char-hp-current-value"></span>
+              <button type="button" class="level-btn" data-stepper="char-hp-current" data-delta="1">&plus;</button>
+            </span>
             <span>/</span>
-            <input type="number" id="char-hp-max" class="stat-input">
+            <span class="stat-stepper">
+              <button type="button" class="level-btn" data-stepper="char-hp-max" data-delta="-1">&minus;</button>
+              <span class="level-value" id="char-hp-max-value"></span>
+              <button type="button" class="level-btn" data-stepper="char-hp-max" data-delta="1">&plus;</button>
+            </span>
             <span id="char-hp-level-bonus" class="level-bonus-marker"></span>
           </label>
           <label class="field-row">
             <span data-i18n="character_fp_label"></span>
-            <input type="number" id="char-fp-current" class="stat-input">
+            <span class="stat-stepper">
+              <button type="button" class="level-btn" data-stepper="char-fp-current" data-delta="-1">&minus;</button>
+              <span class="level-value" id="char-fp-current-value"></span>
+              <button type="button" class="level-btn" data-stepper="char-fp-current" data-delta="1">&plus;</button>
+            </span>
             <span>/</span>
-            <input type="number" id="char-fp-max" class="stat-input">
+            <span class="stat-stepper">
+              <button type="button" class="level-btn" data-stepper="char-fp-max" data-delta="-1">&minus;</button>
+              <span class="level-value" id="char-fp-max-value"></span>
+              <button type="button" class="level-btn" data-stepper="char-fp-max" data-delta="1">&plus;</button>
+            </span>
             <span id="char-fp-level-bonus" class="level-bonus-marker"></span>
           </label>
         </div>
@@ -125,7 +178,7 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
         <div class="dice-pool-block">
           <div class="dice-pool-header">
             <h3 data-i18n="character_dice_pool_label"></h3>
-            <button type="button" class="icon-btn" id="btn-char-dice-add">+</button>
+            <button type="button" class="dice-add-btn" id="btn-char-dice-add">&#127922;</button>
           </div>
           <div class="dice-pool-list" id="char-dice-pool-list"></div>
         </div>

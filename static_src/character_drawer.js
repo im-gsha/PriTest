@@ -778,6 +778,196 @@
     el.textContent = window.I18N.t("revival_bonus_marker", { n: n });
   }
 
+  // 詳細ドロワーの数値項目は直接入力せず+/-ボタンのみで操作する。値は常にcから都度読み書きし、
+  // 変更のたびにrenderAllStatSteppersで全項目の表示をまとめて更新する（例:等級を上げると盧恩も
+  // 連動して減るなど、項目間の依存を個別に追いかける必要が無い）。等級のみ、盧恩が足りるかの
+  // 確認と消費を伴う特別処理（onDelta）を持つ。
+  var STAT_STEPPERS = [
+    {
+      id: "char-level",
+      get: function (c) {
+        return c.level;
+      },
+      onDelta: function (c, delta) {
+        if (delta > 0) {
+          if (c.level >= LEVEL_CAP) return;
+          var cost = c.level + 1;
+          if ((c.runes || 0) < cost) {
+            showCharDrawerError(window.I18N.t("level_up_insufficient_runes", { level: c.level + 1, cost: cost, runes: c.runes || 0 }));
+            return;
+          }
+          c.runes -= cost;
+          c.level += 1;
+        } else {
+          c.level = Math.max(1, c.level - 1);
+        }
+      },
+    },
+    {
+      id: "char-runes",
+      get: function (c) {
+        return c.runes;
+      },
+      set: function (c, v) {
+        c.runes = v;
+      },
+      min: 0,
+    },
+    {
+      id: "char-blessing-current",
+      get: function (c) {
+        return c.blessingSlots.current;
+      },
+      set: function (c, v) {
+        c.blessingSlots.current = v;
+      },
+      min: 0,
+    },
+    {
+      id: "char-blessing-max",
+      get: function (c) {
+        return c.blessingSlots.max;
+      },
+      set: function (c, v) {
+        c.blessingSlots.max = v;
+      },
+      min: 0,
+    },
+    {
+      id: "char-flask-base-used",
+      get: function (c) {
+        return c.flaskBase.used;
+      },
+      set: function (c, v) {
+        c.flaskBase.used = v;
+      },
+      min: 0,
+    },
+    {
+      id: "char-flask-base-max",
+      get: function (c) {
+        return c.flaskBase.max;
+      },
+      set: function (c, v) {
+        c.flaskBase.max = v;
+      },
+      min: 0,
+    },
+    {
+      id: "char-flask-extra-used",
+      get: function (c) {
+        return c.flaskExtra.used;
+      },
+      set: function (c, v) {
+        c.flaskExtra.used = v;
+      },
+      min: 0,
+    },
+    {
+      id: "char-flask-extra-max",
+      get: function (c) {
+        return c.flaskExtra.max;
+      },
+      set: function (c, v) {
+        c.flaskExtra.max = v;
+      },
+      min: 0,
+    },
+    {
+      id: "char-revival-count",
+      get: function (c) {
+        return c.revivalCount;
+      },
+      set: function (c, v) {
+        c.revivalCount = v;
+      },
+      min: 0,
+    },
+    {
+      id: "char-hp-current",
+      get: function (c) {
+        return c.hp.current;
+      },
+      set: function (c, v) {
+        c.hp.current = v;
+      },
+      min: 0,
+    },
+    {
+      id: "char-hp-max",
+      get: function (c) {
+        return c.hp.max;
+      },
+      set: function (c, v) {
+        c.hp.max = v;
+      },
+      min: 0,
+    },
+    {
+      id: "char-fp-current",
+      get: function (c) {
+        return c.fp.current;
+      },
+      set: function (c, v) {
+        c.fp.current = v;
+      },
+      min: 0,
+    },
+    {
+      id: "char-fp-max",
+      get: function (c) {
+        return c.fp.max;
+      },
+      set: function (c, v) {
+        c.fp.max = v;
+      },
+      min: 0,
+    },
+  ];
+
+  function renderAllStatSteppers(c) {
+    STAT_STEPPERS.forEach(function (def) {
+      var el = document.getElementById(def.id + "-value");
+      if (el) el.textContent = c ? def.get(c) : "";
+    });
+  }
+
+  function showCharDrawerError(message) {
+    var el = document.getElementById("char-drawer-error");
+    if (!el) return;
+    el.textContent = message;
+    el.hidden = false;
+  }
+
+  function hideCharDrawerError() {
+    var el = document.getElementById("char-drawer-error");
+    if (el) el.hidden = true;
+  }
+
+  function applyStatStepperDelta(def, delta) {
+    var c = findCharacter(activeCharacterId);
+    if (!c) return;
+    hideCharDrawerError();
+    if (def.onDelta) {
+      def.onDelta(c, delta);
+    } else {
+      var next = def.get(c) + delta;
+      if (def.min !== undefined) next = Math.max(def.min, next);
+      if (def.max !== undefined) next = Math.min(def.max, next);
+      def.set(c, next);
+    }
+    saveFn();
+    renderAllStatSteppers(c);
+    if (def.id === "char-level") {
+      relicRolledDice = null;
+      renderTypeReference(c);
+      renderRelicSection();
+      renderLevelBonusMarkers(c);
+      renderLevelNextCostMarker(c);
+    }
+    if (def.id === "char-revival-count") renderRevivalBonusMarkers(c);
+  }
+
   // --- 武器データベース検索＆選択（武器欄に既存の自由記述タグとは別枠で追加する） ---
   // ※ランダム戦技: 決定表が未確認のため、既知の戦技一覧から検索して手動で割り当てる
   // ランダム戦技枠（c.weaponRandomSkills[weaponId]）の解決済み値は、名称武器戦技を検索して
@@ -2299,6 +2489,9 @@
   var saveFn = function () {};
   var onChangeFn = function () {};
   var renderRosterFn = function () {};
+  // 盤面（night.js）から開いた場合はtrue。この場合「已入場」と「刪除角色」は
+  // 副本管理ページ側でのみ操作させ、盤面の詳細ドロワーでは無効化する。
+  var restrictEnteredAndDelete = false;
 
   function newCharacter(name, typeId) {
     return {
@@ -2568,21 +2761,21 @@
     if (!c) return;
 
     document.getElementById("character-drawer-name").textContent = c.name;
+    hideCharDrawerError();
     document.getElementById("char-entered").checked = c.entered;
-    document.getElementById("char-hp-current").value = c.hp.current;
-    document.getElementById("char-hp-max").value = c.hp.max;
-    document.getElementById("char-fp-current").value = c.fp.current;
-    document.getElementById("char-fp-max").value = c.fp.max;
-    document.getElementById("char-level").value = c.level;
-    document.getElementById("char-runes").value = c.runes;
     document.getElementById("char-hp-value").value = c.hpValue;
-    document.getElementById("char-blessing-current").value = c.blessingSlots.current;
-    document.getElementById("char-blessing-max").value = c.blessingSlots.max;
-    document.getElementById("char-flask-base-used").value = c.flaskBase.used;
-    document.getElementById("char-flask-base-max").value = c.flaskBase.max;
-    document.getElementById("char-flask-extra-used").value = c.flaskExtra.used;
-    document.getElementById("char-flask-extra-max").value = c.flaskExtra.max;
-    document.getElementById("char-revival-count").value = c.revivalCount;
+    renderAllStatSteppers(c);
+    var enteredCheckbox = document.getElementById("char-entered");
+    var deleteBtn = document.getElementById("btn-delete-character");
+    var restrictNote = restrictEnteredAndDelete ? window.I18N.t("entered_delete_restricted_note") : "";
+    if (enteredCheckbox) {
+      enteredCheckbox.disabled = restrictEnteredAndDelete;
+      enteredCheckbox.title = restrictNote;
+    }
+    if (deleteBtn) {
+      deleteBtn.disabled = restrictEnteredAndDelete;
+      deleteBtn.title = restrictNote;
+    }
     TAG_FIELDS.forEach(renderTagList);
     relicRolledDice = null;
     relicShowAll = false;
@@ -2865,50 +3058,20 @@
     bindFieldSave("char-entered", function (c, el) {
       c.entered = el.checked;
     });
-    bindFieldSave("char-hp-current", function (c, el) {
-      c.hp.current = Number(el.value) || 0;
-    });
-    bindFieldSave("char-hp-max", function (c, el) {
-      c.hp.max = Number(el.value) || 0;
-    });
-    bindFieldSave("char-fp-current", function (c, el) {
-      c.fp.current = Number(el.value) || 0;
-    });
-    bindFieldSave("char-fp-max", function (c, el) {
-      c.fp.max = Number(el.value) || 0;
-    });
-    bindFieldSave("char-level", function (c, el) {
-      c.level = Math.max(1, Math.min(LEVEL_CAP, Number(el.value) || 1));
-      el.value = c.level;
-    });
-    bindFieldSave("char-runes", function (c, el) {
-      c.runes = Number(el.value) || 0;
-    });
     bindFieldSave("char-hp-value", function (c, el) {
       c.hpValue = Number(el.value) || 0;
     });
-    bindFieldSave("char-blessing-current", function (c, el) {
-      c.blessingSlots.current = Number(el.value) || 0;
-    });
-    bindFieldSave("char-blessing-max", function (c, el) {
-      c.blessingSlots.max = Number(el.value) || 0;
-    });
-    bindFieldSave("char-flask-base-used", function (c, el) {
-      c.flaskBase.used = Number(el.value) || 0;
-    });
-    bindFieldSave("char-flask-base-max", function (c, el) {
-      c.flaskBase.max = Number(el.value) || 0;
-    });
-    bindFieldSave("char-flask-extra-used", function (c, el) {
-      c.flaskExtra.used = Number(el.value) || 0;
-    });
-    bindFieldSave("char-flask-extra-max", function (c, el) {
-      c.flaskExtra.max = Number(el.value) || 0;
-    });
-    bindFieldSave("char-revival-count", function (c, el) {
-      c.revivalCount = Number(el.value) || 0;
-      renderRevivalBonusMarkers(c);
-    });
+    var characterDrawerPanel = document.querySelector("#character-drawer .drawer-panel");
+    if (characterDrawerPanel) {
+      characterDrawerPanel.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-stepper]");
+        if (!btn) return;
+        var def = STAT_STEPPERS.filter(function (d) {
+          return d.id === btn.dataset.stepper;
+        })[0];
+        if (def) applyStatStepperDelta(def, Number(btn.dataset.delta));
+      });
+    }
 
     window.addEventListener("i18n:change", function () {
       if (activeCharacterId) openDrawer(activeCharacterId);
@@ -2924,6 +3087,7 @@
     saveFn = options.save;
     onChangeFn = options.onChange || function () {};
     renderRosterFn = options.renderRoster || function () {};
+    restrictEnteredAndDelete = !!options.restrictEnteredAndDelete;
     bindEvents();
   }
 

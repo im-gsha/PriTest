@@ -3291,6 +3291,7 @@
       save: saveRosterCharacters,
       onChange: renderCharacterRoster,
       renderRoster: renderCharacterRoster,
+      restrictEnteredAndDelete: true,
     });
     loadState();
     buildBattleAreas();
