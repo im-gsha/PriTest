@@ -153,6 +153,21 @@
       CharacterDrawer.renderDiceDisplay(diceWrap, c.dicePool || []);
       diceCol.appendChild(diceTitle);
       diceCol.appendChild(diceWrap);
+      if ((c.dicePool || []).length) {
+        var diceResetBtn = document.createElement("button");
+        diceResetBtn.type = "button";
+        diceResetBtn.className = "danger-btn roster-dice-reset-btn";
+        diceResetBtn.textContent = window.I18N.t("roster_dice_reset_button");
+        diceResetBtn.addEventListener("click", function () {
+          var diceValues = c.dicePool.join("、");
+          if (!window.confirm(window.I18N.t("roster_dice_reset_confirm", { name: c.name, dice: diceValues }))) return;
+          c.dicePool = [];
+          saveRosterCharacters();
+          addLog("log_dice_pool_reset", { character: c.name, dice: diceValues });
+          renderCharacterRoster();
+        });
+        diceCol.appendChild(diceResetBtn);
+      }
 
       var weaponCol = document.createElement("div");
       weaponCol.className = "roster-detail-col";
