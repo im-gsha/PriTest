@@ -2265,6 +2265,112 @@
     return total;
   }
 
+  // 属性を強化する「毒蠍」系タリスマン（Hit数を問わず蓄積値+1）を、属性名（ja表記固定）から
+  // 逆引きするための対応表。
+  var SCORPION_TALISMAN_BY_ELEMENT_JA = {
+    魔: "talisman_scorpion_magic",
+    炎: "talisman_scorpion_flame",
+    雷: "talisman_scorpion_thunder",
+    聖: "talisman_scorpion_sacred",
+  };
+
+  // 武器が持つ元素／状態異常スキル（kind:"element"/"status"/"element_minus5"/"status_minus5"）
+  // から、攻撃で実際に発生する蓄積値（1Hitのとき+1、2Hitのとき+2）の元となる情報を返す。
+  // 該当する毒蠍系タリスマンを所持している場合は、そのHit数分の加算値も含める。
+  // 戻り値: [{ label, isElement, scorpionBonus }]（scorpionBonusは「Hit数を問わず+1」の値）
+  function weaponAccumulationEffects(c, weaponId) {
+    var weapon = Weapons.get(baseWeaponId(weaponId));
+    if (!weapon) return [];
+    var category = Weapons.getCategory(weapon.category);
+    var skillRefs = (
+      category && category.isShield ? (weapon.attachedEffect || []).concat(weapon.reverseArt || []) : weapon.skills || []
+    ).concat((c.weaponExtraSkills && c.weaponExtraSkills[weaponId]) || []);
+    var results = [];
+    skillRefs.forEach(function (ref) {
+      var actualRef = ref;
+      if (ref.kind === "random") {
+        var resolvedValue = c.weaponRandomSkills && c.weaponRandomSkills[weaponId];
+        if (!resolvedValue || typeof resolvedValue === "string") return;
+        actualRef = resolvedValue;
+      }
+      var isElement = actualRef.kind === "element" || actualRef.kind === "element_minus5";
+      var isStatus = actualRef.kind === "status" || actualRef.kind === "status_minus5";
+      if (!isElement && !isStatus) return;
+      var fieldValue = isElement ? actualRef.element : actualRef.status;
+      if (!fieldValue) return;
+      var scorpionBonus = 0;
+      if (isElement && fieldValue.ja && SCORPION_TALISMAN_BY_ELEMENT_JA[fieldValue.ja]) {
+        var talismanId = SCORPION_TALISMAN_BY_ELEMENT_JA[fieldValue.ja];
+        if ((c.talismanIds || []).indexOf(talismanId) !== -1) scorpionBonus = 1;
+      }
+      results.push({ label: Weapons.localizedText(fieldValue), isElement: isElement, scorpionBonus: scorpionBonus });
+    });
+    return results;
+  }
+
+  // 武器固有スキル（innate）が持つ、単独装備時のみ発揮する固定の「アタックのダメージを
+  // 1Hit：+N／2Hit：+M」ボーナス（例：直剣の二本差し、大剣・斧槍・槌等の両手持ちダメージ＋）を
+  // 計算する。weaponInnatePowerAdjustment（武器威力：±N）とは別枠で扱う（武器威力に乗せると
+  // 2Hitで2倍計上され二重加算になるため、1Hit/2Hitのダメージへ直接加算する）。
+  function weaponInnateHitBonus(c, weaponId, weapon) {
+    var soloEquipped = (c.equippedWeaponIds || []).length === 1 && c.equippedWeaponIds[0] === weaponId;
+    var hit1 = 0,
+      hit2 = 0;
+    (weapon.skills || []).forEach(function (ref) {
+      if (ref.kind !== "innate") return;
+      var innate = null;
+      Weapons.categories().forEach(function (cat) {
+        (cat.innateSkills || []).forEach(function (s) {
+          if (s.id === ref.id) innate = s;
+        });
+      });
+      if (!innate) return;
+      var text = (innate.body && innate.body.ja) || (innate.body && innate.body.zh);
+      if (!text) return;
+      // 「他の武器を装備状態にしておらず」等の単独装備条件が明記されている場合は、
+      // この武器を単独装備しているときだけ加算する（categoryTwoHitBonusと同じ判定方針）。
+      if (text.indexOf("他の武器") !== -1 && !soloEquipped) return;
+      var b = extractHitBonus(text);
+      hit1 += b[0];
+      hit2 += b[1];
+    });
+    return { hit1: hit1, hit2: hit2 };
+  }
+
+  // タリスマン起因の、条件付き／射撃武器専用の固定アタックダメージ加算。
+  // ・talisman_sword_scorpion_charm：現在HP＝最大HP時、アタックのダメージを「1Hit：+5／2Hit：+10」
+  // ・talisman_longbow／talisman_hardbow：射撃武器の1Hit／2Hitダメージにそれぞれ+5
+  function talismanFlatHitBonus(c, weaponId, category) {
+    var hit1 = 0,
+      hit2 = 0;
+    var isRanged = category && RANGED_CATEGORY_IDS.indexOf(category.id) !== -1;
+    (c.talismanIds || []).forEach(function (id) {
+      if (id === "talisman_sword_scorpion_charm" && c.hp && c.hp.current === c.hp.max) {
+        hit1 += 5;
+        hit2 += 10;
+      }
+      if (isRanged && id === "talisman_longbow") hit1 += 5;
+      if (isRanged && id === "talisman_hardbow") hit2 += 5;
+    });
+    return { hit1: hit1, hit2: hit2 };
+  }
+
+  // 武器が持つ特効スキル（kind:"special"、例：「エネミーが『死に生きる者』の場合、
+  // 1Hit：+5／2Hit：+10」）は対象エネミーの種別を戦闘UI側で把握していないため、
+  // ダメージへの自動加算はしない（誤って過大な数値を出さないため）。該当する場合のみ
+  // 「対象が条件を満たすなら＋N」という参考情報として返す（UI側で任意表示する）。
+  function weaponSpecialEffectNotes(weaponId) {
+    var weapon = Weapons.get(baseWeaponId(weaponId));
+    if (!weapon) return [];
+    return (weapon.skills || [])
+      .filter(function (ref) {
+        return ref.kind === "special";
+      })
+      .map(function (ref) {
+        return Weapons.localizedText(Weapons.specialEffectSkillBody(ref.target));
+      });
+  }
+
   // 武器自身が持つ「element_minus5／status_minus5」スキル（レア度C/U限定の武器威力-5スキル）や、
   // 固有スキル（innate、例：「武器威力＋10」）による武器威力の追加補正を合算する。
   function weaponInnatePowerAdjustment(weapon) {
@@ -2459,8 +2565,11 @@
     if (talismanBonus.symbol) hit2Symbol = talismanBonus.symbol;
     if (categoryBonus.symbol) hit2Symbol = categoryBonus.symbol;
 
-    var hit1Damage = hit1Base + relic1 + attached1;
-    var hit2Damage = hit1Base * 2 + relic2 + attached2 + bonus2hit;
+    var innateHitBonus = weaponInnateHitBonus(c, weaponId, weapon);
+    var talismanFlatBonus = talismanFlatHitBonus(c, weaponId, category);
+
+    var hit1Damage = hit1Base + relic1 + attached1 + innateHitBonus.hit1 + talismanFlatBonus.hit1;
+    var hit2Damage = hit1Base * 2 + relic2 + attached2 + bonus2hit + innateHitBonus.hit2 + talismanFlatBonus.hit2;
 
     return {
       rarityCorrection: rarityCorrection,
@@ -4504,6 +4613,8 @@
     getCombatSkillEntries: getCombatSkillEntries,
     getEquippedWeaponSkillEntries: getEquippedWeaponSkillEntries,
     categoryTwoHitDiceBonus: categoryTwoHitDiceBonus,
+    weaponAccumulationEffects: weaponAccumulationEffects,
+    weaponSpecialEffectNotes: weaponSpecialEffectNotes,
     computeWeaponDamage: computeWeaponDamage,
     weaponDamageTagText: weaponDamageTagText,
     parseActionCost: parseActionCost,

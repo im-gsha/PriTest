@@ -2509,6 +2509,23 @@
               lines.push(window.I18N.t("action_log_dice_granted", { value: diceBonus }));
             }
           }
+          // 武器が持つ属性／状態異常スキルによる蓄積値（1Hit：+1／2Hit：+2、毒蠍系タリスマンで
+          // さらに+1）を実行ログに明記する。
+          var accumEffects = CharacterDrawer.weaponAccumulationEffects(c, weaponId);
+          var baseAccum = hitType === "hit1" ? 1 : 2;
+          accumEffects.forEach(function (eff) {
+            lines.push(
+              window.I18N.t(eff.isElement ? "action_log_element_accum" : "action_log_status_accum", {
+                label: eff.label,
+                value: baseAccum + eff.scorpionBonus,
+              })
+            );
+          });
+          // 特効（kind:"special"）は対象エネミーの種別に依存するため自動加算はせず、
+          // 参考情報として本文を注記するのみに留める（過大なダメージ捏造を避けるため）。
+          CharacterDrawer.weaponSpecialEffectNotes(weaponId).forEach(function (note) {
+            lines.push(window.I18N.t("action_log_special_note", { note: note }));
+          });
           addActionBox(
             c,
             Weapons.localizedText(weapon.name) + "（" + window.I18N.t(hitType === "hit1" ? "combat_attack_hit1_button" : "combat_attack_hit2_button") + "）",
