@@ -1201,13 +1201,25 @@
     var details = document.createElement("details");
     details.className = "ability-entry";
     var summary = document.createElement("summary");
-    var artPowerTag = "";
+    summary.appendChild(document.createTextNode(display.name + (display.kind ? "［" + display.kind + "］" : "")));
     if (ref.kind === "art") {
-      var damageForArt = computeWeaponDamage(c, weaponId);
-      var artValue = damageForArt ? artSkillPowerValue(display.body, damageForArt.artPower) : null;
-      if (artValue !== null) artPowerTag = "　" + window.I18N.t("weapon_damage_art_power_tag", { value: artValue });
+      var artInfo = computeArtPower(c, weaponId);
+      var artWeapon = Weapons.get(baseWeaponId(weaponId));
+      var artCategory = artWeapon ? Weapons.getCategory(artWeapon.category) : null;
+      var isSpellCategory = artCategory && NON_HIT_CATEGORY_IDS.indexOf(artCategory.id) !== -1;
+      var artValue = artInfo
+        ? isSpellCategory
+          ? spellSkillPowerValue(display.body, artInfo.artPower)
+          : artSkillPowerValue(display.body, artInfo.artPower)
+        : null;
+      if (artValue !== null) {
+        var artTag = document.createElement("span");
+        artTag.className = "weapon-damage-tag";
+        artTag.textContent = window.I18N.t("weapon_damage_art_power_tag", { value: artValue });
+        summary.appendChild(document.createTextNode(" "));
+        summary.appendChild(artTag);
+      }
     }
-    summary.textContent = display.name + (display.kind ? "［" + display.kind + "］" : "") + artPowerTag;
     details.appendChild(summary);
     if (display.body) {
       var p = document.createElement("p");
@@ -1282,18 +1294,13 @@
 
     var title = document.createElement("div");
     title.className = "relic-candidate-name";
-    title.textContent =
-      Weapons.localizedText(weapon.name) +
-      "（" + (category ? Weapons.localizedText(category.name) : weapon.category) + "・" + weapon.rarity + "）" +
-      (damage ? "　" + weaponDamageTagText(damage) : "");
+    title.appendChild(
+      document.createTextNode(
+        Weapons.localizedText(weapon.name) + "（" + (category ? Weapons.localizedText(category.name) : weapon.category) + "・" + weapon.rarity + "）"
+      )
+    );
+    if (damage) appendWeaponDamageTag(title, damage);
     card.appendChild(title);
-
-    if (damage) {
-      var damageBreakdown = document.createElement("p");
-      damageBreakdown.className = "threat-ref-body";
-      damageBreakdown.textContent = weaponDamageBreakdownText(damage);
-      card.appendChild(damageBreakdown);
-    }
 
     if (category && category.isShield) {
       var shieldHp = weapon.rarity === "R" || weapon.rarity === "L" ? category.basicStats.guardHpRL : category.basicStats.guardHpCU;
@@ -1331,6 +1338,19 @@
         bonusP.textContent = Weapons.localizedText(bonus.name) + window.I18N.t("colon_separator") + Weapons.localizedText(bonus.body);
         card.appendChild(bonusP);
       });
+    }
+
+    if (damage) {
+      var damageDetails = document.createElement("details");
+      damageDetails.className = "ability-entry weapon-damage-details";
+      var damageSummary = document.createElement("summary");
+      damageSummary.textContent = window.I18N.t("weapon_damage_formula_label");
+      damageDetails.appendChild(damageSummary);
+      var damageBreakdown = document.createElement("p");
+      damageBreakdown.className = "threat-ref-body weapon-damage-breakdown";
+      damageBreakdown.textContent = weaponDamageBreakdownText(damage);
+      damageDetails.appendChild(damageBreakdown);
+      card.appendChild(damageDetails);
     }
 
     if (category && category.isShield) {
@@ -1524,11 +1544,14 @@
       var nameBtn = document.createElement("button");
       nameBtn.type = "button";
       nameBtn.className = "roster-weapon-name-btn";
-      nameBtn.textContent =
-        Weapons.localizedText(weapon.name) +
-        (attackCost ? "（" + attackCost + "）" : "") +
-        (skillNames.length ? " ｜ " + skillNames.join("・") : "") +
-        (damage ? " " + weaponDamageTagText(damage) : "");
+      nameBtn.appendChild(
+        document.createTextNode(
+          Weapons.localizedText(weapon.name) +
+            (attackCost ? "（" + attackCost + "）" : "") +
+            (skillNames.length ? " ｜ " + skillNames.join("・") : "")
+        )
+      );
+      if (damage) appendWeaponDamageTag(nameBtn, damage);
       nameBtn.addEventListener("click", function () {
         openWeaponDetailDrawer(c.id, weaponId);
       });
@@ -2082,6 +2105,22 @@
     return total;
   }
 
+  // 特典（2Hit専用）その2：武器カテゴリ自身が持つ「2Hitアタックによる総合ダメージ＋n」
+  // （category.twoHitBonus、例：刀の「総合＆復帰ダメージ＋10」）。装備状態を問わず、その
+  // カテゴリの武器であれば常に発揮される固有特典なので、talisman2HitBonusとは別に加算する。
+  function categoryTwoHitBonus(category) {
+    if (!category || !category.twoHitBonus) return 0;
+    var total = 0;
+    category.twoHitBonus.forEach(function (bonus) {
+      var text = (bonus.body && bonus.body.ja) || (bonus.body && bonus.body.zh);
+      if (!text) return;
+      if (text.indexOf("総合ダメージ") === -1 && text.indexOf("總合傷害") === -1 && text.indexOf("總和傷害") === -1) return;
+      var m = /(?:総合ダメージ|總合傷害|總和傷害)[^0-9+＋]*([+＋]\s*\d+)/.exec(text);
+      if (m) total += normalizeSignedNumber(m[1]);
+    });
+    return total;
+  }
+
   // 付帯効果（c.learnedAttachedEffects）：一部の効果は装備状況に条件がある
   // （two_hand_up＝武器を1つのみ装備、dual_wield_up＝同カテゴリの近接武器を2つ装備）。
   function attachedEffectAppliesTo(effect, c, weaponId, weapon) {
@@ -2098,19 +2137,36 @@
     return true;
   }
 
-  // 武器1つ分のダメージ内訳を計算する。盾／カテゴリ不明の場合はnullを返す。
-  function computeWeaponDamage(c, weaponId) {
+  // 稀有度補正+威力補正=戦技威力（artPower）だけを計算する。武器種を問わず（杖・聖印・盾を
+  // 含む）常に使う共通部分で、各アーツ／魔術／祈祷の「威力：N＋戦技威力」の解決に使う。
+  var NON_HIT_CATEGORY_IDS = ["staff", "sacred_seal"];
+
+  function computeArtPower(c, weaponId) {
     var weapon = Weapons.get(baseWeaponId(weaponId));
     if (!weapon) return null;
     var category = Weapons.getCategory(weapon.category);
-    if (!category || category.isShield) return null;
+    if (!category) return null;
 
     var rarityCorrection = RARITY_CORRECTION[weapon.rarity] || 0;
     var powerModText = weapon.powerModOverride ? Weapons.localizedText(weapon.powerModOverride) : Weapons.localizedText(category.basicStats.powerMod);
     var statKey = resolvePowerModStatKey(powerModText);
     var type = c.typeId ? CharacterTypes.get(c.typeId) : null;
     var powerMod = (type && statKey && type.powerMod ? type.powerMod[statKey] || 0 : 0) + talismanPowerModBonus(c, statKey);
-    var artPower = rarityCorrection + powerMod;
+    return { rarityCorrection: rarityCorrection, powerMod: powerMod, artPower: rarityCorrection + powerMod };
+  }
+
+  // 武器1つ分のダメージ内訳を計算する。盾／杖／聖印（1Hit・2Hitの概念を持たない武器種）や
+  // カテゴリ不明の場合はnullを返す（杖・聖印は各魔術／祈祷ごとにcomputeArtPowerを使う）。
+  function computeWeaponDamage(c, weaponId) {
+    var weapon = Weapons.get(baseWeaponId(weaponId));
+    if (!weapon) return null;
+    var category = Weapons.getCategory(weapon.category);
+    if (!category || category.isShield || NON_HIT_CATEGORY_IDS.indexOf(category.id) !== -1) return null;
+
+    var artInfo = computeArtPower(c, weaponId);
+    var rarityCorrection = artInfo.rarityCorrection;
+    var powerMod = artInfo.powerMod;
+    var artPower = artInfo.artPower;
 
     var weaponPowerRaw = category.basicStats.weaponPower;
     var weaponPowerBase = (typeof weaponPowerRaw === "number" ? weaponPowerRaw : parseInt(weaponPowerRaw, 10) || 0) + weaponInnatePowerAdjustment(weapon);
@@ -2139,7 +2195,7 @@
       attached2 += b[1];
     });
 
-    var bonus2hit = talisman2HitBonus(c, weaponId, category);
+    var bonus2hit = talisman2HitBonus(c, weaponId, category) + categoryTwoHitBonus(category);
 
     var hit1Damage = hit1Base + relic1 + attached1;
     var hit2Damage = hit1Base * 2 + relic2 + attached2 + bonus2hit;
@@ -2165,6 +2221,15 @@
     return window.I18N.t("weapon_damage_hit_tag", { hit1: d.hit1Damage, hit2: d.hit2Damage });
   }
 
+  // 黄色・小さめのタグとして(1hit/2hit)を親要素へ追加する（他要素の色に影響しないようspanで囲む）。
+  function appendWeaponDamageTag(parentEl, damage) {
+    var tag = document.createElement("span");
+    tag.className = "weapon-damage-tag";
+    tag.textContent = weaponDamageTagText(damage);
+    parentEl.appendChild(document.createTextNode(" "));
+    parentEl.appendChild(tag);
+  }
+
   function weaponDamageBreakdownText(d) {
     if (!d) return "";
     return window.I18N.t("weapon_damage_breakdown", {
@@ -2187,6 +2252,15 @@
   // 計算する。パターンに合致しない場合はnullを返す（無理に数字を出さない）。
   function artSkillPowerValue(bodyText, artPower) {
     var m = /威力[：:]\s*(-?\d+)＋(?:戦技威力|戰技威力)/.exec(String(bodyText || ""));
+    if (!m) return null;
+    return parseInt(m[1], 10) + artPower;
+  }
+
+  // 杖・聖印の魔術／祈祷は、原文に「＋戦技威力」の明記が無くても「威力：N」の印字値に対して
+  // 常に戦技威力（稀有度補正＋威力補正）が加算される前提で計算する（近接武器のアーツとは異なり、
+  // 「威力：N」だけの記載しかない資料が大半のため、明記の有無を問わず加算するベストエフォート）。
+  function spellSkillPowerValue(bodyText, artPower) {
+    var m = /威力[：:]\s*(-?\d+)/.exec(String(bodyText || ""));
     if (!m) return null;
     return parseInt(m[1], 10) + artPower;
   }

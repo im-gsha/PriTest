@@ -1269,6 +1269,20 @@ button {
   font-weight: 600;
 }
 
+.weapon-damage-tag {
+  font-size: 0.78rem;
+  color: #b8860b;
+  font-weight: 600;
+}
+
+.weapon-damage-details summary {
+  font-size: 0.85rem;
+}
+
+.weapon-damage-breakdown {
+  font-style: italic;
+}
+
 .relic-candidate-card {
   border: 1px solid #bbb;
   border-radius: 6px;
@@ -2191,6 +2205,9 @@ button {
     background: #1c2a42;
     border-color: #35507e;
     color: #cfe0fb;
+  }
+  .weapon-damage-tag {
+    color: #e0c34a;
   }
   .drawer-panel {
     background: #1c1c1c;
