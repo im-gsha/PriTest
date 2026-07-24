@@ -570,6 +570,34 @@
     return total;
   }
 
+  // 「聖杯瓶回復量提升」「技能使用次數＋1」等の遺物効果は、本文が「+□」「+○」のような
+  // シナリオ変数プレースホルダーで具体的な数値が無いため、名前が完全一致した場合に
+  // 固定+1として扱う（ユーザーの指示どおりのベストエフォート）。
+  function countLearnedRelicEffectsByName(c, names) {
+    var type = c && c.typeId ? CharacterTypes.get(c.typeId) : null;
+    if (!type) return 0;
+    var learned = c.learnedRelicEffects || [];
+    var count = 0;
+    (type.relicEffectGroups || []).forEach(function (g, gi) {
+      g.effects.forEach(function (e, ei) {
+        if (learned.indexOf(relicEffectKey(type.id, gi, ei)) === -1) return;
+        if (e.kind !== "Passive") return;
+        var nameZh = e.name && e.name.zh;
+        var nameJa = e.name && e.name.ja;
+        if (names.indexOf(nameZh) !== -1 || names.indexOf(nameJa) !== -1) count += 1;
+      });
+    });
+    return count;
+  }
+
+  function getFlaskHealBonus(c) {
+    return countLearnedRelicEffectsByName(c, ["聖杯瓶回復量提升", "聖杯瓶回復量アップ"]);
+  }
+
+  function getSkillUsesBonus(c) {
+    return countLearnedRelicEffectsByName(c, ["技能使用次數＋1", "スキル使用回数＋1"]);
+  }
+
   function relicMaxLearnable(level) {
     return Math.max(0, Math.min(level - (RELIC_LEVEL_START - 1), RELIC_LEVEL_END - RELIC_LEVEL_START + 1));
   }
@@ -742,6 +770,16 @@
     renderRelicCandidates();
     renderRelicLearnedList();
     renderRelicAllList();
+    renderFlaskHealBonusMarker(c);
+  }
+
+  // 「聖杯瓶回復量提升」遺物効果を習得している場合、その分を黄字の(+N)として表示する
+  // （実際の回復量への加算は戦闘モーダル側でgetFlaskHealBonusを呼んで行う）。
+  function renderFlaskHealBonusMarker(c) {
+    var el = document.getElementById("char-flask-heal-bonus");
+    if (!el) return;
+    var bonus = c ? getFlaskHealBonus(c) : 0;
+    el.textContent = bonus > 0 ? window.I18N.t("flask_heal_bonus_marker", { value: bonus }) : "";
   }
 
   function handleRelicRoll() {
@@ -907,12 +945,14 @@
       min: 0,
     },
     {
+      // このcurrentは「現在の残数」（HP/FPと同じ意味）。以前は「使用済み回数」だったため、
+      // 「3/3」表示なのに戦闘の聖杯瓶使用が「残数なし」と誤判定するバグがあった。
       id: "char-flask-base-used",
       get: function (c) {
-        return c.flaskBase.used;
+        return c.flaskBase.current;
       },
       set: function (c, v) {
-        c.flaskBase.used = v;
+        c.flaskBase.current = v;
       },
       min: 0,
     },
@@ -929,10 +969,10 @@
     {
       id: "char-flask-extra-used",
       get: function (c) {
-        return c.flaskExtra.used;
+        return c.flaskExtra.current;
       },
       set: function (c, v) {
-        c.flaskExtra.used = v;
+        c.flaskExtra.current = v;
       },
       min: 0,
     },
@@ -1499,7 +1539,7 @@
 
       var clearBtn = document.createElement("button");
       clearBtn.type = "button";
-      clearBtn.className = "danger-btn";
+      clearBtn.className = "danger-btn-sm";
       clearBtn.textContent = window.I18N.t("weapon_common_skill_clear_button");
       clearBtn.addEventListener("click", function () {
         c.weaponExtraSkills[weaponId] = [];
@@ -1644,7 +1684,14 @@
         checkbox.title = window.I18N.t("weapon_equipped_label");
         checkbox.addEventListener("change", function () {
           var idx = c.equippedWeaponIds.indexOf(weaponId);
-          if (checkbox.checked && idx === -1) c.equippedWeaponIds.push(weaponId);
+          if (checkbox.checked && idx === -1) {
+            if (c.equippedWeaponIds.length >= MAX_EQUIPPED_WEAPONS) {
+              checkbox.checked = false;
+              showCharDrawerError(window.I18N.t("weapon_equip_max_note", { max: MAX_EQUIPPED_WEAPONS }));
+              return;
+            }
+            c.equippedWeaponIds.push(weaponId);
+          }
           if (!checkbox.checked && idx !== -1) c.equippedWeaponIds.splice(idx, 1);
           saveFn();
         });
@@ -1963,6 +2010,12 @@
   // それぞれ準拠する。各段階は「ロール結果を表示した上で手動でも上書きできる」形にし、
   // 既存の手動検索（renderWeaponSearchResults）とは独立して共存する。
   var ANY_WEAPON_CATEGORY = "__any_weapon__";
+  // 個別カテゴリ（弓／大弓／弩／弩砲、小盾／中盾／大盾）をそのまま選ぶ以外に、大分類決定表の
+  // 「射撃武器」「盾」をそのまま指定して、その小分類決定表だけを1D抽選するショートカットを設ける。
+  var RANGED_GROUP_CATEGORY = "__ranged_group__";
+  var SHIELD_GROUP_CATEGORY = "__shield_group__";
+  var RANGED_GROUP_MAJOR_INDEX = 4;
+  var SHIELD_GROUP_MAJOR_INDEX = 5;
   var weaponRollState = null;
 
   function resetWeaponRollState() {
@@ -1976,6 +2029,7 @@
 
       categoryId: firstCat ? firstCat.id : null,
       categoryResolved: true,
+      majorGroupShortcut: null, // "射撃武器"/"盾"のグループ選択肢を選んだ場合のみ非null
       majorDie: null,
       majorIndex: null,
       minorDie: null,
@@ -2128,6 +2182,7 @@
   // 遺物効果／付帯効果／特典は、習得済みの遺物効果・付帯効果・所持タリスマンの本文（自由文章）から
   // 「1Hit：+n／2Hit：+n」等の定型表現を正規表現で抽出するベストエフォート方式。文章が特殊な形式
   // （▲や□等の可変値、対応する定型パターンを持たない条件付き効果）の場合は0として扱う。
+  var MAX_EQUIPPED_WEAPONS = 2;
   var RARITY_CORRECTION = { C: 0, U: 5, R: 10, L: 15 };
   var POWER_MOD_STAT_MAP = [
     ["筋力", "strength"],
@@ -2547,13 +2602,21 @@
       anyOpt.value = ANY_WEAPON_CATEGORY;
       anyOpt.textContent = window.I18N.t("weapon_roll_category_any_option");
       catSelect.appendChild(anyOpt);
+      var rangedGroupOpt = document.createElement("option");
+      rangedGroupOpt.value = RANGED_GROUP_CATEGORY;
+      rangedGroupOpt.textContent = window.I18N.t("weapon_roll_category_ranged_group_option");
+      catSelect.appendChild(rangedGroupOpt);
+      var shieldGroupOpt = document.createElement("option");
+      shieldGroupOpt.value = SHIELD_GROUP_CATEGORY;
+      shieldGroupOpt.textContent = window.I18N.t("weapon_roll_category_shield_group_option");
+      catSelect.appendChild(shieldGroupOpt);
       Weapons.categories().forEach(function (cat) {
         var opt = document.createElement("option");
         opt.value = cat.id;
         opt.textContent = Weapons.localizedText(cat.name);
         catSelect.appendChild(opt);
       });
-      catSelect.value = st.categoryId === null ? ANY_WEAPON_CATEGORY : st.categoryId;
+      catSelect.value = st.categoryId !== null ? st.categoryId : st.majorGroupShortcut || ANY_WEAPON_CATEGORY;
       catSelect.addEventListener("change", function () {
         var newValue = catSelect.value;
         var prevPotentialPower = st.potentialPower;
@@ -2562,6 +2625,11 @@
         if (newValue === ANY_WEAPON_CATEGORY) {
           weaponRollState.categoryId = null;
           weaponRollState.categoryResolved = false;
+        } else if (newValue === RANGED_GROUP_CATEGORY || newValue === SHIELD_GROUP_CATEGORY) {
+          weaponRollState.categoryId = null;
+          weaponRollState.categoryResolved = false;
+          weaponRollState.majorGroupShortcut = newValue;
+          weaponRollState.majorIndex = newValue === RANGED_GROUP_CATEGORY ? RANGED_GROUP_MAJOR_INDEX : SHIELD_GROUP_MAJOR_INDEX;
         } else {
           weaponRollState.categoryId = newValue;
           weaponRollState.categoryResolved = true;
@@ -2590,13 +2658,17 @@
       } else {
         var majorTable = WeaponRulebook.majorTable();
         var majorRow = majorTable.rows[st.majorIndex];
-        var majorResult = document.createElement("p");
-        majorResult.className = "threat-ref-body weapon-roll-result";
-        majorResult.textContent = window.I18N.t("weapon_roll_major_result", {
-          die: st.majorDie,
-          label: Weapons.localizedText(majorRow[1]),
-        });
-        panel.appendChild(majorResult);
+        // majorDieがnullの場合は「射撃武器」「盾」グループ選択肢のショートカットで大分類が
+        // 既に確定しているケース（大分類自体は抽選していない）なので、抽選結果の文言は出さない。
+        if (st.majorDie !== null) {
+          var majorResult = document.createElement("p");
+          majorResult.className = "threat-ref-body weapon-roll-result";
+          majorResult.textContent = window.I18N.t("weapon_roll_major_result", {
+            die: st.majorDie,
+            label: Weapons.localizedText(majorRow[1]),
+          });
+          panel.appendChild(majorResult);
+        }
 
         var minorTable = WeaponRulebook.minorTables()[st.majorIndex];
         var minorBtn = document.createElement("button");
@@ -3462,13 +3534,17 @@
   var restrictEnteredAndDelete = false;
 
   function newCharacter(name, typeId) {
+    // 選んだタイプの基本資源枠（resourceSlots）から、HP/FP/加護の上限（と満タンの初期値）を
+    // 自動設定する。タイプ未選択（typeId無し）の場合は従来通り0/0のまま。
+    var type = typeId ? CharacterTypes.get(typeId) : null;
+    var slots = type ? type.resourceSlots : null;
     return {
       id: "c" + Date.now() + Math.floor(Math.random() * 1000),
       name: name,
       typeId: typeId || null,
       entered: false,
-      hp: { current: 0, max: 0 },
-      fp: { current: 0, max: 0 },
+      hp: { current: slots ? slots.hp : 0, max: slots ? slots.hp : 0 },
+      fp: { current: slots ? slots.fp : 0, max: slots ? slots.fp : 0 },
       notes: [],
       status: [],
       equipment: [],
@@ -3478,9 +3554,9 @@
       level: 1,
       hpValue: 30,
       runes: 0,
-      blessingSlots: { current: 0, max: 0 },
-      flaskBase: { used: 0, max: 3 },
-      flaskExtra: { used: 0, max: 0 },
+      blessingSlots: { current: 0, max: slots ? slots.blessing : 0 },
+      flaskBase: { current: 3, max: 3 },
+      flaskExtra: { current: 0, max: 0 },
       flaskHealAmount: 3,
       revivalCount: 0,
       talismans: [],
@@ -3500,11 +3576,23 @@
   }
 
   // 旧データ互換: 新フィールドが無い既存キャラクターに初期値を補完する
+  // 聖杯瓶は元々「使用済み回数」（used）で保持していたが、「3/3なのに戦闘で使用不可と誤判定される」
+  // バグの原因だったため「現在の残数」（current、HP/FPと同じ意味）へ移行した。旧データ（usedのみ
+  // 持ちcurrentが無い）を読み込んだ場合、ここで「残数＝上限－使用済み」に変換して補う。
+  function migrateFlaskField(field) {
+    if (field && field.current === undefined && field.used !== undefined) {
+      field.current = Math.max(0, (field.max || 0) - field.used);
+      delete field.used;
+    }
+  }
+
   function ensureDefaults(c) {
     var fallback = newCharacter(c.name, c.typeId);
     Object.keys(fallback).forEach(function (key) {
       if (c[key] === undefined) c[key] = fallback[key];
     });
+    migrateFlaskField(c.flaskBase);
+    migrateFlaskField(c.flaskExtra);
     return c;
   }
 
@@ -3567,11 +3655,6 @@
       (entry.level ? "　" + window.I18N.t("ability_level_label", { level: entry.level }) : "");
     details.appendChild(summary);
 
-    var body = document.createElement("p");
-    body.className = "threat-ref-body";
-    body.textContent = CharacterTypes.localizedText(entry.body);
-    details.appendChild(body);
-
     if (entry.uses && entry.id) {
       var usesRow = document.createElement("div");
       usesRow.className = "level-control ability-uses";
@@ -3593,12 +3676,13 @@
       plus.className = "level-btn";
       plus.textContent = "+";
 
+      var effectiveMax = entry.uses + getSkillUsesBonus(c);
       function remaining() {
         var v = c.abilityUses && c.abilityUses[entry.id];
-        return typeof v === "number" ? v : entry.uses;
+        return typeof v === "number" ? v : effectiveMax;
       }
       function renderVal() {
-        value.textContent = remaining() + "/" + entry.uses;
+        value.textContent = remaining() + "/" + effectiveMax;
       }
       renderVal();
       minus.addEventListener("click", function () {
@@ -3609,7 +3693,7 @@
       });
       plus.addEventListener("click", function () {
         if (!c.abilityUses) c.abilityUses = {};
-        c.abilityUses[entry.id] = Math.min(entry.uses, remaining() + 1);
+        c.abilityUses[entry.id] = Math.min(effectiveMax, remaining() + 1);
         renderVal();
         saveFn();
       });
@@ -3621,12 +3705,19 @@
       details.appendChild(usesRow);
     }
 
+    var body = document.createElement("p");
+    body.className = "threat-ref-body";
+    body.textContent = CharacterTypes.localizedText(entry.body);
+    details.appendChild(body);
+
     container.appendChild(details);
   }
 
   // type（夜渡りタイプ）の全アビリティ/スキル/アーツ/遺物効果を
   // 「可発動技能（Action/Defense）」「被動能力（Passive）」の2コンテナに振り分けて描画する。
-  function renderAbilitySections(c, type, activeContainer, passiveContainer) {
+  // excludeDefense=trueの場合、［Defense］（防禦フェイズでの反応使用専用）は可発動技能に含めない
+  // （戦闘モーダルの「技能」アクションは攻撃ターンでの発動を想定しているため）。
+  function renderAbilitySections(c, type, activeContainer, passiveContainer, excludeDefense) {
     activeContainer.innerHTML = "";
     passiveContainer.innerHTML = "";
     if (!type) return;
@@ -3638,6 +3729,7 @@
       });
     });
     entries.forEach(function (entry) {
+      if (excludeDefense && entry.kind === "Defense") return;
       renderAbilityEntry(entry.kind === "Passive" ? passiveContainer : activeContainer, entry, c);
     });
   }
@@ -4099,5 +4191,6 @@
     computeDiceStatus: computeDiceStatus,
     renderDiceStatusLabel: renderDiceStatusLabel,
     getPassiveAggroBonus: getPassiveAggroBonus,
+    getFlaskHealBonus: getFlaskHealBonus,
   };
 })();

@@ -6,6 +6,7 @@
   var RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
   var SLOT_COUNT = 9;
   var SLOT_LONG_PRESS_MS = 250;
+  var MAX_EQUIPPED_WEAPONS = 2;
   // 固定配置副本（安寧者たち／瓦礫の王）の原書図解ポジション（1-9、上7-8-9／中4-S-5-E-6／下1-2-3）
   // から実際の盤面スロット index（slot-0〜slot-8）への対応表。中央＝ポジション5＝slot-4。
   var FIXED_LAYOUT_POS_TO_SLOT = { 1: 6, 2: 7, 3: 8, 4: 3, 5: 4, 6: 5, 7: 0, 8: 1, 9: 2 };
@@ -135,7 +136,7 @@
       nameTd.appendChild(toggleBtn);
       tr.appendChild(nameTd);
 
-      var flaskText = c.flaskBase.used + "/" + c.flaskBase.max + (c.flaskExtra && c.flaskExtra.max > 0 ? "（+" + c.flaskExtra.used + "/" + c.flaskExtra.max + "）" : "");
+      var flaskText = c.flaskBase.current + "/" + c.flaskBase.max + (c.flaskExtra && c.flaskExtra.max > 0 ? "（+" + c.flaskExtra.current + "/" + c.flaskExtra.max + "）" : "");
       var blessingText = c.blessingSlots ? c.blessingSlots.current + "/" + c.blessingSlots.max : "-";
       [
         type ? CharacterTypes.localizedName(type.name) : "-",
@@ -2350,7 +2351,7 @@
       return;
     }
     var activeWrap = document.createElement("div");
-    CharacterDrawer.renderAbilitySections(c, type, activeWrap, document.createElement("div"));
+    CharacterDrawer.renderAbilitySections(c, type, activeWrap, document.createElement("div"), true);
     if (!activeWrap.children.length) {
       var empty2 = document.createElement("p");
       empty2.className = "threat-ref-body";
@@ -2402,12 +2403,12 @@
   }
 
   function renderCombatFlaskAction(c, content) {
-    var available = c.flaskBase.used < c.flaskBase.max || (c.flaskExtra && c.flaskExtra.used < c.flaskExtra.max);
+    var available = c.flaskBase.current > 0 || (c.flaskExtra && c.flaskExtra.current > 0);
     if (!available) {
       showCombatError("combat_error_no_flask");
       return;
     }
-    var healAmount = c.flaskHealAmount || 0;
+    var healAmount = (c.flaskHealAmount || 0) + (CharacterDrawer.getFlaskHealBonus ? CharacterDrawer.getFlaskHealBonus(c) : 0);
     var healLabel = document.createElement("p");
     healLabel.className = "threat-ref-body";
     healLabel.textContent = window.I18N.t("combat_flask_heal_label", {
@@ -2429,8 +2430,8 @@
         }
       }
       var dice = consumeCombatDice(c);
-      if (c.flaskBase.used < c.flaskBase.max) c.flaskBase.used += 1;
-      else c.flaskExtra.used += 1;
+      if (c.flaskBase.current > 0) c.flaskBase.current -= 1;
+      else c.flaskExtra.current -= 1;
       c.hp.current = Math.min(c.hp.max, c.hp.current + healAmount);
       combatDiceSelection = [];
       saveRosterCharacters();
@@ -2514,17 +2515,21 @@
     confirmBtn.disabled = !combatDiceSelection.length;
     confirmBtn.addEventListener("click", function () {
       var dice = consumeCombatDice(c);
-      state.battle.front[idx] = !state.battle.front[idx];
-      state.battle.back[idx] = !state.battle.front[idx];
       combatDiceSelection = [];
       saveRosterCharacters();
+      // renderCharacterRoster()はsyncDiceStatusToBattle()を内部で呼び、残った骰子池の内容から
+      // 前衛/後衛を自動で決め直してしまう。これが「移動區域」の手動切り替えを直後に上書きして
+      // しまい、盤面が変わらないように見えるバグの原因だったため、自動同期を先に済ませてから
+      // 手動の入れ替えを最後に適用する（手動操作を常に最終結果として優先させる）。
+      renderCharacterRoster();
+      state.battle.front[idx] = !state.battle.front[idx];
+      state.battle.back[idx] = !state.battle.front[idx];
       saveState();
       addLog("log_combat_move", {
         character: c.name,
         area: window.I18N.t(state.battle.front[idx] ? "dice_status_front" : "dice_status_back"),
         dice: dice.join("、"),
       });
-      renderCharacterRoster();
       renderBattlePositionAreas();
       renderCombatModal();
     });
@@ -2553,7 +2558,14 @@
       cb.checked = c.equippedWeaponIds.indexOf(weaponId) !== -1;
       cb.addEventListener("change", function () {
         var idx = c.equippedWeaponIds.indexOf(weaponId);
-        if (cb.checked && idx === -1) c.equippedWeaponIds.push(weaponId);
+        if (cb.checked && idx === -1) {
+          if (c.equippedWeaponIds.length >= MAX_EQUIPPED_WEAPONS) {
+            cb.checked = false;
+            showCombatError("weapon_equip_max_note", { max: MAX_EQUIPPED_WEAPONS });
+            return;
+          }
+          c.equippedWeaponIds.push(weaponId);
+        }
         if (!cb.checked && idx !== -1) c.equippedWeaponIds.splice(idx, 1);
       });
       row.appendChild(cb);

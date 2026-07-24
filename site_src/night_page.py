@@ -338,6 +338,7 @@ BODY = """    <div class="night-header-row">
 
         <div class="threat-ref-block">
           <h3 data-i18n="record_sheet_title"></h3>
+          <p id="char-drawer-error" class="error-banner" hidden></p>
           <div class="field-grid">
             <div class="field-row">
               <span data-i18n="record_level_label"></span>
@@ -432,6 +433,7 @@ BODY = """    <div class="night-header-row">
             <span class="stat-stepper">
               <span class="level-value" id="char-flask-heal-amount-value" data-longpress-edit="1"></span>
             </span>
+            <span id="char-flask-heal-bonus" class="weapon-damage-tag"></span>
           </div>
           <div class="field-row">
             <span data-i18n="record_hp_value_label"></span>
@@ -447,8 +449,6 @@ BODY = """    <div class="night-header-row">
             <span id="char-revival-bonus-marker" class="level-bonus-marker"></span>
           </div>
         </div>
-
-        <p id="char-drawer-error" class="error-banner" hidden></p>
 
         <label class="field-row" id="char-entered-row">
           <input type="checkbox" id="char-entered">
