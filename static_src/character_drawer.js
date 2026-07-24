@@ -297,6 +297,7 @@
   var MAX_ATTACHED_EFFECTS = 3;
   var attachedRollResult = null; // { dice: [x,y], block: 0-3, candidates: [effect] } | null
   var attachedPendingCandidate = null; // 上限到達時、置き換え対象を選ぶまで保留する新規候補
+  var commonSkillSettingWeaponId = null; // 共通戦技の選択欄を開いている武器id（1本のみ、他は自動で閉じる）
 
   // 1個目の骰子の出目からブロック(0-3)を決める: 1→0 / 2,3→1 / 4,5→2 / 6→3
   function attachedBlockForValue(value) {
@@ -995,6 +996,16 @@
       },
       min: 0,
     },
+    {
+      id: "char-flask-heal-amount",
+      get: function (c) {
+        return c.flaskHealAmount;
+      },
+      set: function (c, v) {
+        c.flaskHealAmount = v;
+      },
+      min: 0,
+    },
   ];
 
   function renderAllStatSteppers(c) {
@@ -1007,7 +1018,7 @@
   // 上限系の数値（data-longpress-edit属性付きの.level-value）は+/-ボタンを持たず、代わりに
   // 1秒間の長押しで直接入力できるinputへ差し替える。押している時間が短い場合（通常のタップ／
   // クリック）は何も起きない。委譲イベントなので、対象要素は事前に固定idで存在していればよい。
-  var LONG_PRESS_MS = 1000;
+  var LONG_PRESS_MS = 250;
 
   function bindLongPressEditValues(scopeEl) {
     var pressTimer = null;
@@ -1462,13 +1473,16 @@
       });
     }
 
-    // 共通戦技（規則書154-155頁）：抽選や検索での直接追加後に、プレイヤーが手動で
-    // 属性／状態異常／特効などを1つずつ追加していける（シナリオイベント等での後天的な習得を想定）。
+    // 共通戦技（規則書154-155頁）：武器は原則1つまでしか共通戦技を持たない。未設定なら「設定」で
+    // 選択欄を開いて1つ決定し、設定済みなら選択欄は隠して「清除」だけを出す。
     var commonTitle = document.createElement("p");
     commonTitle.className = "boss-subheading";
     commonTitle.textContent = window.I18N.t("weapon_common_skill_section_title");
     card.appendChild(commonTitle);
-    (c.weaponExtraSkills && c.weaponExtraSkills[weaponId] ? c.weaponExtraSkills[weaponId] : []).forEach(function (ref, idx) {
+
+    var existingExtraSkills = (c.weaponExtraSkills && c.weaponExtraSkills[weaponId]) || [];
+    if (existingExtraSkills.length) {
+      var ref = existingExtraSkills[0];
       var display = resolveWeaponSkillDisplay(ref);
       var details = document.createElement("details");
       details.className = "ability-entry";
@@ -1481,25 +1495,44 @@
         p.textContent = display.body;
         details.appendChild(p);
       }
-      var removeExtraBtn = document.createElement("button");
-      removeExtraBtn.type = "button";
-      removeExtraBtn.className = "danger-btn";
-      removeExtraBtn.textContent = window.I18N.t("weapon_remove_button");
-      removeExtraBtn.addEventListener("click", function () {
-        c.weaponExtraSkills[weaponId].splice(idx, 1);
+      card.appendChild(details);
+
+      var clearBtn = document.createElement("button");
+      clearBtn.type = "button";
+      clearBtn.className = "danger-btn";
+      clearBtn.textContent = window.I18N.t("weapon_common_skill_clear_button");
+      clearBtn.addEventListener("click", function () {
+        c.weaponExtraSkills[weaponId] = [];
         saveFn();
         renderWeaponList();
       });
-      details.appendChild(removeExtraBtn);
-      card.appendChild(details);
-    });
-    renderCommonSkillPicker(card, function (ref) {
-      if (!c.weaponExtraSkills) c.weaponExtraSkills = {};
-      if (!c.weaponExtraSkills[weaponId]) c.weaponExtraSkills[weaponId] = [];
-      c.weaponExtraSkills[weaponId].push(ref);
-      saveFn();
-      renderWeaponList();
-    });
+      card.appendChild(clearBtn);
+    } else if (commonSkillSettingWeaponId === weaponId) {
+      renderCommonSkillPicker(card, function (ref2) {
+        if (!c.weaponExtraSkills) c.weaponExtraSkills = {};
+        c.weaponExtraSkills[weaponId] = [ref2];
+        commonSkillSettingWeaponId = null;
+        saveFn();
+        renderWeaponList();
+      });
+      var cancelSetBtn = document.createElement("button");
+      cancelSetBtn.type = "button";
+      cancelSetBtn.textContent = window.I18N.t("cancel_button");
+      cancelSetBtn.addEventListener("click", function () {
+        commonSkillSettingWeaponId = null;
+        renderWeaponList();
+      });
+      card.appendChild(cancelSetBtn);
+    } else {
+      var setBtn = document.createElement("button");
+      setBtn.type = "button";
+      setBtn.textContent = window.I18N.t("weapon_common_skill_set_button");
+      setBtn.addEventListener("click", function () {
+        commonSkillSettingWeaponId = weaponId;
+        renderWeaponList();
+      });
+      card.appendChild(setBtn);
+    }
 
     var noteLabel = document.createElement("p");
     noteLabel.className = "boss-subheading";
@@ -3448,7 +3481,7 @@
       blessingSlots: { current: 0, max: 0 },
       flaskBase: { used: 0, max: 3 },
       flaskExtra: { used: 0, max: 0 },
-      flaskHealAmount: 0,
+      flaskHealAmount: 3,
       revivalCount: 0,
       talismans: [],
       buildup: [],
@@ -3698,11 +3731,11 @@
     var c = findCharacter(id);
     if (!c) return;
 
+    commonSkillSettingWeaponId = null;
     document.getElementById("character-drawer-name").textContent = c.name;
     hideCharDrawerError();
     document.getElementById("char-entered").checked = c.entered;
     document.getElementById("char-hp-value").value = c.hpValue;
-    document.getElementById("char-flask-heal-amount").value = c.flaskHealAmount || 0;
     renderAllStatSteppers(c);
     // 盤面（night.js）から開いた場合、已入場・刪除角色は副本管理ページ専用の操作として
     // 完全に非表示にする（無効化ではなく、そもそも見えない状態にする）。
@@ -4012,9 +4045,6 @@
 
     bindFieldSave("char-entered", function (c, el) {
       c.entered = el.checked;
-    });
-    bindFieldSave("char-flask-heal-amount", function (c, el) {
-      c.flaskHealAmount = Number(el.value) || 0;
     });
     bindFieldSave("char-hp-value", function (c, el) {
       c.hpValue = Number(el.value) || 0;
