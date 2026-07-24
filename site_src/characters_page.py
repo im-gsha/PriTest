@@ -89,9 +89,7 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
               </span>
               <span>/</span>
               <span class="stat-stepper">
-                <button type="button" class="level-btn" data-stepper="char-blessing-max" data-delta="-1">&minus;</button>
-                <span class="level-value" id="char-blessing-max-value"></span>
-                <button type="button" class="level-btn" data-stepper="char-blessing-max" data-delta="1">&plus;</button>
+                <span class="level-value" id="char-blessing-max-value" data-longpress-edit="1"></span>
               </span>
               <span id="char-blessing-level-bonus" class="level-bonus-marker"></span>
             </label>
@@ -106,9 +104,7 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
               </span>
               <span>/</span>
               <span class="stat-stepper">
-                <button type="button" class="level-btn" data-stepper="char-flask-base-max" data-delta="-1">&minus;</button>
-                <span class="level-value" id="char-flask-base-max-value"></span>
-                <button type="button" class="level-btn" data-stepper="char-flask-base-max" data-delta="1">&plus;</button>
+                <span class="level-value" id="char-flask-base-max-value" data-longpress-edit="1"></span>
               </span>
               <span class="flask-extra-inline">
                 <span data-i18n="record_flask_extra_label"></span>
@@ -119,13 +115,15 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
                 </span>
                 <span>/</span>
                 <span class="stat-stepper">
-                  <button type="button" class="level-btn" data-stepper="char-flask-extra-max" data-delta="-1">&minus;</button>
-                  <span class="level-value" id="char-flask-extra-max-value"></span>
-                  <button type="button" class="level-btn" data-stepper="char-flask-extra-max" data-delta="1">&plus;</button>
+                  <span class="level-value" id="char-flask-extra-max-value" data-longpress-edit="1"></span>
                 </span>
               </span>
             </label>
           </div>
+          <label class="field-row">
+            <span data-i18n="record_flask_heal_amount_label"></span>
+            <input type="number" id="char-flask-heal-amount" min="0">
+          </label>
           <label class="field-row">
             <span data-i18n="record_revival_label"></span>
             <span class="stat-stepper">
@@ -154,9 +152,7 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
             </span>
             <span>/</span>
             <span class="stat-stepper">
-              <button type="button" class="level-btn" data-stepper="char-hp-max" data-delta="-1">&minus;</button>
-              <span class="level-value" id="char-hp-max-value"></span>
-              <button type="button" class="level-btn" data-stepper="char-hp-max" data-delta="1">&plus;</button>
+              <span class="level-value" id="char-hp-max-value" data-longpress-edit="1"></span>
             </span>
             <span id="char-hp-level-bonus" class="level-bonus-marker"></span>
           </label>
@@ -169,9 +165,7 @@ BODY = """    <a class="back-link" href="../admin/index.html" data-i18n="back_ad
             </span>
             <span>/</span>
             <span class="stat-stepper">
-              <button type="button" class="level-btn" data-stepper="char-fp-max" data-delta="-1">&minus;</button>
-              <span class="level-value" id="char-fp-max-value"></span>
-              <button type="button" class="level-btn" data-stepper="char-fp-max" data-delta="1">&plus;</button>
+              <span class="level-value" id="char-fp-max-value" data-longpress-edit="1"></span>
             </span>
             <span id="char-fp-level-bonus" class="level-bonus-marker"></span>
           </label>

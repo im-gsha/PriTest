@@ -631,6 +631,29 @@ button {
   font-weight: 600;
 }
 
+.level-value[data-longpress-edit] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  box-sizing: border-box;
+  border-bottom: 1px dashed #999;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.level-value-edit-input {
+  width: 3em;
+  min-width: 1.6em;
+  text-align: center;
+  font-weight: 600;
+  font: inherit;
+  border: 1px solid #2d6cdf;
+  border-radius: 4px;
+  padding: 0 0.2rem;
+}
+
 .character-roster {
   margin-top: 1rem;
 }
@@ -1622,6 +1645,14 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 1.5rem;
+  /* .field-rowをこの中に入れるとflexアイテムのマージンが外側と合算されて隙間が
+     2倍になるため、内側のfield-rowのマージンを打ち消し、外側の.field-gridだけが
+     他のfield-rowと同じ0.75rem 0のマージンを持つようにして間隔を揃える。 */
+  margin: 0.75rem 0;
+}
+
+.field-grid > .field-row {
+  margin: 0;
 }
 
 .stat-input {

@@ -803,6 +803,17 @@
   // 上限15等）を、該当する項目のラベル横に「(+N)」として表示する（Lv15なら+5/+5/+4）。
   var LEVEL_CAP = 15;
 
+  // 等級レベル（2以上）に応じて、対応する上限（HP／FP／加護）へsign分（+1または-1）を実際に
+  // 反映する。1等→2等なら「2等分＝HP+1」、3等→2等に戻す場合は「3等分＝FP-1」を戻す、という
+  // ように、変化する等級（level）自身が対応する枠を決める（2→HP、3→FP、4→加護、以降繰り返し）。
+  function applyLevelUpResourceBonus(c, level, sign) {
+    if (level < 2) return;
+    var slot = (level - 2) % 3;
+    if (slot === 0) c.hp.max = Math.max(0, (c.hp.max || 0) + sign);
+    else if (slot === 1) c.fp.max = Math.max(0, (c.fp.max || 0) + sign);
+    else c.blessingSlots.max = Math.max(0, (c.blessingSlots.max || 0) + sign);
+  }
+
   function renderLevelBonusMarkers(c) {
     var hpEl = document.getElementById("char-hp-level-bonus");
     var fpEl = document.getElementById("char-fp-level-bonus");
@@ -855,8 +866,12 @@
           }
           c.runes -= cost;
           c.level += 1;
+          applyLevelUpResourceBonus(c, c.level, 1);
         } else {
+          if (c.level <= 1) return;
+          var oldLevel = c.level;
           c.level = Math.max(1, c.level - 1);
+          applyLevelUpResourceBonus(c, oldLevel, -1);
         }
       },
     },
@@ -987,6 +1002,72 @@
       var el = document.getElementById(def.id + "-value");
       if (el) el.textContent = c ? def.get(c) : "";
     });
+  }
+
+  // 上限系の数値（data-longpress-edit属性付きの.level-value）は+/-ボタンを持たず、代わりに
+  // 1秒間の長押しで直接入力できるinputへ差し替える。押している時間が短い場合（通常のタップ／
+  // クリック）は何も起きない。委譲イベントなので、対象要素は事前に固定idで存在していればよい。
+  var LONG_PRESS_MS = 1000;
+
+  function bindLongPressEditValues(scopeEl) {
+    var pressTimer = null;
+    var pressedEl = null;
+
+    function startEdit(valueEl) {
+      var def = STAT_STEPPERS.filter(function (d) {
+        return d.id + "-value" === valueEl.id;
+      })[0];
+      var c = findCharacter(activeCharacterId);
+      if (!def || !c) return;
+      var input = document.createElement("input");
+      input.type = "number";
+      input.className = "level-value-edit-input";
+      input.value = def.get(c);
+      valueEl.replaceWith(input);
+      input.focus();
+      input.select();
+      var committed = false;
+      function commit() {
+        if (committed) return;
+        committed = true;
+        var v = parseInt(input.value, 10);
+        if (!isNaN(v)) {
+          def.set(c, Math.max(def.min !== undefined ? def.min : 0, v));
+          saveFn();
+        }
+        input.replaceWith(valueEl);
+        renderAllStatSteppers(c);
+      }
+      input.addEventListener("blur", commit);
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") input.blur();
+        if (e.key === "Escape") {
+          committed = true;
+          input.replaceWith(valueEl);
+        }
+      });
+    }
+
+    function onDown(e) {
+      var el = e.target.closest("[data-longpress-edit]");
+      if (!el) return;
+      pressedEl = el;
+      pressTimer = setTimeout(function () {
+        if (pressedEl) startEdit(pressedEl);
+        pressTimer = null;
+      }, LONG_PRESS_MS);
+    }
+    function onUp() {
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+      pressedEl = null;
+    }
+    scopeEl.addEventListener("pointerdown", onDown);
+    scopeEl.addEventListener("pointerup", onUp);
+    scopeEl.addEventListener("pointerleave", onUp);
+    scopeEl.addEventListener("pointercancel", onUp);
   }
 
   function showCharDrawerError(message) {
@@ -1503,29 +1584,39 @@
   }
 
   // 盤面ロスター（キャラクターの下）に出す武器要約1行：[装備チェック][名前(攻撃消耗)・戦技名, クリックで詳細][転交]
-  function renderRosterWeaponList(c, container) {
+  // options.attackOnly=true の場合（戦闘モーダルの攻撃アクション用）は、装備中の武器だけに
+  // 絞り込み、装備チェックボックスと転交ボタンは表示しない（閲覧専用の攻撃対象一覧にする）。
+  function renderRosterWeaponList(c, container, options) {
+    var attackOnly = !!(options && options.attackOnly);
     container.innerHTML = "";
     if (!c || !(c.weaponIds || []).length) return;
     if (!c.equippedWeaponIds) c.equippedWeaponIds = [];
-    c.weaponIds.forEach(function (weaponId) {
+    var weaponIds = attackOnly
+      ? c.weaponIds.filter(function (id) {
+          return c.equippedWeaponIds.indexOf(id) !== -1;
+        })
+      : c.weaponIds;
+    weaponIds.forEach(function (weaponId) {
       var weapon = Weapons.get(baseWeaponId(weaponId));
       if (!weapon) return;
       var category = Weapons.getCategory(weapon.category);
       var row = document.createElement("div");
       row.className = "roster-weapon-row";
 
-      var checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.className = "roster-weapon-equip-check";
-      checkbox.checked = c.equippedWeaponIds.indexOf(weaponId) !== -1;
-      checkbox.title = window.I18N.t("weapon_equipped_label");
-      checkbox.addEventListener("change", function () {
-        var idx = c.equippedWeaponIds.indexOf(weaponId);
-        if (checkbox.checked && idx === -1) c.equippedWeaponIds.push(weaponId);
-        if (!checkbox.checked && idx !== -1) c.equippedWeaponIds.splice(idx, 1);
-        saveFn();
-      });
-      row.appendChild(checkbox);
+      if (!attackOnly) {
+        var checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "roster-weapon-equip-check";
+        checkbox.checked = c.equippedWeaponIds.indexOf(weaponId) !== -1;
+        checkbox.title = window.I18N.t("weapon_equipped_label");
+        checkbox.addEventListener("change", function () {
+          var idx = c.equippedWeaponIds.indexOf(weaponId);
+          if (checkbox.checked && idx === -1) c.equippedWeaponIds.push(weaponId);
+          if (!checkbox.checked && idx !== -1) c.equippedWeaponIds.splice(idx, 1);
+          saveFn();
+        });
+        row.appendChild(checkbox);
+      }
 
       var attackCost =
         category && !category.isShield ? Weapons.localizedText(category.basicStats.attackCost) : category ? Weapons.localizedText(category.basicStats.guardCost) : "";
@@ -1556,6 +1647,11 @@
         openWeaponDetailDrawer(c.id, weaponId);
       });
       row.appendChild(nameBtn);
+
+      if (attackOnly) {
+        container.appendChild(row);
+        return;
+      }
 
       var transferBtn = document.createElement("button");
       transferBtn.type = "button";
@@ -3352,6 +3448,7 @@
       blessingSlots: { current: 0, max: 0 },
       flaskBase: { used: 0, max: 3 },
       flaskExtra: { used: 0, max: 0 },
+      flaskHealAmount: 0,
       revivalCount: 0,
       talismans: [],
       buildup: [],
@@ -3605,6 +3702,7 @@
     hideCharDrawerError();
     document.getElementById("char-entered").checked = c.entered;
     document.getElementById("char-hp-value").value = c.hpValue;
+    document.getElementById("char-flask-heal-amount").value = c.flaskHealAmount || 0;
     renderAllStatSteppers(c);
     // 盤面（night.js）から開いた場合、已入場・刪除角色は副本管理ページ専用の操作として
     // 完全に非表示にする（無効化ではなく、そもそも見えない状態にする）。
@@ -3915,6 +4013,9 @@
     bindFieldSave("char-entered", function (c, el) {
       c.entered = el.checked;
     });
+    bindFieldSave("char-flask-heal-amount", function (c, el) {
+      c.flaskHealAmount = Number(el.value) || 0;
+    });
     bindFieldSave("char-hp-value", function (c, el) {
       c.hpValue = Number(el.value) || 0;
     });
@@ -3928,6 +4029,7 @@
         })[0];
         if (def) applyStatStepperDelta(def, Number(btn.dataset.delta));
       });
+      bindLongPressEditValues(characterDrawerPanel);
     }
 
     window.addEventListener("i18n:change", function () {

@@ -2327,7 +2327,7 @@
 
   function renderCombatAttackAction(c, content) {
     var wrap = document.createElement("div");
-    CharacterDrawer.renderRosterWeaponList(c, wrap);
+    CharacterDrawer.renderRosterWeaponList(c, wrap, { attackOnly: true });
     if (!wrap.children.length) {
       var empty = document.createElement("p");
       empty.className = "threat-ref-body";
@@ -2405,6 +2405,15 @@
       showCombatError("combat_error_no_flask");
       return;
     }
+    var healAmount = c.flaskHealAmount || 0;
+    var healLabel = document.createElement("p");
+    healLabel.className = "threat-ref-body";
+    healLabel.textContent = window.I18N.t("combat_flask_heal_label", {
+      squares: healAmount > 0 ? "□".repeat(Math.min(healAmount, 20)) : "□□□",
+      amount: healAmount,
+    });
+    content.appendChild(healLabel);
+
     renderCombatDicePicker(c, content);
     var confirmBtn = document.createElement("button");
     confirmBtn.type = "button";
@@ -2412,12 +2421,18 @@
     confirmBtn.textContent = window.I18N.t("combat_confirm_button");
     confirmBtn.disabled = !combatDiceSelection.length;
     confirmBtn.addEventListener("click", function () {
+      if (c.hp.current + healAmount > c.hp.max) {
+        if (!window.confirm(window.I18N.t("combat_flask_overflow_confirm", { current: c.hp.current, max: c.hp.max, amount: healAmount }))) {
+          return;
+        }
+      }
       var dice = consumeCombatDice(c);
       if (c.flaskBase.used < c.flaskBase.max) c.flaskBase.used += 1;
       else c.flaskExtra.used += 1;
+      c.hp.current = Math.min(c.hp.max, c.hp.current + healAmount);
       combatDiceSelection = [];
       saveRosterCharacters();
-      addLog("log_combat_flask_use", { character: c.name, dice: dice.join("、") });
+      addLog("log_combat_flask_use", { character: c.name, dice: dice.join("、"), amount: healAmount });
       renderCharacterRoster();
       renderCombatModal();
     });
