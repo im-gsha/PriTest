@@ -1355,15 +1355,15 @@
       var artWeapon = Weapons.get(baseWeaponId(weaponId));
       var artCategory = artWeapon ? Weapons.getCategory(artWeapon.category) : null;
       var isSpellCategory = artCategory && NON_HIT_CATEGORY_IDS.indexOf(artCategory.id) !== -1;
-      var artValue = artInfo
+      var artResult = artInfo
         ? isSpellCategory
           ? spellSkillPowerValue(display.body, artInfo.artPower)
           : artSkillPowerValue(display.body, artInfo.artPower)
         : null;
-      if (artValue !== null) {
+      if (artResult !== null) {
         var artTag = document.createElement("span");
         artTag.className = "weapon-damage-tag";
-        artTag.textContent = window.I18N.t("weapon_damage_art_power_tag", { value: artValue });
+        artTag.textContent = window.I18N.t("weapon_damage_art_power_tag", { value: formatValueWithSymbol(artResult.value, artResult.symbol) });
         summary.appendChild(document.createTextNode(" "));
         summary.appendChild(artTag);
       }
@@ -2215,6 +2215,8 @@
   ];
   var RANGED_CATEGORY_IDS = ["bow", "greatbow", "crossbow", "ballista", "staff", "sacred_seal"];
   var HIT_DAMAGE_RE = /1Hit[：:]\s*([+＋－\-]\d+)[／\/]2Hit[：:]?\s*([+＋－\-]\d+)/;
+  // 「1Hit：+▲／2Hit：+◆」のように数値の代わりに可変ボーナス記号が入る可能性に備えた版。
+  var HIT_DAMAGE_SYMBOL_RE = /1Hit[：:]\s*[+＋]([▲◆])[／\/]2Hit[：:]?\s*[+＋]([▲◆])/;
 
   function normalizeSignedNumber(text) {
     var n = parseInt(String(text).replace(/＋/g, "+").replace(/－/g, "-"), 10);
@@ -2229,11 +2231,16 @@
     return null;
   }
 
-  // 対象テキストから「1Hit：+n／2Hit：+n」を抽出し[n1, n2]を返す（無ければ[0,0]）。
+  // 対象テキストから「1Hit：+n／2Hit：+n」を抽出し[n1, n2, symbol1, symbol2]を返す（無ければ
+  // [0,0,null,null]）。数値の代わりに「▲」「◆」等の可変ボーナス記号が入っている場合は、
+  // 該当する数値は0のまま、symbol1/symbol2にその記号を入れて呼び出し側で表示に反映させる。
   function extractHitBonus(text) {
-    var m = HIT_DAMAGE_RE.exec(String(text || ""));
-    if (!m) return [0, 0];
-    return [normalizeSignedNumber(m[1]), normalizeSignedNumber(m[2])];
+    var t = String(text || "");
+    var m = HIT_DAMAGE_RE.exec(t);
+    if (m) return [normalizeSignedNumber(m[1]), normalizeSignedNumber(m[2]), null, null];
+    var sm = HIT_DAMAGE_SYMBOL_RE.exec(t);
+    if (sm) return [0, 0, sm[1], sm[2]];
+    return [0, 0, null, null];
   }
 
   // タリスマンの「威力補正「技量：+5、バランス：+5」」のような文章から、指定したstatKeyに
@@ -2285,40 +2292,54 @@
     return total;
   }
 
+  // 「総合ダメージ」等の直後にある「+n」または「+▲／+◆」を1件抽出する共通ヘルパー。
+  // 数値が見つかればvalueに、見つからず記号だけならsymbolに入れて返す。
+  function extractTotalDamageBonus(text) {
+    if (text.indexOf("総合ダメージ") === -1 && text.indexOf("總合傷害") === -1 && text.indexOf("總和傷害") === -1) {
+      return { value: 0, symbol: null };
+    }
+    var m = /(?:総合ダメージ|總合傷害|總和傷害)[^0-9+＋▲◆]*([+＋]\s*\d+)/.exec(text);
+    if (m) return { value: normalizeSignedNumber(m[1]), symbol: null };
+    var sm = /(?:総合ダメージ|總合傷害|總和傷害)[^0-9+＋▲◆]*[+＋]\s*([▲◆])/.exec(text);
+    if (sm) return { value: 0, symbol: sm[1] };
+    return { value: 0, symbol: null };
+  }
+
   // 特典（2Hit専用）：装備状態の近接武器に対して常時「2Hit特典：総合ダメージ＋n」を与える
-  // タリスマンを所持している場合、その分を合算する（可変値「▲」等は解決できないため0扱い）。
+  // タリスマンを所持している場合、その分を合算する。可変値「▲」等はsymbolとして返す。
   function talisman2HitBonus(c, weaponId, category) {
-    if (!category || category.isShield || RANGED_CATEGORY_IDS.indexOf(category.id) !== -1) return 0;
-    if ((c.equippedWeaponIds || []).indexOf(weaponId) === -1) return 0;
+    if (!category || category.isShield || RANGED_CATEGORY_IDS.indexOf(category.id) !== -1) return { value: 0, symbol: null };
+    if ((c.equippedWeaponIds || []).indexOf(weaponId) === -1) return { value: 0, symbol: null };
     var total = 0;
+    var symbol = null;
     (c.talismanIds || []).forEach(function (id) {
       var t = Talismans.get(id);
       if (!t) return;
       // ja/zhの両方を数えると二重加算になるため、いずれか一方（ja優先）だけを見る。
       var text = (t.body && t.body.ja) || (t.body && t.body.zh);
-      if (!text) return;
-      if (text.indexOf("2Hit特典") === -1) return;
-      if (text.indexOf("総合ダメージ") === -1 && text.indexOf("總合傷害") === -1 && text.indexOf("總和傷害") === -1) return;
-      var m = /(?:総合ダメージ|總合傷害|總和傷害)[^0-9+＋]*([+＋]\s*\d+)/.exec(text);
-      if (m) total += normalizeSignedNumber(m[1]);
+      if (!text || text.indexOf("2Hit特典") === -1) return;
+      var r = extractTotalDamageBonus(text);
+      total += r.value;
+      if (r.symbol) symbol = r.symbol;
     });
-    return total;
+    return { value: total, symbol: symbol };
   }
 
   // 特典（2Hit専用）その2：武器カテゴリ自身が持つ「2Hitアタックによる総合ダメージ＋n」
   // （category.twoHitBonus、例：刀の「総合＆復帰ダメージ＋10」）。装備状態を問わず、その
   // カテゴリの武器であれば常に発揮される固有特典なので、talisman2HitBonusとは別に加算する。
   function categoryTwoHitBonus(category) {
-    if (!category || !category.twoHitBonus) return 0;
+    if (!category || !category.twoHitBonus) return { value: 0, symbol: null };
     var total = 0;
+    var symbol = null;
     category.twoHitBonus.forEach(function (bonus) {
       var text = (bonus.body && bonus.body.ja) || (bonus.body && bonus.body.zh);
       if (!text) return;
-      if (text.indexOf("総合ダメージ") === -1 && text.indexOf("總合傷害") === -1 && text.indexOf("總和傷害") === -1) return;
-      var m = /(?:総合ダメージ|總合傷害|總和傷害)[^0-9+＋]*([+＋]\s*\d+)/.exec(text);
-      if (m) total += normalizeSignedNumber(m[1]);
+      var r = extractTotalDamageBonus(text);
+      total += r.value;
+      if (r.symbol) symbol = r.symbol;
     });
-    return total;
+    return { value: total, symbol: symbol };
   }
 
   // 付帯効果（c.learnedAttachedEffects）：一部の効果は装備状況に条件がある
@@ -2374,14 +2395,18 @@
     var hit1Base = artPower + weaponPowerBase;
 
     var relic1 = 0,
-      relic2 = 0;
+      relic2 = 0,
+      hit1Symbol = null,
+      hit2Symbol = null;
     (c.learnedRelicEffects || []).forEach(function (key) {
       var effect = type ? relicEffectForKey(type, key) : null;
       if (!effect || effect.kind !== "Passive") return;
       var bJa = extractHitBonus(effect.body && effect.body.ja);
-      var b = bJa[0] || bJa[1] ? bJa : extractHitBonus(effect.body && effect.body.zh);
+      var b = bJa[0] || bJa[1] || bJa[2] || bJa[3] ? bJa : extractHitBonus(effect.body && effect.body.zh);
       relic1 += b[0];
       relic2 += b[1];
+      if (b[2]) hit1Symbol = b[2];
+      if (b[3]) hit2Symbol = b[3];
     });
 
     var attached1 = 0,
@@ -2390,12 +2415,18 @@
       var effect = attachedEffectById(id);
       if (!effect || !attachedEffectAppliesTo(effect, c, weaponId, weapon)) return;
       var bJa = extractHitBonus(effect.body && effect.body.ja);
-      var b = bJa[0] || bJa[1] ? bJa : extractHitBonus(effect.body && effect.body.zh);
+      var b = bJa[0] || bJa[1] || bJa[2] || bJa[3] ? bJa : extractHitBonus(effect.body && effect.body.zh);
       attached1 += b[0];
       attached2 += b[1];
+      if (b[2]) hit1Symbol = b[2];
+      if (b[3]) hit2Symbol = b[3];
     });
 
-    var bonus2hit = talisman2HitBonus(c, weaponId, category) + categoryTwoHitBonus(category);
+    var talismanBonus = talisman2HitBonus(c, weaponId, category);
+    var categoryBonus = categoryTwoHitBonus(category);
+    var bonus2hit = talismanBonus.value + categoryBonus.value;
+    if (talismanBonus.symbol) hit2Symbol = talismanBonus.symbol;
+    if (categoryBonus.symbol) hit2Symbol = categoryBonus.symbol;
 
     var hit1Damage = hit1Base + relic1 + attached1;
     var hit2Damage = hit1Base * 2 + relic2 + attached2 + bonus2hit;
@@ -2413,12 +2444,17 @@
       bonus2hit: bonus2hit,
       hit1Damage: hit1Damage,
       hit2Damage: hit2Damage,
+      hit1Symbol: hit1Symbol,
+      hit2Symbol: hit2Symbol,
     };
   }
 
   function weaponDamageTagText(d) {
     if (!d) return "";
-    return window.I18N.t("weapon_damage_hit_tag", { hit1: d.hit1Damage, hit2: d.hit2Damage });
+    return window.I18N.t("weapon_damage_hit_tag", {
+      hit1: formatValueWithSymbol(d.hit1Damage, d.hit1Symbol),
+      hit2: formatValueWithSymbol(d.hit2Damage, d.hit2Symbol),
+    });
   }
 
   // 黄色・小さめのタグとして(1hit/2hit)を親要素へ追加する（他要素の色に影響しないようspanで囲む）。
@@ -2439,13 +2475,25 @@
       weaponPower: d.weaponPower,
       relic1: d.relic1,
       attached1: d.attached1,
-      hit1: d.hit1Damage,
+      hit1: formatValueWithSymbol(d.hit1Damage, d.hit1Symbol),
       hit1Base: d.hit1Base,
       relic2: d.relic2,
       attached2: d.attached2,
       bonus2hit: d.bonus2hit,
-      hit2: d.hit2Damage,
+      hit2: formatValueWithSymbol(d.hit2Damage, d.hit2Symbol),
     });
+  }
+
+  // 効果文中の「威力＋▲」「威力＋◆」のような、数値化できない可変ボーナス記号を検出する。
+  // 見つかった場合は最終的な表示で「+▲」のように追記し、数値に含められないことを可視化する。
+  function extractDamageSymbol(text) {
+    var m = /威力[＋+]([▲◆])/.exec(String(text || ""));
+    return m ? m[1] : null;
+  }
+
+  // 数値と（あれば）可変ボーナス記号を「45」または「45 + ▲」のような表示用文字列に組み立てる。
+  function formatValueWithSymbol(value, symbol) {
+    return symbol ? value + " + " + symbol : String(value);
   }
 
   // 戦技（art）の「威力：N＋戦技威力」から、指定した武器のartPowerを使ってm（=戦技の実際の威力）を
@@ -2453,7 +2501,7 @@
   function artSkillPowerValue(bodyText, artPower) {
     var m = /威力[：:]\s*(-?\d+)＋(?:戦技威力|戰技威力)/.exec(String(bodyText || ""));
     if (!m) return null;
-    return parseInt(m[1], 10) + artPower;
+    return { value: parseInt(m[1], 10) + artPower, symbol: extractDamageSymbol(bodyText) };
   }
 
   // 杖・聖印の魔術／祈祷は、原文に「＋戦技威力」の明記が無くても「威力：N」の印字値に対して
@@ -2462,7 +2510,7 @@
   function spellSkillPowerValue(bodyText, artPower) {
     var m = /威力[：:]\s*(-?\d+)/.exec(String(bodyText || ""));
     if (!m) return null;
-    return parseInt(m[1], 10) + artPower;
+    return { value: parseInt(m[1], 10) + artPower, symbol: extractDamageSymbol(bodyText) };
   }
 
   function findNotePlaceholderWeapon(categoryId, rarity) {
