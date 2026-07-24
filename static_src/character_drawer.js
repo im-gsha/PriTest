@@ -933,6 +933,9 @@
         c.blessingSlots.current = v;
       },
       min: 0,
+      maxFn: function (c) {
+        return c.blessingSlots.max;
+      },
     },
     {
       id: "char-blessing-max",
@@ -955,6 +958,9 @@
         c.flaskBase.current = v;
       },
       min: 0,
+      maxFn: function (c) {
+        return c.flaskBase.max;
+      },
     },
     {
       id: "char-flask-base-max",
@@ -975,6 +981,9 @@
         c.flaskExtra.current = v;
       },
       min: 0,
+      maxFn: function (c) {
+        return c.flaskExtra.max;
+      },
     },
     {
       id: "char-flask-extra-max",
@@ -1005,6 +1014,9 @@
         c.hp.current = v;
       },
       min: 0,
+      maxFn: function (c) {
+        return c.hp.max;
+      },
     },
     {
       id: "char-hp-max",
@@ -1025,6 +1037,9 @@
         c.fp.current = v;
       },
       min: 0,
+      maxFn: function (c) {
+        return c.fp.max;
+      },
     },
     {
       id: "char-fp-max",
@@ -1143,6 +1158,7 @@
       var next = def.get(c) + delta;
       if (def.min !== undefined) next = Math.max(def.min, next);
       if (def.max !== undefined) next = Math.min(def.max, next);
+      if (def.maxFn) next = Math.min(def.maxFn(c), next);
       def.set(c, next);
     }
     saveFn();

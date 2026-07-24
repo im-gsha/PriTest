@@ -730,6 +730,10 @@
     img.src = window.PriTestNightBosses.imagePath(boss);
     img.alt = boss.title + " - " + boss.subtitle;
     img.hidden = false;
+    img.style.cursor = "pointer";
+    img.onclick = function () {
+      openRulebookToEntry("nightking", "boss-entry-" + boss.id);
+    };
     if (hpBlock) hpBlock.hidden = false;
     if (typeof renderBattlePositionAreas === "function") renderBattlePositionAreas();
   }
@@ -774,6 +778,7 @@
     Rulebook.list().forEach(function (boss) {
       var details = document.createElement("details");
       details.className = "ability-entry";
+      details.id = "boss-entry-" + boss.id;
       var summary = document.createElement("summary");
       summary.textContent = T(boss.name);
       details.appendChild(summary);
@@ -1923,6 +1928,20 @@
     });
   }
 
+  // 認証済みの場合のみ、規則書モーダルを開いて指定タブへ切り替え、該当項目まで展開＋スクロール
+  // する（盤面の敵人チップ・夜の王画像・トランプ札から共通で使う）。
+  function openRulebookToEntry(tabId, entryId) {
+    if (!isRulebookAuthenticated()) return;
+    document.getElementById("rulebook-modal").hidden = false;
+    switchRulebookTab(tabId);
+    setTimeout(function () {
+      var target = document.getElementById(entryId);
+      if (!target) return;
+      if (target.tagName === "DETAILS") target.open = true;
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
   // --- 夜の脅威シート（タイムロス／さまよう祝福／参考情報） ---
   function buildTimeLossRows(dayKey) {
     var container = document.getElementById("tl-" + dayKey + "-list");
@@ -3039,6 +3058,11 @@
       resolved.forEach(function (item) {
         var chip = document.createElement("div");
         chip.className = "selected-enemy-chip";
+        chip.style.cursor = "pointer";
+        chip.addEventListener("click", function () {
+          var parts = item.key.split("|");
+          openRulebookToEntry("enemy", "enemy-entry-" + parts[0] + "-" + parts[1]);
+        });
         var icon = document.createElement("img");
         icon.className = "selected-enemy-icon";
         icon.src = Enemies.imagePath(item.info.enemy) || "../static/images/icons/strong-enemy.png";
@@ -3078,7 +3102,8 @@
           removeBtn.type = "button";
           removeBtn.className = "tag-remove";
           removeBtn.textContent = "×";
-          removeBtn.addEventListener("click", function () {
+          removeBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
             var idx = state.battle.selectedEnemyIds.indexOf(item.key);
             if (idx !== -1) {
               state.battle.selectedEnemyIds.splice(idx, 1);
