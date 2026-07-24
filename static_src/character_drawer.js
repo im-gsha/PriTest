@@ -2349,10 +2349,30 @@
         hit1 += 5;
         hit2 += 10;
       }
+      // 「□□□」は3マス＝HP3を表す（本タリスマンの表記に準拠したユーザー確認済みの値）。
+      if (id === "talisman_crimson_seven_edge" && c.hp && c.hp.current <= 3) {
+        hit1 += 5;
+        hit2 += 5;
+      }
       if (isRanged && id === "talisman_longbow") hit1 += 5;
       if (isRanged && id === "talisman_hardbow") hit2 += 5;
     });
     return { hit1: hit1, hit2: hit2 };
+  }
+
+  // タリスマン起因の、条件付きの固定「戦技／魔術／祈祷」ダメージ加算（computeSkillDamage側で
+  // 使う）。
+  // ・talisman_sword_scorpion_charm：現在HP＝最大HP時、戦技・魔術・祈祷のダメージを+5
+  //   （アタックの1Hit：+5／2Hit：+10とは別記載のため、talismanFlatHitBonusとは別枠で扱う）
+  // ・talisman_crimson_seven_edge：現在HP＝3（□□□）以下のとき、自身から発生するダメージ+5
+  //   （アタック限定の記載ではなく「自身から発生するダメージ」全般が対象）
+  function talismanFlatSkillBonus(c) {
+    var bonus = 0;
+    (c.talismanIds || []).forEach(function (id) {
+      if (id === "talisman_sword_scorpion_charm" && c.hp && c.hp.current === c.hp.max) bonus += 5;
+      if (id === "talisman_crimson_seven_edge" && c.hp && c.hp.current <= 3) bonus += 5;
+    });
+    return bonus;
   }
 
   // 武器が持つ特効スキル（kind:"special"、例：「エネミーが『死に生きる者』の場合、
@@ -4615,6 +4635,7 @@
     categoryTwoHitDiceBonus: categoryTwoHitDiceBonus,
     weaponAccumulationEffects: weaponAccumulationEffects,
     weaponSpecialEffectNotes: weaponSpecialEffectNotes,
+    talismanFlatSkillBonus: talismanFlatSkillBonus,
     computeWeaponDamage: computeWeaponDamage,
     weaponDamageTagText: weaponDamageTagText,
     parseActionCost: parseActionCost,

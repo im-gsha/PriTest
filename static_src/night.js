@@ -2553,18 +2553,27 @@
   // 遺物効果はfixedSkillPowerValue（本文に固定数値の総合ダメージが書かれている場合のみ）で
   // 求める。武器依存の記述など計算不能な場合はnullを返す（数値を捏造しない）。
   function computeSkillDamage(c, entry, body) {
-    if (!entry.weaponId) return CharacterDrawer.fixedSkillPowerValue(body);
-    var Weapons = window.PriTestWeapons;
-    var baseId = entry.weaponId.indexOf("::") !== -1 ? entry.weaponId.slice(0, entry.weaponId.indexOf("::")) : entry.weaponId;
-    var weapon = Weapons.get(baseId);
-    if (!weapon) return null;
-    var category = Weapons.getCategory(weapon.category);
-    var artInfo = CharacterDrawer.computeArtPower(c, entry.weaponId);
-    if (!artInfo) return null;
-    var isSpellCategory = category && (category.id === "staff" || category.id === "sacred_seal");
-    return isSpellCategory
-      ? CharacterDrawer.spellSkillPowerValue(body, artInfo.artPower)
-      : CharacterDrawer.artSkillPowerValue(body, artInfo.artPower);
+    var dmg;
+    if (!entry.weaponId) {
+      dmg = CharacterDrawer.fixedSkillPowerValue(body);
+    } else {
+      var Weapons = window.PriTestWeapons;
+      var baseId = entry.weaponId.indexOf("::") !== -1 ? entry.weaponId.slice(0, entry.weaponId.indexOf("::")) : entry.weaponId;
+      var weapon = Weapons.get(baseId);
+      if (!weapon) return null;
+      var category = Weapons.getCategory(weapon.category);
+      var artInfo = CharacterDrawer.computeArtPower(c, entry.weaponId);
+      if (!artInfo) return null;
+      var isSpellCategory = category && (category.id === "staff" || category.id === "sacred_seal");
+      dmg = isSpellCategory
+        ? CharacterDrawer.spellSkillPowerValue(body, artInfo.artPower)
+        : CharacterDrawer.artSkillPowerValue(body, artInfo.artPower);
+    }
+    if (!dmg) return null;
+    // 基礎威力が実際に計算できた場合のみ、タリスマン起因の固定加算（戦技・魔術・祈祷向け）を
+    // 上乗せする（計算不能な場合にまで数値を捏造しないため）。
+    var talismanBonus = CharacterDrawer.talismanFlatSkillBonus(c);
+    return talismanBonus ? { value: dmg.value + talismanBonus, symbol: dmg.symbol } : dmg;
   }
 
   function renderCombatSkillAction(c, content) {
