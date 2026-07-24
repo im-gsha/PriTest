@@ -1306,30 +1306,51 @@ button {
   border-bottom: 1px solid #eee;
 }
 
-.combat-attack-weapon-name,
-.combat-skill-name {
+.combat-attack-weapon-name {
   font-weight: 600;
   flex: 1 1 auto;
   min-width: 6rem;
 }
 
-.combat-attack-hit-btn {
-  border: 1px solid #888;
-  border-radius: 6px;
-  background: #fff;
-  padding: 0.25rem 0.7rem;
-  font-size: 0.85rem;
+.combat-skill-name-details {
+  flex: 1 1 auto;
+  min-width: 6rem;
+}
+
+.combat-skill-name-details summary.combat-skill-name {
+  font-weight: 600;
   cursor: pointer;
+}
+
+.combat-skill-name-details p {
+  margin: 0.3rem 0 0;
+}
+
+.combat-attack-hit-btn {
+  border: none;
+  border-radius: 6px;
+  background: #3a8f6f;
+  color: #fff;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.combat-attack-hit-btn:hover:not(:disabled):not(.active) {
+  background: #2f7259;
 }
 
 .combat-attack-hit-btn.active {
   background: #2d6cdf;
-  border-color: #2d6cdf;
-  color: #fff;
+  box-shadow: 0 0 0 2px rgba(45, 108, 223, 0.35);
 }
 
 .combat-attack-hit-btn:disabled {
-  opacity: 0.5;
+  background: #d4d4d4;
+  color: #888;
+  opacity: 1;
   cursor: not-allowed;
 }
 

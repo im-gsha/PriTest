@@ -2452,9 +2452,13 @@
 
       var row = document.createElement("div");
       row.className = "combat-attack-weapon-row";
-      var nameEl = document.createElement("span");
-      nameEl.className = "combat-attack-weapon-name";
+      var nameEl = document.createElement("button");
+      nameEl.type = "button";
+      nameEl.className = "combat-attack-weapon-name roster-weapon-name-btn";
       nameEl.textContent = Weapons.localizedText(weapon.name);
+      nameEl.addEventListener("click", function () {
+        CharacterDrawer.openWeaponDetailDrawer(c.id, weaponId);
+      });
       row.appendChild(nameEl);
       if (damage) {
         var dmgTag = document.createElement("span");
@@ -2518,7 +2522,7 @@
 
   function renderCombatSkillAction(c, content) {
     var type = c.typeId ? CharacterTypes.get(c.typeId) : null;
-    var entries = type ? CharacterDrawer.getCombatSkillEntries(c, type) : [];
+    var entries = (type ? CharacterDrawer.getCombatSkillEntries(c, type) : []).concat(CharacterDrawer.getEquippedWeaponSkillEntries(c));
     if (!entries.length) {
       var empty = document.createElement("p");
       empty.className = "threat-ref-body";
@@ -2536,10 +2540,17 @@
 
       var row = document.createElement("div");
       row.className = "combat-skill-row";
-      var nameEl = document.createElement("span");
-      nameEl.className = "combat-skill-name";
-      nameEl.textContent = name + "［" + entry.kind + "］";
-      row.appendChild(nameEl);
+      var nameDetails = document.createElement("details");
+      nameDetails.className = "combat-skill-name-details";
+      var nameSummary = document.createElement("summary");
+      nameSummary.className = "combat-skill-name";
+      nameSummary.textContent = name + "［" + entry.kind + "］" + (entry.weaponName ? "（" + entry.weaponName + "）" : "");
+      nameDetails.appendChild(nameSummary);
+      var bodyEl = document.createElement("p");
+      bodyEl.className = "threat-ref-body";
+      bodyEl.textContent = body;
+      nameDetails.appendChild(bodyEl);
+      row.appendChild(nameDetails);
 
       var effectiveMax = entry.uses ? entry.uses + usesBonus : null;
       var remaining = effectiveMax !== null ? (typeof (c.abilityUses && c.abilityUses[entry.id]) === "number" ? c.abilityUses[entry.id] : effectiveMax) : null;

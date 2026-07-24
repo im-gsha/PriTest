@@ -3928,6 +3928,49 @@
     });
   }
 
+  // 戦闘モーダルの「技能」action用：装備中の武器・盾が持つ戦技（kind:"art"／"innate"のうち
+  // Action種別のもの）を、type側のentryと同じ{id, name, body, kind}形式で返す。ランダム戦技枠は
+  // 決定済み（c.weaponRandomSkills[weaponId]が設定済み）のものだけを対象にする。
+  function getEquippedWeaponSkillEntries(c) {
+    var Weapons = window.PriTestWeapons;
+    var entries = [];
+    (c.equippedWeaponIds || []).forEach(function (weaponId) {
+      var weapon = Weapons.get(baseWeaponId(weaponId));
+      if (!weapon) return;
+      var category = Weapons.getCategory(weapon.category);
+      var skillRefs = (
+        category && category.isShield ? (weapon.attachedEffect || []).concat(weapon.reverseArt || []) : weapon.skills || []
+      ).concat((c.weaponExtraSkills && c.weaponExtraSkills[weaponId]) || []);
+      skillRefs.forEach(function (ref) {
+        var actualRef = ref;
+        if (ref.kind === "random") {
+          var resolvedValue = c.weaponRandomSkills && c.weaponRandomSkills[weaponId];
+          if (!resolvedValue) return;
+          actualRef = typeof resolvedValue === "string" ? { kind: "art", id: resolvedValue } : resolvedValue;
+        }
+        var skill = null;
+        if (actualRef.kind === "art") {
+          skill = Weapons.getSkill(actualRef.id);
+        } else if (actualRef.kind === "innate") {
+          Weapons.categories().forEach(function (cat) {
+            (cat.innateSkills || []).forEach(function (s) {
+              if (s.id === actualRef.id) skill = s;
+            });
+          });
+        }
+        if (!skill || skill.kind !== "Action") return;
+        entries.push({
+          id: "wpn:" + weaponId + ":" + actualRef.id,
+          name: skill.name,
+          body: skill.body,
+          kind: skill.kind,
+          weaponName: Weapons.localizedText(weapon.name),
+        });
+      });
+    });
+    return entries;
+  }
+
   // type（夜渡りタイプ）の全アビリティ/スキル/アーツ/遺物効果を
   // 「可発動技能（Action/Defense）」「被動能力（Passive）」の2コンテナに振り分けて描画する。
   // excludeDefense=trueの場合、［Defense］（防禦フェイズでの反応使用専用）は可発動技能に含めない
@@ -4401,6 +4444,7 @@
     renderDiceDisplay: renderDiceDisplay,
     MAX_DICE_POOL: MAX_DICE_POOL,
     renderRosterWeaponList: renderRosterWeaponList,
+    openWeaponDetailDrawer: openWeaponDetailDrawer,
     renderRosterTalismanList: renderRosterTalismanList,
     renderRosterConsumableList: renderRosterConsumableList,
     computeDiceStatus: computeDiceStatus,
@@ -4409,6 +4453,7 @@
     getFlaskHealBonus: getFlaskHealBonus,
     getSkillUsesBonus: getSkillUsesBonus,
     getCombatSkillEntries: getCombatSkillEntries,
+    getEquippedWeaponSkillEntries: getEquippedWeaponSkillEntries,
     computeWeaponDamage: computeWeaponDamage,
     weaponDamageTagText: weaponDamageTagText,
     parseActionCost: parseActionCost,
