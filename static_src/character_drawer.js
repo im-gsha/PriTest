@@ -2325,21 +2325,51 @@
     return { value: total, symbol: symbol };
   }
 
+  // 「2Hitアタックのダメージを「＋N」する」（拳・両刃剣・爪など。総合ダメージ表記ではないため
+  // extractTotalDamageBonusでは拾えない）を検出する。
+  var TWO_HIT_ATTACK_DAMAGE_RE = /2Hit.{0,2}アタックのダメージを[「\[]?[+＋]\s*(\d+)/;
+
   // 特典（2Hit専用）その2：武器カテゴリ自身が持つ「2Hitアタックによる総合ダメージ＋n」
   // （category.twoHitBonus、例：刀の「総合＆復帰ダメージ＋10」）。装備状態を問わず、その
   // カテゴリの武器であれば常に発揮される固有特典なので、talisman2HitBonusとは別に加算する。
-  function categoryTwoHitBonus(category) {
+  // ただし本文に「他の武器を装備状態にしておらず」等の単独装備条件が明記されている特典
+  // （拳・両刃剣・爪の「＋10」等）は、この武器を単独装備しているときだけ加算する。
+  function categoryTwoHitBonus(c, weaponId, category) {
     if (!category || !category.twoHitBonus) return { value: 0, symbol: null };
     var total = 0;
     var symbol = null;
+    var soloEquipped = (c.equippedWeaponIds || []).length === 1 && c.equippedWeaponIds[0] === weaponId;
     category.twoHitBonus.forEach(function (bonus) {
       var text = (bonus.body && bonus.body.ja) || (bonus.body && bonus.body.zh);
       if (!text) return;
+      if (text.indexOf("他の武器") !== -1 && !soloEquipped) return;
       var r = extractTotalDamageBonus(text);
+      if (r.value === 0 && !r.symbol) {
+        var m2 = TWO_HIT_ATTACK_DAMAGE_RE.exec(text);
+        if (m2) r = { value: parseInt(m2[1], 10), symbol: null };
+      }
       total += r.value;
       if (r.symbol) symbol = r.symbol;
     });
     return { value: total, symbol: symbol };
+  }
+
+  // 特典（2Hit専用）その3：武器カテゴリによっては、ダメージではなく「2Hitアタックの後、
+  // 自身のスタミナダイスに固定点数Nを追加する」という特典を持つ（槍・刺剣＝1、大槍・重刺剣＝2、
+  // 斧槍＝3）。ダメージ計算には関与しないため、実際にダイスを骰子池へ追加するのは
+  // combat攻撃actionの2Hit確定処理側で行う（この関数は加算すべき固定点数だけを返す）。
+  var TWO_HIT_STAMINA_DICE_RE = /スタミナダイスに(\d+)点を追加する/;
+
+  function categoryTwoHitDiceBonus(category) {
+    if (!category || !category.twoHitBonus) return 0;
+    var value = 0;
+    category.twoHitBonus.forEach(function (bonus) {
+      var text = (bonus.body && bonus.body.ja) || (bonus.body && bonus.body.zh);
+      if (!text) return;
+      var m = TWO_HIT_STAMINA_DICE_RE.exec(text);
+      if (m) value += parseInt(m[1], 10);
+    });
+    return value;
   }
 
   // 付帯効果（c.learnedAttachedEffects）：一部の効果は装備状況に条件がある
@@ -2424,7 +2454,7 @@
     });
 
     var talismanBonus = talisman2HitBonus(c, weaponId, category);
-    var categoryBonus = categoryTwoHitBonus(category);
+    var categoryBonus = categoryTwoHitBonus(c, weaponId, category);
     var bonus2hit = talismanBonus.value + categoryBonus.value;
     if (talismanBonus.symbol) hit2Symbol = talismanBonus.symbol;
     if (categoryBonus.symbol) hit2Symbol = categoryBonus.symbol;
@@ -2514,6 +2544,17 @@
     return { value: parseInt(m[1], 10) + artPower, symbol: extractDamageSymbol(bodyText) };
   }
 
+  // タイプ（夜渡りタイプ）レベルの技能・遺物効果向け：本文中の「【総合ダメージ：N（＋▲等）】」
+  // のように、武器の戦技威力に依存しない固定数値が直接書かれている場合だけそれを取り出す。
+  // 「装備中の近接武器1つの1Hitダメージ」のような武器依存の記述はNにマッチしないため、
+  // その場合は従来通りnull（数値を捏造しない）を返す。
+  function fixedSkillPowerValue(bodyText) {
+    var t = String(bodyText || "");
+    var m = /(?:総合ダメージ|總合傷害|總和傷害)[：:]\s*(-?\d+)(?:[＋+]([▲◆]))?/.exec(t);
+    if (!m) return null;
+    return { value: parseInt(m[1], 10), symbol: m[2] || null };
+  }
+
   // ============================================================
   // 骰子コスト（コスト／消耗欄）の解析・検証エンジン。
   // 対応する表記（ユーザー確認済みルール）：
@@ -2529,6 +2570,11 @@
 
   function parseFpCost(text) {
     var m = /FP[／\/]?(■+)/.exec(String(text || "")) || /FP(■+)/.exec(String(text || ""));
+    return m ? m[1].length : 0;
+  }
+
+  function parseHpCost(text) {
+    var m = /HP[／\/]?(■+)/.exec(String(text || "")) || /HP(■+)/.exec(String(text || ""));
     return m ? m[1].length : 0;
   }
 
@@ -2576,12 +2622,14 @@
     var token = extractCostToken(t);
     var dice = token ? classifyDiceCostToken(token) : null;
     var fpCost = parseFpCost(t);
+    var hpCost = parseHpCost(t);
     return {
       diceKind: dice ? dice.diceKind : null,
       diceCountMin: dice ? dice.diceCountMin : 0,
       diceCountMax: dice ? dice.diceCountMax : null,
       sumTotal: dice ? dice.sumTotal : null,
       fpCost: fpCost,
+      hpCost: hpCost,
     };
   }
 
@@ -3965,6 +4013,7 @@
           body: skill.body,
           kind: skill.kind,
           weaponName: Weapons.localizedText(weapon.name),
+          weaponId: weaponId,
         });
       });
     });
@@ -4454,6 +4503,7 @@
     getSkillUsesBonus: getSkillUsesBonus,
     getCombatSkillEntries: getCombatSkillEntries,
     getEquippedWeaponSkillEntries: getEquippedWeaponSkillEntries,
+    categoryTwoHitDiceBonus: categoryTwoHitDiceBonus,
     computeWeaponDamage: computeWeaponDamage,
     weaponDamageTagText: weaponDamageTagText,
     parseActionCost: parseActionCost,
@@ -4464,6 +4514,7 @@
     computeArtPower: computeArtPower,
     artSkillPowerValue: artSkillPowerValue,
     spellSkillPowerValue: spellSkillPowerValue,
+    fixedSkillPowerValue: fixedSkillPowerValue,
     formatValueWithSymbol: formatValueWithSymbol,
   };
 })();

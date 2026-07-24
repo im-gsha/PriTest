@@ -2425,9 +2425,9 @@
   function renderCombatAttackAction(c, content) {
     var Weapons = window.PriTestWeapons;
     var equippedIds = (c.equippedWeaponIds || []).filter(function (id) {
-      var w = Weapons.get(id.indexOf("::") !== -1 ? id.slice(0, id.indexOf("::")) : id);
-      var cat = w ? Weapons.getCategory(w.category) : null;
-      return cat && !cat.isShield;
+      // 盾は元々除外していたが、杖・聖印（1Hit/2Hitの概念を持たない武器種）はcomputeWeaponDamage
+      // がnullを返すことを判定基準にして同様に除外する（通常攻撃を行えない武器種のため）。
+      return CharacterDrawer.computeWeaponDamage(c, id) !== null;
     });
     if (!equippedIds.length) {
       var empty = document.createElement("p");
@@ -2495,14 +2495,25 @@
       if (combatAttackState && combatAttackState.weaponId === weaponId) {
         var hitType = combatAttackState.hitType;
         var cost = attackCost ? attackCost[hitType] : null;
-        renderDiceCostAction(c, content, cost, function (dice) {
+        renderDiceCostAction(c, content, cost, function (dice, costLines) {
           var dmgValue = hitType === "hit1" ? damage.hit1Damage : damage.hit2Damage;
           var dmgSymbol = hitType === "hit1" ? damage.hit1Symbol : damage.hit2Symbol;
+          var lines = [window.I18N.t("action_log_dice_used", { dice: dice.join("、") })].concat(costLines);
+          // 一部の武器カテゴリ（槍・刺剣＝1、大槍・重刺剣＝2、斧槍＝3）は、2Hitアタック後に
+          // 固定点数のダイスをスタミナダイス（骰子池）へ追加する特典を持つ。
+          if (hitType === "hit2") {
+            var diceBonus = CharacterDrawer.categoryTwoHitDiceBonus(category);
+            if (diceBonus > 0) {
+              if (!c.dicePool) c.dicePool = [];
+              c.dicePool.push(diceBonus);
+              lines.push(window.I18N.t("action_log_dice_granted", { value: diceBonus }));
+            }
+          }
           addActionBox(
             c,
             Weapons.localizedText(weapon.name) + "（" + window.I18N.t(hitType === "hit1" ? "combat_attack_hit1_button" : "combat_attack_hit2_button") + "）",
             window.I18N.t("action_log_damage_total", { value: CharacterDrawer.formatValueWithSymbol(dmgValue, dmgSymbol) }),
-            [window.I18N.t("action_log_dice_used", { dice: dice.join("、") })]
+            lines
           );
           addLog("log_combat_attack", {
             character: c.name,
@@ -2519,6 +2530,25 @@
 
   // 技能action中「どの技能を使おうとしているか」の一時状態（entry.idまたは配列index）。
   var combatSkillState = null;
+
+  // 技能entryの計算済み傷害を求める。装備武器の戦技（entry.weaponIdあり）はcomputeArtPower＋
+  // artSkillPowerValue／spellSkillPowerValue（杖・聖印カテゴリのみ）で、タイプレベルの技能・
+  // 遺物効果はfixedSkillPowerValue（本文に固定数値の総合ダメージが書かれている場合のみ）で
+  // 求める。武器依存の記述など計算不能な場合はnullを返す（数値を捏造しない）。
+  function computeSkillDamage(c, entry, body) {
+    if (!entry.weaponId) return CharacterDrawer.fixedSkillPowerValue(body);
+    var Weapons = window.PriTestWeapons;
+    var baseId = entry.weaponId.indexOf("::") !== -1 ? entry.weaponId.slice(0, entry.weaponId.indexOf("::")) : entry.weaponId;
+    var weapon = Weapons.get(baseId);
+    if (!weapon) return null;
+    var category = Weapons.getCategory(weapon.category);
+    var artInfo = CharacterDrawer.computeArtPower(c, entry.weaponId);
+    if (!artInfo) return null;
+    var isSpellCategory = category && (category.id === "staff" || category.id === "sacred_seal");
+    return isSpellCategory
+      ? CharacterDrawer.spellSkillPowerValue(body, artInfo.artPower)
+      : CharacterDrawer.artSkillPowerValue(body, artInfo.artPower);
+  }
 
   function renderCombatSkillAction(c, content) {
     var type = c.typeId ? CharacterTypes.get(c.typeId) : null;
@@ -2590,12 +2620,14 @@
 
       if (isActive) {
         var cost = CharacterDrawer.parseActionCost(body);
-        renderDiceCostAction(c, content, cost, function (dice) {
+        renderDiceCostAction(c, content, cost, function (dice, costLines) {
           if (entry.uses && entry.id) {
             if (!c.abilityUses) c.abilityUses = {};
             c.abilityUses[entry.id] = Math.max(0, (remaining !== null ? remaining : effectiveMax) - 1);
           }
-          addActionBox(c, name, null, [window.I18N.t("action_log_dice_used", { dice: dice.join("、") })]);
+          var dmg = computeSkillDamage(c, entry, body);
+          var total = dmg ? window.I18N.t("action_log_damage_total", { value: CharacterDrawer.formatValueWithSymbol(dmg.value, dmg.symbol) }) : null;
+          addActionBox(c, name, total, [window.I18N.t("action_log_dice_used", { dice: dice.join("、") })].concat(costLines));
           addLog("log_combat_skill_use", { character: c.name, skill: name, dice: dice.join("、") });
           combatSkillState = null;
         });
@@ -2649,27 +2681,46 @@
       fpEl.textContent = window.I18N.t("dice_cost_fp_label", { fp: cost.fpCost });
       content.appendChild(fpEl);
     }
+    if (cost && cost.hpCost) {
+      var hpEl = document.createElement("p");
+      hpEl.className = "threat-ref-body";
+      hpEl.textContent = window.I18N.t("dice_cost_hp_label", { hp: cost.hpCost });
+      content.appendChild(hpEl);
+    }
 
     renderCombatDicePicker(c, content);
 
     var selectedValues = combatDiceSelection.map(function (idx) {
       return c.dicePool[idx];
     });
-    var diceValid = cost && cost.diceKind ? CharacterDrawer.validateDiceSelection(cost, selectedValues) : combatDiceSelection.length > 0;
+    // validateDiceSelectionは骰子コストが無い（diceKindがnull、例：「コスト：使用回数●」の
+    // ように使用回数だけを消費する技能）場合、骰子0個の選択を正当とみなす（骰子を1個も
+    // 選ばなくても確定できる）。攻撃action等、常に骰子コストを持つ呼び出し元には影響しない。
+    var diceValid = CharacterDrawer.validateDiceSelection(cost, selectedValues);
     var fpOk = !cost || !cost.fpCost || (c.fp && c.fp.current >= cost.fpCost);
+    var hpOk = !cost || !cost.hpCost || (c.hp && c.hp.current >= cost.hpCost);
     if (cost && cost.fpCost && !fpOk) showCombatError("combat_error_insufficient_fp");
+    else if (cost && cost.hpCost && !hpOk) showCombatError("combat_error_insufficient_hp");
 
     var confirmBtn = document.createElement("button");
     confirmBtn.type = "button";
     confirmBtn.className = "primary-btn";
     confirmBtn.textContent = window.I18N.t("combat_confirm_button");
-    confirmBtn.disabled = !diceValid || !fpOk;
+    confirmBtn.disabled = !diceValid || !fpOk || !hpOk;
     confirmBtn.addEventListener("click", function () {
       var dice = consumeCombatDice(c);
-      if (cost && cost.fpCost) c.fp.current = Math.max(0, c.fp.current - cost.fpCost);
+      var costLines = [];
+      if (cost && cost.fpCost) {
+        c.fp.current = Math.max(0, c.fp.current - cost.fpCost);
+        costLines.push(window.I18N.t("action_log_fp_used", { fp: cost.fpCost }));
+      }
+      if (cost && cost.hpCost) {
+        c.hp.current = Math.max(0, c.hp.current - cost.hpCost);
+        costLines.push(window.I18N.t("action_log_hp_used", { hp: cost.hpCost }));
+      }
       combatDiceSelection = [];
       saveRosterCharacters();
-      onConfirm(dice);
+      onConfirm(dice, costLines);
       renderCharacterRoster();
       renderCombatModal();
     });
