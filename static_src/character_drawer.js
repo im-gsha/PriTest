@@ -2394,12 +2394,13 @@
 
     var hit1Base = artPower + weaponPowerBase;
 
+    var charType = c.typeId ? CharacterTypes.get(c.typeId) : null;
     var relic1 = 0,
       relic2 = 0,
       hit1Symbol = null,
       hit2Symbol = null;
     (c.learnedRelicEffects || []).forEach(function (key) {
-      var effect = type ? relicEffectForKey(type, key) : null;
+      var effect = charType ? relicEffectForKey(charType, key) : null;
       if (!effect || effect.kind !== "Passive") return;
       var bJa = extractHitBonus(effect.body && effect.body.ja);
       var b = bJa[0] || bJa[1] || bJa[2] || bJa[3] ? bJa : extractHitBonus(effect.body && effect.body.zh);
@@ -2511,6 +2512,137 @@
     var m = /威力[：:]\s*(-?\d+)/.exec(String(bodyText || ""));
     if (!m) return null;
     return { value: parseInt(m[1], 10) + artPower, symbol: extractDamageSymbol(bodyText) };
+  }
+
+  // ============================================================
+  // 骰子コスト（コスト／消耗欄）の解析・検証エンジン。
+  // 対応する表記（ユーザー確認済みルール）：
+  //   ・ゾロ／豹子／ソロ（N個）：同じ出目のダイスN個（ソロはゾロと同義、ルールブックの
+  //     表記ゆれ／誤植と判断）
+  //   ・連番／連號（N個）：連続する出目のダイスN個（重複不可）
+  //   ・①②③のような丸数字の並び：各数字を合計した値が「必要な出目合計」になる
+  //     （例：「③③」＝3+3=6必要、2+4の2個のダイスでも支払い可）
+  //   ・「／FP■」：FPコスト（■の個数＝必要FP）
+  //   （N〜M個）のように範囲がある場合は、その個数の範囲内であれば良い。
+  // ============================================================
+  var CIRCLED_DIGIT_MAP = { "①": 1, "②": 2, "③": 3, "④": 4, "⑤": 5, "⑥": 6 };
+
+  function parseFpCost(text) {
+    var m = /FP[／\/]?(■+)/.exec(String(text || "")) || /FP(■+)/.exec(String(text || ""));
+    return m ? m[1].length : 0;
+  }
+
+  // 「コスト：...」「消耗：...」の後ろにある、骰子コストのトークン部分（／FPや空白の手前まで）
+  // だけを取り出す。
+  function extractCostToken(text) {
+    var m = /(?:コスト|消耗)[：:]\s*([^\s／\/]+)/.exec(String(text || ""));
+    return m ? m[1] : null;
+  }
+
+  // 骰子コストの1トークン（例："ゾロ（2個）"「①①」「連番（2〜3個）"）を解析する。
+  // 戻り値: { diceKind: "same"|"straight"|"sum"|null, diceCountMin, diceCountMax, sumTotal }
+  function classifyDiceCostToken(token) {
+    if (!token) return null;
+    var sameMatch = /(?:ゾロ|豹子|ソロ)[（(](\d+)(?:[〜～](\d+))?個[）)]/.exec(token);
+    if (sameMatch) {
+      var sMin = parseInt(sameMatch[1], 10);
+      return { diceKind: "same", diceCountMin: sMin, diceCountMax: sameMatch[2] ? parseInt(sameMatch[2], 10) : sMin, sumTotal: null };
+    }
+    var straightMatch = /(?:連番|連號)[（(](\d+)(?:[〜～](\d+))?個[）)]/.exec(token);
+    if (straightMatch) {
+      var stMin = parseInt(straightMatch[1], 10);
+      return {
+        diceKind: "straight",
+        diceCountMin: stMin,
+        diceCountMax: straightMatch[2] ? parseInt(straightMatch[2], 10) : stMin,
+        sumTotal: null,
+      };
+    }
+    var circledChars = token.match(/[①②③④⑤⑥]/g);
+    if (circledChars && circledChars.length) {
+      var sum = 0;
+      circledChars.forEach(function (ch) {
+        sum += CIRCLED_DIGIT_MAP[ch] || 0;
+      });
+      return { diceKind: "sum", diceCountMin: 1, diceCountMax: null, sumTotal: sum };
+    }
+    return null;
+  }
+
+  // 技能／護符等の本文から「コスト：」欄全体（骰子コスト＋FPコスト）を解析する。
+  // 骰子コストが無い（FPのみ、または無コスト）場合はdiceKindがnullになる。
+  function parseActionCost(text) {
+    var t = String(text || "");
+    var token = extractCostToken(t);
+    var dice = token ? classifyDiceCostToken(token) : null;
+    var fpCost = parseFpCost(t);
+    return {
+      diceKind: dice ? dice.diceKind : null,
+      diceCountMin: dice ? dice.diceCountMin : 0,
+      diceCountMax: dice ? dice.diceCountMax : null,
+      sumTotal: dice ? dice.sumTotal : null,
+      fpCost: fpCost,
+    };
+  }
+
+  // 武器カテゴリのattackCost欄「1Hit：③／2Hit：③③」を1Hit・2Hitそれぞれのコストへ分解する。
+  function parseAttackCost(text) {
+    var t = String(text || "");
+    var m = /1Hit[：:]\s*([^／\/]+)[／\/]2Hit[：:]\s*([^／\/]+)/.exec(t);
+    if (!m) return null;
+    return {
+      hit1: classifyDiceCostToken(m[1].trim()) || { diceKind: null, diceCountMin: 0, diceCountMax: null, sumTotal: null },
+      hit2: classifyDiceCostToken(m[2].trim()) || { diceKind: null, diceCountMin: 0, diceCountMax: null, sumTotal: null },
+    };
+  }
+
+  // 選択した骰子の出目配列（values）が、costの条件を満たすかどうかを判定する。
+  function validateDiceSelection(cost, values) {
+    if (!cost || !cost.diceKind) return values.length === 0;
+    if (!values || !values.length) return false;
+    if (cost.diceKind === "sum") {
+      var sum = values.reduce(function (a, b) {
+        return a + b;
+      }, 0);
+      return sum >= cost.sumTotal;
+    }
+    var count = values.length;
+    if (count < cost.diceCountMin || (cost.diceCountMax !== null && count > cost.diceCountMax)) return false;
+    if (cost.diceKind === "same") {
+      return values.every(function (v) {
+        return v === values[0];
+      });
+    }
+    if (cost.diceKind === "straight") {
+      var sorted = values.slice().sort(function (a, b) {
+        return a - b;
+      });
+      for (var i = 1; i < sorted.length; i++) {
+        if (sorted[i] !== sorted[i - 1] + 1) return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  // コストを短い参考文字列にする（骰子選択UIの説明用）。
+  function describeDiceCost(cost) {
+    if (!cost || !cost.diceKind) return null;
+    var countLabel = cost.diceCountMax && cost.diceCountMax !== cost.diceCountMin ? cost.diceCountMin + "〜" + cost.diceCountMax : cost.diceCountMin;
+    if (cost.diceKind === "same") return window.I18N.t("dice_cost_same_label", { count: countLabel });
+    if (cost.diceKind === "straight") return window.I18N.t("dice_cost_straight_label", { count: countLabel });
+    if (cost.diceKind === "sum") return window.I18N.t("dice_cost_sum_label", { total: cost.sumTotal });
+    return null;
+  }
+
+  // 隊列制限「隊列：前衛のとき使用可能」「隊列：後衛のとき使用可能」を検出する。
+  // 「前衛・後衛どちらでも使用可能」やそもそも記載が無い場合はnull（制限なし）を返す。
+  function parsePositionRestriction(text) {
+    var t = String(text || "");
+    if (t.indexOf("前衛・後衛どちらでも") !== -1 || t.indexOf("前衛・後衛皆可") !== -1) return null;
+    if (t.indexOf("前衛のとき使用可能") !== -1 || t.indexOf("前衛時可使用") !== -1) return "front";
+    if (t.indexOf("後衛のとき使用可能") !== -1 || t.indexOf("後衛時可使用") !== -1) return "back";
+    return null;
   }
 
   function findNotePlaceholderWeapon(categoryId, rarity) {
@@ -3636,6 +3768,7 @@
       equippedWeaponIds: [],
       talismanIds: [],
       consumableCounts: {},
+      pendingActionBoxes: [],
     };
   }
 
@@ -3775,6 +3908,24 @@
     details.appendChild(body);
 
     container.appendChild(details);
+  }
+
+  // 戦闘モーダルの「技能」action用：レベル到達済み・Passive／Defenseを除いた、実際に使用ボタンを
+  // 出す対象の技能一覧を返す（可発動技能＝Action、防禦フェイズ専用のDefenseは除外）。
+  function getCombatSkillEntries(c, type) {
+    if (!type) return [];
+    var entries = [].concat(type.abilities || []).concat(type.skills || []).concat(type.arts || []);
+    var learned = c.learnedRelicEffects || [];
+    (type.relicEffectGroups || []).forEach(function (g, gi) {
+      g.effects.forEach(function (e, ei) {
+        if (learned.indexOf(relicEffectKey(type.id, gi, ei)) !== -1) entries.push(e);
+      });
+    });
+    return entries.filter(function (entry) {
+      if (entry.kind === "Passive" || entry.kind === "Defense") return false;
+      if (entry.level && c.level < entry.level) return false;
+      return true;
+    });
   }
 
   // type（夜渡りタイプ）の全アビリティ/スキル/アーツ/遺物効果を
@@ -4256,5 +4407,18 @@
     renderDiceStatusLabel: renderDiceStatusLabel,
     getPassiveAggroBonus: getPassiveAggroBonus,
     getFlaskHealBonus: getFlaskHealBonus,
+    getSkillUsesBonus: getSkillUsesBonus,
+    getCombatSkillEntries: getCombatSkillEntries,
+    computeWeaponDamage: computeWeaponDamage,
+    weaponDamageTagText: weaponDamageTagText,
+    parseActionCost: parseActionCost,
+    parseAttackCost: parseAttackCost,
+    validateDiceSelection: validateDiceSelection,
+    describeDiceCost: describeDiceCost,
+    parsePositionRestriction: parsePositionRestriction,
+    computeArtPower: computeArtPower,
+    artSkillPowerValue: artSkillPowerValue,
+    spellSkillPowerValue: spellSkillPowerValue,
+    formatValueWithSymbol: formatValueWithSymbol,
   };
 })();

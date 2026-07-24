@@ -1296,6 +1296,83 @@ button {
   font-weight: 600;
 }
 
+.combat-attack-weapon-row,
+.combat-skill-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.combat-attack-weapon-name,
+.combat-skill-name {
+  font-weight: 600;
+  flex: 1 1 auto;
+  min-width: 6rem;
+}
+
+.combat-attack-hit-btn {
+  border: 1px solid #888;
+  border-radius: 6px;
+  background: #fff;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.combat-attack-hit-btn.active {
+  background: #2d6cdf;
+  border-color: #2d6cdf;
+  color: #fff;
+}
+
+.combat-attack-hit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-log-box {
+  position: relative;
+  border: 1px dashed #999;
+  border-radius: 8px;
+  padding: 0.5rem 1.4rem 0.5rem 0.5rem;
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+}
+
+.action-log-close {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  line-height: 1;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.action-log-total {
+  margin: 0 0 0.2rem;
+  font-weight: 700;
+  color: #d64545;
+}
+
+.action-log-title {
+  margin: 0 0 0.15rem;
+  font-weight: 600;
+}
+
+.action-log-line {
+  margin: 0;
+  color: #666;
+}
+
 .dice-status-label {
   margin: 0.3rem 0 0;
   font-size: 0.8rem;

@@ -198,6 +198,13 @@
       });
       diceCol.appendChild(combatBtn);
 
+      var actionCol = document.createElement("div");
+      actionCol.className = "roster-detail-col";
+      var actionTitle = document.createElement("h5");
+      actionTitle.textContent = window.I18N.t("action_log_column_title");
+      actionCol.appendChild(actionTitle);
+      renderActionBoxes(c, actionCol);
+
       var weaponCol = document.createElement("div");
       weaponCol.className = "roster-detail-col";
       var weaponTitle = document.createElement("h5");
@@ -229,6 +236,7 @@
       consumableCol.appendChild(consumableWrap);
 
       detailFlex.appendChild(diceCol);
+      detailFlex.appendChild(actionCol);
       detailFlex.appendChild(weaponCol);
       detailFlex.appendChild(talismanCol);
       detailFlex.appendChild(consumableCol);
@@ -2167,6 +2175,15 @@
       });
   }
 
+  // キャラクターが現在、前衛／後衛どちらのマスにいるかを返す（"front"/"back"）。
+  // 戦場に入っていない（BATTLE_SLOT_COUNTを超える、または未エントリー）場合はnull。
+  function getCharacterBattlePosition(c) {
+    var names = battlePositionNames();
+    var idx = names.indexOf(c.name);
+    if (idx === -1 || idx >= BATTLE_SLOT_COUNT) return null;
+    return state.battle.front[idx] ? "front" : "back";
+  }
+
   function buildBattlePositionGrid(containerId, valuesArray, names) {
     var container = document.getElementById(containerId);
     if (!container) return;
@@ -2313,9 +2330,63 @@
     renderBattlePositionAreas();
   }
 
+  // --- 実行アクションログ（点線枠のボックス）：戦闘の6行動いずれかで骰子決済が完了するたびに、
+  // 盤面ロスターの各角色エリアへ実行結果を記録する。右上のXでいつでも消去できる。
+  function addActionBox(c, title, total, lines) {
+    if (!c.pendingActionBoxes) c.pendingActionBoxes = [];
+    c.pendingActionBoxes.push({
+      id: "ab" + Date.now() + Math.floor(Math.random() * 1000),
+      title: title,
+      total: total,
+      lines: lines || [],
+    });
+    saveRosterCharacters();
+  }
+
+  function removeActionBox(c, boxId) {
+    c.pendingActionBoxes = (c.pendingActionBoxes || []).filter(function (b) {
+      return b.id !== boxId;
+    });
+    saveRosterCharacters();
+    renderCharacterRoster();
+  }
+
+  function renderActionBoxes(c, container) {
+    (c.pendingActionBoxes || []).forEach(function (box) {
+      var el = document.createElement("div");
+      el.className = "action-log-box";
+      var closeBtn = document.createElement("button");
+      closeBtn.type = "button";
+      closeBtn.className = "action-log-close";
+      closeBtn.textContent = "×";
+      closeBtn.title = window.I18N.t("action_log_clear_button");
+      closeBtn.addEventListener("click", function () {
+        removeActionBox(c, box.id);
+      });
+      el.appendChild(closeBtn);
+      if (box.total) {
+        var totalEl = document.createElement("p");
+        totalEl.className = "action-log-total";
+        totalEl.textContent = box.total;
+        el.appendChild(totalEl);
+      }
+      var titleEl = document.createElement("p");
+      titleEl.className = "action-log-title";
+      titleEl.textContent = box.title;
+      el.appendChild(titleEl);
+      (box.lines || []).forEach(function (line) {
+        var lineEl = document.createElement("p");
+        lineEl.className = "action-log-line";
+        lineEl.textContent = line;
+        el.appendChild(lineEl);
+      });
+      container.appendChild(el);
+    });
+  }
+
   // --- 戦闘モーダル：骰子池の隣の「戦闘」ボタンから開く、6つの行動（攻撃／技能／聖杯瓶使用／
-  // 消耗品使用／移動区域／装備変更）を選ぶウィンドウ。攻撃・技能は閲覧専用（骰子消費なし）、
-  // 残り4つは対象の骰子池から消費する骰子を選んでから確定する。
+  // 消耗品使用／移動区域／装備変更）を選ぶウィンドウ。骰子決済を伴う行動は、確定時にaddActionBoxで
+  // 盤面ロスターへ実行ログを記録する。
   var combatModalCharacterId = null;
   var combatModalAction = null;
   var combatDiceSelection = [];
@@ -2347,38 +2418,178 @@
     errEl.hidden = false;
   }
 
+  // 攻撃action中「どの武器のどちらのHitを実行しようとしているか」の一時状態。
+  // アクションを閉じる／別のアクションに切り替えるたびにnullへ戻す。
+  var combatAttackState = null; // { weaponId, hitType: "hit1"|"hit2" } | null
+
   function renderCombatAttackAction(c, content) {
-    var wrap = document.createElement("div");
-    CharacterDrawer.renderRosterWeaponList(c, wrap, { attackOnly: true });
-    if (!wrap.children.length) {
+    var Weapons = window.PriTestWeapons;
+    var equippedIds = (c.equippedWeaponIds || []).filter(function (id) {
+      var w = Weapons.get(id.indexOf("::") !== -1 ? id.slice(0, id.indexOf("::")) : id);
+      var cat = w ? Weapons.getCategory(w.category) : null;
+      return cat && !cat.isShield;
+    });
+    if (!equippedIds.length) {
       var empty = document.createElement("p");
       empty.className = "threat-ref-body";
       empty.textContent = window.I18N.t("combat_no_weapons_note");
       content.appendChild(empty);
       return;
     }
-    content.appendChild(wrap);
+
+    equippedIds.forEach(function (weaponId) {
+      var baseId = weaponId.indexOf("::") !== -1 ? weaponId.slice(0, weaponId.indexOf("::")) : weaponId;
+      var weapon = Weapons.get(baseId);
+      var category = Weapons.getCategory(weapon.category);
+      var damage = CharacterDrawer.computeWeaponDamage(c, weaponId);
+      var attackCost = CharacterDrawer.parseAttackCost(Weapons.localizedText(category.basicStats.attackCost));
+      // 基本1Hit/2Hit攻撃のコスト表記（"1Hit：.../2Hit：..."）自体には現状、隊列限定の記述は
+      // 含まれない（隊列限定は個別技能の本文にのみ現れる）が、将来データが追加された場合に
+      // 備え、同じ判定ロジックを明示的に通しておく（現状は常にnull＝制限なし）。
+      var posRestriction = CharacterDrawer.parsePositionRestriction(Weapons.localizedText(category.basicStats.attackCost));
+      var charPos = getCharacterBattlePosition(c);
+      var posOk = !posRestriction || posRestriction === charPos;
+
+      var row = document.createElement("div");
+      row.className = "combat-attack-weapon-row";
+      var nameEl = document.createElement("span");
+      nameEl.className = "combat-attack-weapon-name";
+      nameEl.textContent = Weapons.localizedText(weapon.name);
+      row.appendChild(nameEl);
+      if (damage) {
+        var dmgTag = document.createElement("span");
+        dmgTag.className = "weapon-damage-tag";
+        dmgTag.textContent = " " + CharacterDrawer.weaponDamageTagText(damage);
+        row.appendChild(dmgTag);
+      }
+      if (posRestriction) {
+        var posEl = document.createElement("span");
+        posEl.className = "ability-uses-label";
+        posEl.textContent = window.I18N.t("combat_skill_position_label", {
+          position: window.I18N.t(posRestriction === "front" ? "dice_status_front" : "dice_status_back"),
+        });
+        row.appendChild(posEl);
+      }
+
+      ["hit1", "hit2"].forEach(function (hitType) {
+        var hitBtn = document.createElement("button");
+        hitBtn.type = "button";
+        hitBtn.className = "combat-attack-hit-btn";
+        hitBtn.textContent = window.I18N.t(hitType === "hit1" ? "combat_attack_hit1_button" : "combat_attack_hit2_button");
+        var isActive = combatAttackState && combatAttackState.weaponId === weaponId && combatAttackState.hitType === hitType;
+        if (isActive) hitBtn.classList.add("active");
+        if (!posOk) hitBtn.disabled = true;
+        hitBtn.addEventListener("click", function () {
+          combatAttackState = isActive ? null : { weaponId: weaponId, hitType: hitType };
+          combatDiceSelection = [];
+          renderCombatModal();
+        });
+        row.appendChild(hitBtn);
+      });
+      content.appendChild(row);
+
+      if (combatAttackState && combatAttackState.weaponId === weaponId) {
+        var hitType = combatAttackState.hitType;
+        var cost = attackCost ? attackCost[hitType] : null;
+        renderDiceCostAction(c, content, cost, function (dice) {
+          var dmgValue = hitType === "hit1" ? damage.hit1Damage : damage.hit2Damage;
+          var dmgSymbol = hitType === "hit1" ? damage.hit1Symbol : damage.hit2Symbol;
+          addActionBox(
+            c,
+            Weapons.localizedText(weapon.name) + "（" + window.I18N.t(hitType === "hit1" ? "combat_attack_hit1_button" : "combat_attack_hit2_button") + "）",
+            window.I18N.t("action_log_damage_total", { value: CharacterDrawer.formatValueWithSymbol(dmgValue, dmgSymbol) }),
+            [window.I18N.t("action_log_dice_used", { dice: dice.join("、") })]
+          );
+          addLog("log_combat_attack", {
+            character: c.name,
+            weapon: Weapons.localizedText(weapon.name),
+            hit: window.I18N.t(hitType === "hit1" ? "combat_attack_hit1_button" : "combat_attack_hit2_button"),
+            damage: CharacterDrawer.formatValueWithSymbol(dmgValue, dmgSymbol),
+            dice: dice.join("、"),
+          });
+          combatAttackState = null;
+        });
+      }
+    });
   }
+
+  // 技能action中「どの技能を使おうとしているか」の一時状態（entry.idまたは配列index）。
+  var combatSkillState = null;
 
   function renderCombatSkillAction(c, content) {
     var type = c.typeId ? CharacterTypes.get(c.typeId) : null;
-    if (!type) {
+    var entries = type ? CharacterDrawer.getCombatSkillEntries(c, type) : [];
+    if (!entries.length) {
       var empty = document.createElement("p");
       empty.className = "threat-ref-body";
       empty.textContent = window.I18N.t("combat_no_skills_note");
       content.appendChild(empty);
       return;
     }
-    var activeWrap = document.createElement("div");
-    CharacterDrawer.renderAbilitySections(c, type, activeWrap, document.createElement("div"), true);
-    if (!activeWrap.children.length) {
-      var empty2 = document.createElement("p");
-      empty2.className = "threat-ref-body";
-      empty2.textContent = window.I18N.t("combat_no_skills_note");
-      content.appendChild(empty2);
-      return;
-    }
-    content.appendChild(activeWrap);
+
+    var usesBonus = CharacterDrawer.getSkillUsesBonus(c);
+
+    entries.forEach(function (entry, idx) {
+      var key = entry.id || "entry" + idx;
+      var name = CharacterTypes.localizedText(entry.name);
+      var body = CharacterTypes.localizedText(entry.body);
+
+      var row = document.createElement("div");
+      row.className = "combat-skill-row";
+      var nameEl = document.createElement("span");
+      nameEl.className = "combat-skill-name";
+      nameEl.textContent = name + "［" + entry.kind + "］";
+      row.appendChild(nameEl);
+
+      var effectiveMax = entry.uses ? entry.uses + usesBonus : null;
+      var remaining = effectiveMax !== null ? (typeof (c.abilityUses && c.abilityUses[entry.id]) === "number" ? c.abilityUses[entry.id] : effectiveMax) : null;
+      if (effectiveMax !== null) {
+        var usesEl = document.createElement("span");
+        usesEl.className = "ability-uses-label";
+        usesEl.textContent = window.I18N.t("action_log_uses_remaining", { current: remaining, max: effectiveMax });
+        row.appendChild(usesEl);
+      }
+
+      var posRestriction = CharacterDrawer.parsePositionRestriction(body);
+      var charPos = getCharacterBattlePosition(c);
+      var posOk = !posRestriction || posRestriction === charPos;
+      if (posRestriction) {
+        var posEl = document.createElement("span");
+        posEl.className = "ability-uses-label";
+        posEl.textContent = window.I18N.t("combat_skill_position_label", {
+          position: window.I18N.t(posRestriction === "front" ? "dice_status_front" : "dice_status_back"),
+        });
+        row.appendChild(posEl);
+      }
+
+      var useBtn = document.createElement("button");
+      useBtn.type = "button";
+      useBtn.className = "combat-attack-hit-btn";
+      useBtn.textContent = window.I18N.t("combat_skill_use_button");
+      if ((effectiveMax !== null && remaining <= 0) || !posOk) useBtn.disabled = true;
+      var isActive = combatSkillState === key;
+      if (isActive) useBtn.classList.add("active");
+      useBtn.addEventListener("click", function () {
+        combatSkillState = isActive ? null : key;
+        combatDiceSelection = [];
+        renderCombatModal();
+      });
+      row.appendChild(useBtn);
+      content.appendChild(row);
+
+      if (isActive) {
+        var cost = CharacterDrawer.parseActionCost(body);
+        renderDiceCostAction(c, content, cost, function (dice) {
+          if (entry.uses && entry.id) {
+            if (!c.abilityUses) c.abilityUses = {};
+            c.abilityUses[entry.id] = Math.max(0, (remaining !== null ? remaining : effectiveMax) - 1);
+          }
+          addActionBox(c, name, null, [window.I18N.t("action_log_dice_used", { dice: dice.join("、") })]);
+          addLog("log_combat_skill_use", { character: c.name, skill: name, dice: dice.join("、") });
+          combatSkillState = null;
+        });
+      }
+    });
   }
 
   // 骰子消費を伴う4アクション（聖杯瓶使用／消耗品使用／移動区域／装備変更）共通の骰子選択UI。
@@ -2406,6 +2617,52 @@
       note.textContent = window.I18N.t("combat_no_dice_note");
       content.appendChild(note);
     }
+  }
+
+  // 骰子決済（＋あればFP消費）を伴う汎用アクションUI。costの条件（コスト無しならとにかく
+  // 1個以上選べば良い）を満たし、FPが足りていれば確定ボタンが有効になる。確定時にonConfirm(dice)
+  // を呼んでから骰子/FPを消費・保存・再描画する。
+  function renderDiceCostAction(c, content, cost, onConfirm) {
+    if (cost && cost.diceKind) {
+      var desc = CharacterDrawer.describeDiceCost(cost);
+      if (desc) {
+        var descEl = document.createElement("p");
+        descEl.className = "threat-ref-body";
+        descEl.textContent = desc;
+        content.appendChild(descEl);
+      }
+    }
+    if (cost && cost.fpCost) {
+      var fpEl = document.createElement("p");
+      fpEl.className = "threat-ref-body";
+      fpEl.textContent = window.I18N.t("dice_cost_fp_label", { fp: cost.fpCost });
+      content.appendChild(fpEl);
+    }
+
+    renderCombatDicePicker(c, content);
+
+    var selectedValues = combatDiceSelection.map(function (idx) {
+      return c.dicePool[idx];
+    });
+    var diceValid = cost && cost.diceKind ? CharacterDrawer.validateDiceSelection(cost, selectedValues) : combatDiceSelection.length > 0;
+    var fpOk = !cost || !cost.fpCost || (c.fp && c.fp.current >= cost.fpCost);
+    if (cost && cost.fpCost && !fpOk) showCombatError("combat_error_insufficient_fp");
+
+    var confirmBtn = document.createElement("button");
+    confirmBtn.type = "button";
+    confirmBtn.className = "primary-btn";
+    confirmBtn.textContent = window.I18N.t("combat_confirm_button");
+    confirmBtn.disabled = !diceValid || !fpOk;
+    confirmBtn.addEventListener("click", function () {
+      var dice = consumeCombatDice(c);
+      if (cost && cost.fpCost) c.fp.current = Math.max(0, c.fp.current - cost.fpCost);
+      combatDiceSelection = [];
+      saveRosterCharacters();
+      onConfirm(dice);
+      renderCharacterRoster();
+      renderCombatModal();
+    });
+    content.appendChild(confirmBtn);
   }
 
   function consumeCombatDice(c) {
@@ -2455,6 +2712,9 @@
       combatDiceSelection = [];
       saveRosterCharacters();
       addLog("log_combat_flask_use", { character: c.name, dice: dice.join("、"), amount: healAmount });
+      addActionBox(c, window.I18N.t("combat_action_flask"), window.I18N.t("action_log_heal_total", { value: healAmount }), [
+        window.I18N.t("action_log_dice_used", { dice: dice.join("、") }),
+      ]);
       renderCharacterRoster();
       renderCombatModal();
     });
@@ -2503,6 +2763,7 @@
         item: item ? Consumables.localizedText(item.name) : id,
         dice: dice.join("、"),
       });
+      addActionBox(c, item ? Consumables.localizedText(item.name) : id, null, [window.I18N.t("action_log_dice_used", { dice: dice.join("、") })]);
       renderCharacterRoster();
       renderCombatModal();
     });
@@ -2549,6 +2810,13 @@
         area: window.I18N.t(state.battle.front[idx] ? "dice_status_front" : "dice_status_back"),
         dice: dice.join("、"),
       });
+      addActionBox(c, window.I18N.t("combat_action_move"), null, [
+        window.I18N.t("combat_move_current_area", { area: window.I18N.t(state.battle.front[idx] ? "dice_status_front" : "dice_status_back") }),
+        window.I18N.t("action_log_dice_used", { dice: dice.join("、") }),
+      ]);
+      // addActionBox()はこの直前の renderCharacterRoster() より後に呼んでいるため、新しい
+      // アクションボックスをロスタに反映するにはもう一度描画し直す必要がある。
+      renderCharacterRoster();
       renderBattlePositionAreas();
       renderCombatModal();
     });
@@ -2606,6 +2874,7 @@
       combatDiceSelection = [];
       saveRosterCharacters();
       addLog("log_combat_equip_change", { character: c.name, dice: dice.join("、") });
+      addActionBox(c, window.I18N.t("combat_action_equip"), null, [window.I18N.t("action_log_dice_used", { dice: dice.join("、") })]);
       renderCharacterRoster();
       renderCombatModal();
     });
