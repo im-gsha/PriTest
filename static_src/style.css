@@ -560,6 +560,8 @@ button {
   cursor: pointer;
   color: inherit;
   background: none;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .slot.empty {

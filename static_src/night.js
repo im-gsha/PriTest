@@ -5,6 +5,7 @@
   var SUIT_CLASSES = ["suit-black", "suit-red", "suit-orange", "suit-green"];
   var RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
   var SLOT_COUNT = 9;
+  var SLOT_LONG_PRESS_MS = 1000;
   // 固定配置副本（安寧者たち／瓦礫の王）の原書図解ポジション（1-9、上7-8-9／中4-S-5-E-6／下1-2-3）
   // から実際の盤面スロット index（slot-0〜slot-8）への対応表。中央＝ポジション5＝slot-4。
   var FIXED_LAYOUT_POS_TO_SLOT = { 1: 6, 2: 7, 3: 8, 4: 3, 5: 4, 6: 5, 7: 0, 8: 1, 9: 2 };
@@ -327,13 +328,14 @@
 
   var ENEMY_HP_ROWS = 4;
   var ENEMY_HP_COLS = 20;
+  var BATTLE_SLOT_COUNT = 4;
 
   function defaultBattleState() {
     return {
-      front: [false, false, false, false, false, false],
-      back: [false, false, false, false, false, false],
-      // PC1〜6の「敵視」。番号は前衛／後衛どちらのマスにいても同じPCを指すため、両エリアで共有する。
-      aggro: [0, 0, 0, 0, 0, 0],
+      front: new Array(BATTLE_SLOT_COUNT).fill(false),
+      back: new Array(BATTLE_SLOT_COUNT).fill(false),
+      // PC1〜4の「敵視」。番号は前衛／後衛どちらのマスにいても同じPCを指すため、両エリアで共有する。
+      aggro: new Array(BATTLE_SLOT_COUNT).fill(0),
       enemyHp: new Array(ENEMY_HP_ROWS * ENEMY_HP_COLS).fill(false),
       mobHpRows: [],
       selectedEnemyIds: [],
@@ -509,16 +511,16 @@
   function loadBattleState(raw) {
     var fallback = defaultBattleState();
     if (!raw || typeof raw !== "object") return fallback;
-    var front = Array.isArray(raw.front) ? raw.front.slice(0, 6).map(Boolean) : fallback.front.slice();
-    while (front.length < 6) front.push(false);
-    var back = Array.isArray(raw.back) ? raw.back.slice(0, 6).map(Boolean) : fallback.back.slice();
-    while (back.length < 6) back.push(false);
+    var front = Array.isArray(raw.front) ? raw.front.slice(0, BATTLE_SLOT_COUNT).map(Boolean) : fallback.front.slice();
+    while (front.length < BATTLE_SLOT_COUNT) front.push(false);
+    var back = Array.isArray(raw.back) ? raw.back.slice(0, BATTLE_SLOT_COUNT).map(Boolean) : fallback.back.slice();
+    while (back.length < BATTLE_SLOT_COUNT) back.push(false);
     var aggro = Array.isArray(raw.aggro)
-      ? raw.aggro.slice(0, 6).map(function (v) {
+      ? raw.aggro.slice(0, BATTLE_SLOT_COUNT).map(function (v) {
           return Number(v) || 0;
         })
       : fallback.aggro.slice();
-    while (aggro.length < 6) aggro.push(0);
+    while (aggro.length < BATTLE_SLOT_COUNT) aggro.push(0);
     var hpTotal = ENEMY_HP_ROWS * ENEMY_HP_COLS;
     var enemyHp = Array.isArray(raw.enemyHp) ? raw.enemyHp.slice(0, hpTotal).map(Boolean) : fallback.enemyHp.slice();
     while (enemyHp.length < hpTotal) enemyHp.push(false);
@@ -2149,7 +2151,7 @@
     var container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = "";
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < BATTLE_SLOT_COUNT; i++) {
       (function (idx) {
         var cell = document.createElement("div");
         cell.className = "battle-toggle-cell";
@@ -2234,7 +2236,7 @@
     var stateChanged = false;
     var flagsChanged = false;
     entered.forEach(function (c, idx) {
-      if (idx >= 6) return;
+      if (idx >= BATTLE_SLOT_COUNT) return;
       var pool = c.dicePool || [];
       var status = CharacterDrawer.computeDiceStatus(pool);
       if (status) {
@@ -2268,7 +2270,7 @@
 
   // 敵人を除去した、または戦場を初期化したときは、前衛/後衛の点灯と敵視を全て解除する。
   function resetBattlePositionsAndAggro() {
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < BATTLE_SLOT_COUNT; i++) {
       state.battle.front[i] = false;
       state.battle.back[i] = false;
       state.battle.aggro[i] = 0;
@@ -2284,7 +2286,7 @@
       return c.entered;
     });
     entered.forEach(function (c, idx) {
-      if (idx >= 6) return;
+      if (idx >= BATTLE_SLOT_COUNT) return;
       state.battle.aggro[idx] = CharacterDrawer.getPassiveAggroBonus ? CharacterDrawer.getPassiveAggroBonus(c) : 0;
     });
     saveState();
@@ -2490,7 +2492,7 @@
   function renderCombatMoveAction(c, content) {
     var names = battlePositionNames();
     var idx = names.indexOf(c.name);
-    if (idx === -1 || idx >= 6) {
+    if (idx === -1 || idx >= BATTLE_SLOT_COUNT) {
       var note = document.createElement("p");
       note.className = "threat-ref-body";
       note.textContent = window.I18N.t("combat_no_battle_slot_note");
@@ -3665,6 +3667,30 @@
     noBtn.addEventListener("click", onNoClick);
   }
 
+  // 短押し（タップ）＝規則書の該当ページを開く（規則書パスワード認証済みが前提。未認証時は何もしない）。
+  // カードのrank（A〜K）が、fields.jsのフィールドカードのcardLabelに対応する。同じrankを持つ
+  // カードが複数ある場合（シナリオ違いの同ランク別内容）は、規則書のフィールドタブを開くだけに留め、
+  // 該当ページへの自動スクロールは最初に見つかった1件に対して行う。
+  function onSlotShortClick(index) {
+    var slot = state.slots[index];
+    if (!slot) return;
+    if (!isRulebookAuthenticated()) return;
+    var card = CARD_BY_CODE[slot.code];
+    var Fields = window.PriTestFields;
+    if (!card || !Fields) return;
+    var matches = Fields.list().filter(function (fc) {
+      return fc.cardLabel === card.rank;
+    });
+    if (!matches.length) return;
+    document.getElementById("rulebook-modal").hidden = false;
+    switchRulebookTab("board");
+    setTimeout(function () {
+      var target = document.getElementById("field-card-" + matches[0].id);
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
+  // 長押し（1秒）＝既存の「めくる（未公開→公開）」「山札に戻す（公開→除去）」操作。
   function onSlotClick(index) {
     var slot = state.slots[index];
     if (!slot) return;
@@ -3728,8 +3754,24 @@
         btn.type = "button";
         btn.id = "slot-" + index;
         btn.className = "slot empty";
-        btn.addEventListener("click", function () {
-          onSlotClick(index);
+        var slotPressTimer = null;
+        var slotLongPressFired = false;
+        btn.addEventListener("pointerdown", function () {
+          slotLongPressFired = false;
+          slotPressTimer = setTimeout(function () {
+            slotLongPressFired = true;
+            onSlotClick(index);
+          }, SLOT_LONG_PRESS_MS);
+        });
+        btn.addEventListener("pointerup", function () {
+          clearTimeout(slotPressTimer);
+          if (!slotLongPressFired) onSlotShortClick(index);
+        });
+        btn.addEventListener("pointerleave", function () {
+          clearTimeout(slotPressTimer);
+        });
+        btn.addEventListener("pointercancel", function () {
+          clearTimeout(slotPressTimer);
         });
         wrap.appendChild(btn);
 
