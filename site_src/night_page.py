@@ -246,6 +246,25 @@ BODY = """    <div class="night-header-row">
       </div>
     </div>
 
+    <div id="combat-modal" class="modal" hidden>
+      <div class="modal-box combat-modal-box">
+        <h2 id="combat-modal-title"></h2>
+        <p id="combat-modal-error" class="error-banner" hidden></p>
+        <div class="combat-action-grid">
+          <button type="button" class="combat-action-btn" data-action="attack" data-i18n="combat_action_attack"></button>
+          <button type="button" class="combat-action-btn" data-action="skill" data-i18n="combat_action_skill"></button>
+          <button type="button" class="combat-action-btn" data-action="flask" data-i18n="combat_action_flask"></button>
+          <button type="button" class="combat-action-btn" data-action="consumable" data-i18n="combat_action_consumable"></button>
+          <button type="button" class="combat-action-btn" data-action="move" data-i18n="combat_action_move"></button>
+          <button type="button" class="combat-action-btn" data-action="equip" data-i18n="combat_action_equip"></button>
+        </div>
+        <div id="combat-modal-content"></div>
+        <div class="actions">
+          <button id="btn-combat-modal-close" type="button" class="primary-btn" data-i18n="close_button"></button>
+        </div>
+      </div>
+    </div>
+
     <div id="threat-drawer" class="drawer">
       <div class="drawer-backdrop" id="threat-drawer-backdrop"></div>
       <div class="drawer-panel">

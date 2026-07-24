@@ -735,6 +735,66 @@ button {
   resize: horizontal;
 }
 
+.combat-modal-box {
+  max-width: 520px;
+  width: 92vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.combat-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.combat-action-btn {
+  padding: 0.5rem;
+  border: 1px solid #bbb;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.combat-action-btn.active {
+  background: #2d6cdf;
+  border-color: #2d6cdf;
+  color: #fff;
+  font-weight: 600;
+}
+
+.combat-dice-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0.6rem 0;
+}
+
+.combat-dice-pick-btn {
+  cursor: pointer;
+}
+
+.combat-dice-pick-btn.active {
+  background: #2d6cdf;
+  border-color: #2d6cdf;
+  color: #fff;
+}
+
+.combat-equip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.5rem 0;
+}
+
+.roster-combat-btn {
+  margin-top: 0.4rem;
+}
+
 .modal-floating-close {
   position: sticky;
   float: right;

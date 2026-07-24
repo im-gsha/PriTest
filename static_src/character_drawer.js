@@ -1201,7 +1201,13 @@
     var details = document.createElement("details");
     details.className = "ability-entry";
     var summary = document.createElement("summary");
-    summary.textContent = display.name + (display.kind ? "［" + display.kind + "］" : "");
+    var artPowerTag = "";
+    if (ref.kind === "art") {
+      var damageForArt = computeWeaponDamage(c, weaponId);
+      var artValue = damageForArt ? artSkillPowerValue(display.body, damageForArt.artPower) : null;
+      if (artValue !== null) artPowerTag = "　" + window.I18N.t("weapon_damage_art_power_tag", { value: artValue });
+    }
+    summary.textContent = display.name + (display.kind ? "［" + display.kind + "］" : "") + artPowerTag;
     details.appendChild(summary);
     if (display.body) {
       var p = document.createElement("p");
@@ -1272,12 +1278,22 @@
     var card = document.createElement("div");
     card.className = "relic-candidate-card";
 
+    var damage = category && !category.isShield ? computeWeaponDamage(c, weaponId) : null;
+
     var title = document.createElement("div");
     title.className = "relic-candidate-name";
     title.textContent =
       Weapons.localizedText(weapon.name) +
-      "（" + (category ? Weapons.localizedText(category.name) : weapon.category) + "・" + weapon.rarity + "）";
+      "（" + (category ? Weapons.localizedText(category.name) : weapon.category) + "・" + weapon.rarity + "）" +
+      (damage ? "　" + weaponDamageTagText(damage) : "");
     card.appendChild(title);
+
+    if (damage) {
+      var damageBreakdown = document.createElement("p");
+      damageBreakdown.className = "threat-ref-body";
+      damageBreakdown.textContent = weaponDamageBreakdownText(damage);
+      card.appendChild(damageBreakdown);
+    }
 
     if (category && category.isShield) {
       var shieldHp = weapon.rarity === "R" || weapon.rarity === "L" ? category.basicStats.guardHpRL : category.basicStats.guardHpCU;
@@ -1504,13 +1520,15 @@
           return n;
         });
 
+      var damage = category && !category.isShield ? computeWeaponDamage(c, weaponId) : null;
       var nameBtn = document.createElement("button");
       nameBtn.type = "button";
       nameBtn.className = "roster-weapon-name-btn";
       nameBtn.textContent =
         Weapons.localizedText(weapon.name) +
         (attackCost ? "（" + attackCost + "）" : "") +
-        (skillNames.length ? " ｜ " + skillNames.join("・") : "");
+        (skillNames.length ? " ｜ " + skillNames.join("・") : "") +
+        (damage ? " " + weaponDamageTagText(damage) : "");
       nameBtn.addEventListener("click", function () {
         openWeaponDetailDrawer(c.id, weaponId);
       });
@@ -1950,6 +1968,227 @@
   function isNotePlaceholderWeapon(w) {
     var skills = (w && w.skills) || [];
     return skills.length === 1 && skills[0].kind === "note";
+  }
+
+  // ============================================================
+  // ダメージ計算：稀有度補正+威力補正=戦技威力 + 武器威力 = 1hit基本 + 遺物効果 + 付帯効果 = 1hit傷害
+  //              1hit基本*2 + 遺物効果 + 付帯効果 + 特典 = 2hit傷害
+  // 遺物効果／付帯効果／特典は、習得済みの遺物効果・付帯効果・所持タリスマンの本文（自由文章）から
+  // 「1Hit：+n／2Hit：+n」等の定型表現を正規表現で抽出するベストエフォート方式。文章が特殊な形式
+  // （▲や□等の可変値、対応する定型パターンを持たない条件付き効果）の場合は0として扱う。
+  var RARITY_CORRECTION = { C: 0, U: 5, R: 10, L: 15 };
+  var POWER_MOD_STAT_MAP = [
+    ["筋力", "strength"],
+    ["力量", "strength"],
+    ["技量", "dex"],
+    ["技巧", "dex"],
+    ["バランス", "balance"],
+    ["平衡", "balance"],
+    ["知力", "intelligence"],
+    ["智力", "intelligence"],
+    ["信仰", "faith"],
+    ["秘術", "arcane"],
+    ["神秘", "arcane"],
+  ];
+  var RANGED_CATEGORY_IDS = ["bow", "greatbow", "crossbow", "ballista", "staff", "sacred_seal"];
+  var HIT_DAMAGE_RE = /1Hit[：:]\s*([+＋－\-]\d+)[／\/]2Hit[：:]?\s*([+＋－\-]\d+)/;
+
+  function normalizeSignedNumber(text) {
+    var n = parseInt(String(text).replace(/＋/g, "+").replace(/－/g, "-"), 10);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function resolvePowerModStatKey(text) {
+    var t = String(text || "");
+    for (var i = 0; i < POWER_MOD_STAT_MAP.length; i++) {
+      if (t.indexOf(POWER_MOD_STAT_MAP[i][0]) !== -1) return POWER_MOD_STAT_MAP[i][1];
+    }
+    return null;
+  }
+
+  // 対象テキストから「1Hit：+n／2Hit：+n」を抽出し[n1, n2]を返す（無ければ[0,0]）。
+  function extractHitBonus(text) {
+    var m = HIT_DAMAGE_RE.exec(String(text || ""));
+    if (!m) return [0, 0];
+    return [normalizeSignedNumber(m[1]), normalizeSignedNumber(m[2])];
+  }
+
+  // タリスマンの「威力補正「技量：+5、バランス：+5」」のような文章から、指定したstatKeyに
+  // 該当する加算値だけを合計して返す。
+  function talismanPowerModBonus(c, statKey) {
+    if (!statKey) return 0;
+    var total = 0;
+    (c.talismanIds || []).forEach(function (id) {
+      var t = Talismans.get(id);
+      if (!t) return;
+      // ja/zhの両方を数えると二重加算になるため、いずれか一方（ja優先）だけを見る。
+      var text = (t.body && t.body.ja) || (t.body && t.body.zh);
+      if (!text) return;
+      var m = /威力補正[「『]([^」』]+)[」』]/.exec(text);
+      if (!m) return;
+      m[1].split(/[、，]/).forEach(function (clause) {
+        var key = resolvePowerModStatKey(clause);
+        var numMatch = /[+＋－\-]\s*\d+/.exec(clause);
+        if (key === statKey && numMatch) total += normalizeSignedNumber(numMatch[0]);
+      });
+    });
+    return total;
+  }
+
+  // 武器自身が持つ「element_minus5／status_minus5」スキル（レア度C/U限定の武器威力-5スキル）や、
+  // 固有スキル（innate、例：「武器威力＋10」）による武器威力の追加補正を合算する。
+  function weaponInnatePowerAdjustment(weapon) {
+    var total = 0;
+    (weapon.skills || []).forEach(function (ref) {
+      if (ref.kind === "element_minus5" || ref.kind === "status_minus5") {
+        total -= 5;
+        return;
+      }
+      if (ref.kind !== "innate") return;
+      var innate = null;
+      Weapons.categories().forEach(function (cat) {
+        (cat.innateSkills || []).forEach(function (s) {
+          if (s.id === ref.id) innate = s;
+        });
+      });
+      if (!innate) return;
+      // ja/zhの両方を数えると二重加算になるため、いずれか一方（ja優先）だけを見る。
+      var text = (innate.body && innate.body.ja) || (innate.body && innate.body.zh);
+      if (text) {
+        var m = /武器威力[」』]?[：:]\s*([+＋－\-]\d+)/.exec(text);
+        if (m) total += normalizeSignedNumber(m[1]);
+      }
+    });
+    return total;
+  }
+
+  // 特典（2Hit専用）：装備状態の近接武器に対して常時「2Hit特典：総合ダメージ＋n」を与える
+  // タリスマンを所持している場合、その分を合算する（可変値「▲」等は解決できないため0扱い）。
+  function talisman2HitBonus(c, weaponId, category) {
+    if (!category || category.isShield || RANGED_CATEGORY_IDS.indexOf(category.id) !== -1) return 0;
+    if ((c.equippedWeaponIds || []).indexOf(weaponId) === -1) return 0;
+    var total = 0;
+    (c.talismanIds || []).forEach(function (id) {
+      var t = Talismans.get(id);
+      if (!t) return;
+      // ja/zhの両方を数えると二重加算になるため、いずれか一方（ja優先）だけを見る。
+      var text = (t.body && t.body.ja) || (t.body && t.body.zh);
+      if (!text) return;
+      if (text.indexOf("2Hit特典") === -1) return;
+      if (text.indexOf("総合ダメージ") === -1 && text.indexOf("總合傷害") === -1 && text.indexOf("總和傷害") === -1) return;
+      var m = /(?:総合ダメージ|總合傷害|總和傷害)[^0-9+＋]*([+＋]\s*\d+)/.exec(text);
+      if (m) total += normalizeSignedNumber(m[1]);
+    });
+    return total;
+  }
+
+  // 付帯効果（c.learnedAttachedEffects）：一部の効果は装備状況に条件がある
+  // （two_hand_up＝武器を1つのみ装備、dual_wield_up＝同カテゴリの近接武器を2つ装備）。
+  function attachedEffectAppliesTo(effect, c, weaponId, weapon) {
+    if (effect.id === "two_hand_up") {
+      return (c.equippedWeaponIds || []).length === 1 && c.equippedWeaponIds[0] === weaponId;
+    }
+    if (effect.id === "dual_wield_up") {
+      var sameCategory = (c.equippedWeaponIds || []).filter(function (id) {
+        var w = Weapons.get(baseWeaponId(id));
+        return w && w.category === weapon.category;
+      });
+      return (c.equippedWeaponIds || []).length === 2 && sameCategory.length === 2 && (c.equippedWeaponIds || []).indexOf(weaponId) !== -1;
+    }
+    return true;
+  }
+
+  // 武器1つ分のダメージ内訳を計算する。盾／カテゴリ不明の場合はnullを返す。
+  function computeWeaponDamage(c, weaponId) {
+    var weapon = Weapons.get(baseWeaponId(weaponId));
+    if (!weapon) return null;
+    var category = Weapons.getCategory(weapon.category);
+    if (!category || category.isShield) return null;
+
+    var rarityCorrection = RARITY_CORRECTION[weapon.rarity] || 0;
+    var powerModText = weapon.powerModOverride ? Weapons.localizedText(weapon.powerModOverride) : Weapons.localizedText(category.basicStats.powerMod);
+    var statKey = resolvePowerModStatKey(powerModText);
+    var type = c.typeId ? CharacterTypes.get(c.typeId) : null;
+    var powerMod = (type && statKey && type.powerMod ? type.powerMod[statKey] || 0 : 0) + talismanPowerModBonus(c, statKey);
+    var artPower = rarityCorrection + powerMod;
+
+    var weaponPowerRaw = category.basicStats.weaponPower;
+    var weaponPowerBase = (typeof weaponPowerRaw === "number" ? weaponPowerRaw : parseInt(weaponPowerRaw, 10) || 0) + weaponInnatePowerAdjustment(weapon);
+
+    var hit1Base = artPower + weaponPowerBase;
+
+    var relic1 = 0,
+      relic2 = 0;
+    (c.learnedRelicEffects || []).forEach(function (key) {
+      var effect = type ? relicEffectForKey(type, key) : null;
+      if (!effect || effect.kind !== "Passive") return;
+      var bJa = extractHitBonus(effect.body && effect.body.ja);
+      var b = bJa[0] || bJa[1] ? bJa : extractHitBonus(effect.body && effect.body.zh);
+      relic1 += b[0];
+      relic2 += b[1];
+    });
+
+    var attached1 = 0,
+      attached2 = 0;
+    (c.learnedAttachedEffects || []).forEach(function (id) {
+      var effect = attachedEffectById(id);
+      if (!effect || !attachedEffectAppliesTo(effect, c, weaponId, weapon)) return;
+      var bJa = extractHitBonus(effect.body && effect.body.ja);
+      var b = bJa[0] || bJa[1] ? bJa : extractHitBonus(effect.body && effect.body.zh);
+      attached1 += b[0];
+      attached2 += b[1];
+    });
+
+    var bonus2hit = talisman2HitBonus(c, weaponId, category);
+
+    var hit1Damage = hit1Base + relic1 + attached1;
+    var hit2Damage = hit1Base * 2 + relic2 + attached2 + bonus2hit;
+
+    return {
+      rarityCorrection: rarityCorrection,
+      powerMod: powerMod,
+      artPower: artPower,
+      weaponPower: weaponPowerBase,
+      hit1Base: hit1Base,
+      relic1: relic1,
+      relic2: relic2,
+      attached1: attached1,
+      attached2: attached2,
+      bonus2hit: bonus2hit,
+      hit1Damage: hit1Damage,
+      hit2Damage: hit2Damage,
+    };
+  }
+
+  function weaponDamageTagText(d) {
+    if (!d) return "";
+    return window.I18N.t("weapon_damage_hit_tag", { hit1: d.hit1Damage, hit2: d.hit2Damage });
+  }
+
+  function weaponDamageBreakdownText(d) {
+    if (!d) return "";
+    return window.I18N.t("weapon_damage_breakdown", {
+      rarity: d.rarityCorrection,
+      powerMod: d.powerMod,
+      artPower: d.artPower,
+      weaponPower: d.weaponPower,
+      relic1: d.relic1,
+      attached1: d.attached1,
+      hit1: d.hit1Damage,
+      hit1Base: d.hit1Base,
+      relic2: d.relic2,
+      attached2: d.attached2,
+      bonus2hit: d.bonus2hit,
+      hit2: d.hit2Damage,
+    });
+  }
+
+  // 戦技（art）の「威力：N＋戦技威力」から、指定した武器のartPowerを使ってm（=戦技の実際の威力）を
+  // 計算する。パターンに合致しない場合はnullを返す（無理に数字を出さない）。
+  function artSkillPowerValue(bodyText, artPower) {
+    var m = /威力[：:]\s*(-?\d+)＋(?:戦技威力|戰技威力)/.exec(String(bodyText || ""));
+    if (!m) return null;
+    return parseInt(m[1], 10) + artPower;
   }
 
   function findNotePlaceholderWeapon(categoryId, rarity) {

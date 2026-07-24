@@ -187,6 +187,14 @@
         });
         diceCol.appendChild(diceResetBtn);
       }
+      var combatBtn = document.createElement("button");
+      combatBtn.type = "button";
+      combatBtn.className = "primary-btn roster-combat-btn";
+      combatBtn.textContent = window.I18N.t("combat_button_label");
+      combatBtn.addEventListener("click", function () {
+        openCombatModal(c.id);
+      });
+      diceCol.appendChild(combatBtn);
 
       var weaponCol = document.createElement("div");
       weaponCol.className = "roster-detail-col";
@@ -2283,6 +2291,299 @@
     renderBattlePositionAreas();
   }
 
+  // --- 戦闘モーダル：骰子池の隣の「戦闘」ボタンから開く、6つの行動（攻撃／技能／聖杯瓶使用／
+  // 消耗品使用／移動区域／装備変更）を選ぶウィンドウ。攻撃・技能は閲覧専用（骰子消費なし）、
+  // 残り4つは対象の骰子池から消費する骰子を選んでから確定する。
+  var combatModalCharacterId = null;
+  var combatModalAction = null;
+  var combatDiceSelection = [];
+
+  function combatCharacter() {
+    return rosterCharacters.filter(function (c) {
+      return c.id === combatModalCharacterId;
+    })[0] || null;
+  }
+
+  function openCombatModal(characterId) {
+    combatModalCharacterId = characterId;
+    combatModalAction = null;
+    combatDiceSelection = [];
+    document.getElementById("combat-modal").hidden = false;
+    renderCombatModal();
+  }
+
+  function closeCombatModal() {
+    document.getElementById("combat-modal").hidden = true;
+    combatModalCharacterId = null;
+    combatModalAction = null;
+    combatDiceSelection = [];
+  }
+
+  function showCombatError(key, params) {
+    var errEl = document.getElementById("combat-modal-error");
+    errEl.textContent = window.I18N.t(key, params);
+    errEl.hidden = false;
+  }
+
+  function renderCombatAttackAction(c, content) {
+    var wrap = document.createElement("div");
+    CharacterDrawer.renderRosterWeaponList(c, wrap);
+    if (!wrap.children.length) {
+      var empty = document.createElement("p");
+      empty.className = "threat-ref-body";
+      empty.textContent = window.I18N.t("combat_no_weapons_note");
+      content.appendChild(empty);
+      return;
+    }
+    content.appendChild(wrap);
+  }
+
+  function renderCombatSkillAction(c, content) {
+    var type = c.typeId ? CharacterTypes.get(c.typeId) : null;
+    if (!type) {
+      var empty = document.createElement("p");
+      empty.className = "threat-ref-body";
+      empty.textContent = window.I18N.t("combat_no_skills_note");
+      content.appendChild(empty);
+      return;
+    }
+    var activeWrap = document.createElement("div");
+    CharacterDrawer.renderAbilitySections(c, type, activeWrap, document.createElement("div"));
+    if (!activeWrap.children.length) {
+      var empty2 = document.createElement("p");
+      empty2.className = "threat-ref-body";
+      empty2.textContent = window.I18N.t("combat_no_skills_note");
+      content.appendChild(empty2);
+      return;
+    }
+    content.appendChild(activeWrap);
+  }
+
+  // 骰子消費を伴う4アクション（聖杯瓶使用／消耗品使用／移動区域／装備変更）共通の骰子選択UI。
+  function renderCombatDicePicker(c, content) {
+    var poolWrap = document.createElement("div");
+    poolWrap.className = "combat-dice-picker";
+    (c.dicePool || []).forEach(function (value, idx) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "dice-item combat-dice-pick-btn";
+      btn.textContent = value;
+      if (combatDiceSelection.indexOf(idx) !== -1) btn.classList.add("active");
+      btn.addEventListener("click", function () {
+        var i = combatDiceSelection.indexOf(idx);
+        if (i === -1) combatDiceSelection.push(idx);
+        else combatDiceSelection.splice(i, 1);
+        renderCombatModal();
+      });
+      poolWrap.appendChild(btn);
+    });
+    content.appendChild(poolWrap);
+    if (!(c.dicePool || []).length) {
+      var note = document.createElement("p");
+      note.className = "threat-ref-body";
+      note.textContent = window.I18N.t("combat_no_dice_note");
+      content.appendChild(note);
+    }
+  }
+
+  function consumeCombatDice(c) {
+    var indices = combatDiceSelection.slice().sort(function (a, b) {
+      return b - a;
+    });
+    var consumed = indices.map(function (idx) {
+      return c.dicePool[idx];
+    });
+    indices.forEach(function (idx) {
+      c.dicePool.splice(idx, 1);
+    });
+    return consumed.reverse();
+  }
+
+  function renderCombatFlaskAction(c, content) {
+    var available = c.flaskBase.used < c.flaskBase.max || (c.flaskExtra && c.flaskExtra.used < c.flaskExtra.max);
+    if (!available) {
+      showCombatError("combat_error_no_flask");
+      return;
+    }
+    renderCombatDicePicker(c, content);
+    var confirmBtn = document.createElement("button");
+    confirmBtn.type = "button";
+    confirmBtn.className = "primary-btn";
+    confirmBtn.textContent = window.I18N.t("combat_confirm_button");
+    confirmBtn.disabled = !combatDiceSelection.length;
+    confirmBtn.addEventListener("click", function () {
+      var dice = consumeCombatDice(c);
+      if (c.flaskBase.used < c.flaskBase.max) c.flaskBase.used += 1;
+      else c.flaskExtra.used += 1;
+      combatDiceSelection = [];
+      saveRosterCharacters();
+      addLog("log_combat_flask_use", { character: c.name, dice: dice.join("、") });
+      renderCharacterRoster();
+      renderCombatModal();
+    });
+    content.appendChild(confirmBtn);
+  }
+
+  function renderCombatConsumableAction(c, content) {
+    var Consumables = window.PriTestConsumables;
+    var ownedIds = Object.keys(c.consumableCounts || {}).filter(function (id) {
+      return (c.consumableCounts[id] || 0) > 0;
+    });
+    if (!ownedIds.length) {
+      showCombatError("combat_error_no_consumable");
+      return;
+    }
+    var selLabel = document.createElement("label");
+    selLabel.className = "field-row-block";
+    selLabel.textContent = window.I18N.t("combat_select_consumable_label");
+    var sel = document.createElement("select");
+    ownedIds.forEach(function (id) {
+      var item = Consumables.get(id);
+      if (!item) return;
+      var opt = document.createElement("option");
+      opt.value = id;
+      opt.textContent = Consumables.localizedText(item.name) + "（" + c.consumableCounts[id] + "）";
+      sel.appendChild(opt);
+    });
+    selLabel.appendChild(sel);
+    content.appendChild(selLabel);
+
+    renderCombatDicePicker(c, content);
+    var confirmBtn = document.createElement("button");
+    confirmBtn.type = "button";
+    confirmBtn.className = "primary-btn";
+    confirmBtn.textContent = window.I18N.t("combat_confirm_button");
+    confirmBtn.disabled = !combatDiceSelection.length;
+    confirmBtn.addEventListener("click", function () {
+      var id = sel.value;
+      var item = Consumables.get(id);
+      var dice = consumeCombatDice(c);
+      c.consumableCounts[id] = Math.max(0, (c.consumableCounts[id] || 0) - 1);
+      combatDiceSelection = [];
+      saveRosterCharacters();
+      addLog("log_combat_consumable_use", {
+        character: c.name,
+        item: item ? Consumables.localizedText(item.name) : id,
+        dice: dice.join("、"),
+      });
+      renderCharacterRoster();
+      renderCombatModal();
+    });
+    content.appendChild(confirmBtn);
+  }
+
+  function renderCombatMoveAction(c, content) {
+    var names = battlePositionNames();
+    var idx = names.indexOf(c.name);
+    if (idx === -1 || idx >= 6) {
+      var note = document.createElement("p");
+      note.className = "threat-ref-body";
+      note.textContent = window.I18N.t("combat_no_battle_slot_note");
+      content.appendChild(note);
+      return;
+    }
+    var currentLabel = document.createElement("p");
+    currentLabel.className = "threat-ref-body";
+    currentLabel.textContent = window.I18N.t("combat_move_current_area", {
+      area: window.I18N.t(state.battle.front[idx] ? "dice_status_front" : "dice_status_back"),
+    });
+    content.appendChild(currentLabel);
+
+    renderCombatDicePicker(c, content);
+    var confirmBtn = document.createElement("button");
+    confirmBtn.type = "button";
+    confirmBtn.className = "primary-btn";
+    confirmBtn.textContent = window.I18N.t("combat_confirm_button");
+    confirmBtn.disabled = !combatDiceSelection.length;
+    confirmBtn.addEventListener("click", function () {
+      var dice = consumeCombatDice(c);
+      state.battle.front[idx] = !state.battle.front[idx];
+      state.battle.back[idx] = !state.battle.front[idx];
+      combatDiceSelection = [];
+      saveRosterCharacters();
+      saveState();
+      addLog("log_combat_move", {
+        character: c.name,
+        area: window.I18N.t(state.battle.front[idx] ? "dice_status_front" : "dice_status_back"),
+        dice: dice.join("、"),
+      });
+      renderCharacterRoster();
+      renderBattlePositionAreas();
+      renderCombatModal();
+    });
+    content.appendChild(confirmBtn);
+  }
+
+  function renderCombatEquipAction(c, content) {
+    var Weapons = window.PriTestWeapons;
+    if (!c.equippedWeaponIds) c.equippedWeaponIds = [];
+    var swappable = (c.weaponIds || []).filter(function (id) {
+      return c.equippedWeaponIds.indexOf(id) === -1;
+    });
+    if (!swappable.length) {
+      showCombatError("combat_error_no_equip_swap");
+      return;
+    }
+    var listWrap = document.createElement("div");
+    listWrap.className = "combat-equip-list";
+    (c.weaponIds || []).forEach(function (weaponId) {
+      var weapon = Weapons.get(weaponId.indexOf("::") !== -1 ? weaponId.slice(0, weaponId.indexOf("::")) : weaponId);
+      if (!weapon) return;
+      var row = document.createElement("label");
+      row.className = "field-row";
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = c.equippedWeaponIds.indexOf(weaponId) !== -1;
+      cb.addEventListener("change", function () {
+        var idx = c.equippedWeaponIds.indexOf(weaponId);
+        if (cb.checked && idx === -1) c.equippedWeaponIds.push(weaponId);
+        if (!cb.checked && idx !== -1) c.equippedWeaponIds.splice(idx, 1);
+      });
+      row.appendChild(cb);
+      var span = document.createElement("span");
+      span.textContent = Weapons.localizedText(weapon.name);
+      row.appendChild(span);
+      listWrap.appendChild(row);
+    });
+    content.appendChild(listWrap);
+
+    renderCombatDicePicker(c, content);
+    var confirmBtn = document.createElement("button");
+    confirmBtn.type = "button";
+    confirmBtn.className = "primary-btn";
+    confirmBtn.textContent = window.I18N.t("combat_confirm_button");
+    confirmBtn.disabled = !combatDiceSelection.length;
+    confirmBtn.addEventListener("click", function () {
+      var dice = consumeCombatDice(c);
+      combatDiceSelection = [];
+      saveRosterCharacters();
+      addLog("log_combat_equip_change", { character: c.name, dice: dice.join("、") });
+      renderCharacterRoster();
+      renderCombatModal();
+    });
+    content.appendChild(confirmBtn);
+  }
+
+  function renderCombatModal() {
+    var c = combatCharacter();
+    var errEl = document.getElementById("combat-modal-error");
+    errEl.hidden = true;
+    errEl.textContent = "";
+    document.getElementById("combat-modal-title").textContent = c ? c.name : "";
+    document.querySelectorAll(".combat-action-btn").forEach(function (btn) {
+      btn.classList.toggle("active", btn.dataset.action === combatModalAction);
+    });
+    var content = document.getElementById("combat-modal-content");
+    content.innerHTML = "";
+    if (!c || !combatModalAction) return;
+    if (combatModalAction === "attack") renderCombatAttackAction(c, content);
+    else if (combatModalAction === "skill") renderCombatSkillAction(c, content);
+    else if (combatModalAction === "flask") renderCombatFlaskAction(c, content);
+    else if (combatModalAction === "consumable") renderCombatConsumableAction(c, content);
+    else if (combatModalAction === "move") renderCombatMoveAction(c, content);
+    else if (combatModalAction === "equip") renderCombatEquipAction(c, content);
+  }
+
   // エネミーHPチェックグリッドは、戦場面板（battle-drawer）内のフル表示、
   // 盤面左側の共用パネル（board-side-enemies直下）の簡易表示、そして第三夜の
   // 夜の王画像の下（night3-boss-hp-grid）の3箇所に同じstate.battle.enemyHpを
@@ -3587,6 +3888,14 @@
     document.getElementById("threat-drawer-backdrop").addEventListener("click", closeThreatDrawer);
     document.getElementById("btn-battle-info").addEventListener("click", openBattleDrawer);
     document.getElementById("btn-battle-drawer-close").addEventListener("click", closeBattleDrawer);
+    document.querySelectorAll(".combat-action-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        combatModalAction = btn.dataset.action;
+        combatDiceSelection = [];
+        renderCombatModal();
+      });
+    });
+    document.getElementById("btn-combat-modal-close").addEventListener("click", closeCombatModal);
     document.getElementById("battle-drawer-backdrop").addEventListener("click", closeBattleDrawer);
     document.getElementById("battle-enemy-search-input").addEventListener("input", renderBattleEnemySearchResults);
     document.getElementById("btn-battle-add-mob-row").addEventListener("click", handleAddMobRow);
